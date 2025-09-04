@@ -174,11 +174,20 @@ p.subtext {
 }
 </style>
 <script type="module">
-    // Import the functions from Firebase SDKs
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+    signInWithRedirect,
+    getRedirectResult,
+    updateProfile
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-  // Firebase configuration
+  // ✅ Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCCg745FQtwibMAZ0FvjuGiwww3cyq-6Cw",
     authDomain: "vynal-dev.firebaseapp.com",
@@ -188,73 +197,74 @@ p.subtext {
     appId: "1:246996109678:web:0161d74a27f4d862ef997f"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
 
-  // ✅ SIGN UP FORM
-  const signupForm = document.getElementById('signup-form');
-  signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const email = signupForm.querySelector('input[type="email"]').value;
-    const password = signupForm.querySelector('input[type="password"]').value;
-    const name = signupForm.querySelector('input[type="text"]').value;
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Optional: Set display name
-      await updateProfile(user, { displayName: name });
-
-      alert("✅ Account created successfully!");
-      toggleForm(); // switch to sign-in form
-
-    } catch (error) {
-      console.error("Signup error:", error);
-      alert("❌ " + error.message);
-    }
-  });
-
-  // ✅ SIGN IN FORM
-  const signinForm = document.getElementById('signin-form');
-  signinForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const email = signinForm.querySelector('input[type="email"]').value;
-    const password = signinForm.querySelector('input[type="password"]').value;
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      alert("✅ Welcome back, " + (user.displayName || "user") + "!");
-      // window.location.href = "/dashboard.html"; // Optional redirect
-
-    } catch (error) {
-      console.error("Signin error:", error);
-      alert("❌ " + error.message);
-    }
-  });
-
-  // ✅ GOOGLE SIGN-IN BUTTONS (shared logic)
-  const googleButtons = document.querySelectorAll('.social-btn img[alt="Google"]');
-  googleButtons.forEach((btn) => {
-    btn.parentElement.addEventListener('click', async () => {
-      try {
-        const result = await signInWithPopup(auth, provider);
+  // ✅ Handle redirect result
+  getRedirectResult(auth)
+    .then((result) => {
+      if (result && result.user) {
         const user = result.user;
-        alert("✅ Signed in as " + user.displayName);
-        // window.location.href = "/dashboard.html"; // Optional redirect
+        alert("✅ Welcome, " + (user.displayName || "user") + "!");
+        // Optional: redirect to dashboard
+        // window.location.href = "/dashboard.html";
+      }
+    })
+    .catch((error) => {
+      console.error("Redirect sign-in error:", error);
+    });
+
+  // ✅ Signup
+  const signupForm = document.getElementById('signup-form');
+  if (signupForm) {
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = signupForm.querySelector('input[type="email"]').value;
+      const password = signupForm.querySelector('input[type="password"]').value;
+      const name = signupForm.querySelector('input[type="text"]').value;
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: name });
+        alert("✅ Account created successfully!");
+        toggleForm();
       } catch (error) {
-        console.error("Google sign-in error:", error);
+        console.error("Signup error:", error);
         alert("❌ " + error.message);
       }
     });
+  }
+
+  // ✅ Signin
+  const signinForm = document.getElementById('signin-form');
+  if (signinForm) {
+    signinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = signinForm.querySelector('input[type="email"]').value;
+      const password = signinForm.querySelector('input[type="password"]').value;
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        alert("✅ Welcome back, " + (user.displayName || "user") + "!");
+      } catch (error) {
+        console.error("Signin error:", error);
+        alert("❌ " + error.message);
+      }
+    });
+  }
+
+  // ✅ Google redirect sign-in
+  const googleButtons = document.querySelectorAll('.social-btn img[alt="Google"]');
+  googleButtons.forEach((btn) => {
+    btn.parentElement.addEventListener('click', () => {
+      signInWithRedirect(auth, provider);
+    });
   });
 </script>
+
 </head>
 <body>
 
