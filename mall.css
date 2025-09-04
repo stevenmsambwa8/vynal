@@ -1,0 +1,105 @@
+        .grid-121 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+        }
+        .post-card {
+             height: 133px;
+        }
+        .post-card-2 {
+             height: 133px;
+        }
+        .post-media img {
+            margin-bottom: 10px;
+        }
+
+        @media(max-width:900px) {
+            .grid-121 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media(max-width:520px) {
+            .grid-121 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;gap: 10px;
+            }
+            .post-card {
+                height: 133px;
+            }
+        }
+
+        /* Modal & cart minimal styles (kept) */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .6);
+            display: none;
+            z-index: 60;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #181818;
+            border-radius: 14px;
+            padding: 20px;
+            z-index: 61;
+            width: 320px;
+        }
+
+        .modal.show,
+        .modal-backdrop.show {
+            display: block;
+        }
+
+        .cart-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 320px;
+            height: 100%;
+            background: #181818;
+            border-left: 1px solid rgba(255, 255, 255, .08);
+            padding: 16px;
+            z-index: 70;
+            display: flex;
+            flex-direction: column;
+            transition: right .3s;
+        }
+
+        .cart-panel.open {
+            right: 0;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            margin: 12px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px;
+            background: rgba(255, 255, 255, .02);
+            border-radius: 10px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }

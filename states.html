@@ -1,0 +1,153 @@
+
+        <!-- Row: Upload + Tracks Table -->
+    <section class="grid-12" aria-label="Upload and tracks">
+      <div class="card span-5" data-animate>
+        <h3>Create New State</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Name" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" id="uReset"><i class="ri-restart-line"></i> Reset</button>
+            <button class="btn primary" id="uSubmit" type="submit"> Register State</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card span-7" data-animate>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h3 style="margin:0;">My States</h3>
+          <span class="badge" id="trackCount">0 items</span>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <input class="input" style="width:100px;" type="search" id="trackSearch" placeholder="Filter tracks…">
+            <select id="trackSort" class="input" style="width:80px;">
+              <option value="plays">Sort by Plays</option>
+              <option value="likes">Sort by Likes</option>
+              <option value="date">Sort by Date</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow:auto; max-height: 360px;">
+          <table aria-label="Tracks table">
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th class="nowrap">Plays</th>
+                <th class="nowrap">Likes</th>
+                <th class="nowrap">Comments</th>
+                <th class="nowrap">Genre</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trackRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+<!-- === Post Example === -->
+<section class="grid-12">
+<div class="span-4" data-animate style="border: 1px solid rgba(255, 255, 255, 0.151);border-radius: 15px;">
+<div class="post-card" data-animate>
+    
+  <div class="post-media">
+  <img src="logobefore.png" alt="Post media" width="100%">
+  </div>
+  <div class="post-header" style="border: none;">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted">23,000,233 Artists</div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
+  </div>
+</div>
+
+</div>
+<div class="span-4" data-animate style="border: 1px solid rgba(255, 255, 255, 0.151);border-radius: 15px;">
+<div class="post-card" data-animate>
+    
+  <div class="post-media">
+  <img src="logobefore.png" alt="Post media" width="100%">
+  </div>
+  <div class="post-header" style="border: none;">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted">23,000,233 Artists</div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
+  </div>
+</div>
+
+</div>
+<div class="span-4" data-animate style="border: 1px solid rgba(255, 255, 255, 0.151);border-radius: 15px;">
+<div class="post-card" data-animate>
+    
+  <div class="post-media">
+  <img src="logobefore.png" alt="Post media" width="100%">
+  </div>
+  <div class="post-header" style="border: none;">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted">23,000,233 Artists</div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
+  </div>
+</div>
+
+</div>
+</section>

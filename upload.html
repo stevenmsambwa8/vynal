@@ -1,0 +1,199 @@
+
+    <!-- Row: Upload + Tracks Table -->
+    <section class="grid-12" aria-label="Upload and tracks">
+      <div class="card span-5" data-animate>
+        <h3>Upload New Track</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" id="uReset"><i class="ri-restart-line"></i> Reset</button>
+            <button class="btn primary" id="uSubmit" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card span-7" data-animate>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h3 style="margin:0;">Unreleased Tracks</h3>
+          <span class="badge" id="trackCount">0 items</span>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <input class="input" style="width:100px;" type="search" id="trackSearch" placeholder="Filter tracks…">
+            <select id="trackSort" class="input" style="width:80px;">
+              <option value="plays">Sort by Plays</option>
+              <option value="likes">Sort by Likes</option>
+              <option value="date">Sort by Date</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow:auto; max-height: 360px;">
+          <table aria-label="Tracks table">
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th class="nowrap">Plays</th>
+                <th class="nowrap">Likes</th>
+                <th class="nowrap">Comments</th>
+                <th class="nowrap">Genre</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trackRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-121">
+      <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart" style="background-color: var(--brand);"><i class="ri-dashboard-3-line"></i><span
+                                class="count"> Publish</span></button>
+                    </div>
+                </div>
+                
+    </section>
+      <style>
+                .grid-121 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+        }
+        .post-card {
+             height: 133px;
+        }
+        .post-card-2 {
+             height: 133px;
+        }
+        .post-media img {
+            margin-bottom: 10px;
+        }
+
+        @media(max-width:900px) {
+            .grid-121 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media(max-width:520px) {
+            .grid-121 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;gap: 10px;
+            }
+            .post-card {
+                height: 133px;
+            }
+        }
+
+        /* Modal & cart minimal styles (kept) */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .6);
+            display: none;
+            z-index: 60;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #181818;
+            border-radius: 14px;
+            padding: 20px;
+            z-index: 61;
+            width: 320px;
+        }
+
+        .modal.show,
+        .modal-backdrop.show {
+            display: block;
+        }
+
+        .cart-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 320px;
+            height: 100%;
+            background: #181818;
+            border-left: 1px solid rgba(255, 255, 255, .08);
+            padding: 16px;
+            z-index: 70;
+            display: flex;
+            flex-direction: column;
+            transition: right .3s;
+        }
+
+        .cart-panel.open {
+            right: 0;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            margin: 12px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px;
+            background: rgba(255, 255, 255, .02);
+            border-radius: 10px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+      </style>

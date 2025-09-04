@@ -1,0 +1,431 @@
+<!DOCTYPE html>  
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+
+<style>
+/* === Post UI Enhancements === */
+.post-card { cursor: pointer; }
+
+/* Post image fixed height + cover */
+.post-media {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.post-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Watermark overlay */
+.post-media .watermark {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.post-media .watermark img {
+  height: 30px;
+  width: auto;
+}
+
+.hidden { display: none !important; }
+
+
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Like animation */
+.like-btn.liked i {
+  color: red;
+  animation: pop 0.3s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+</style>
+</head>
+
+<body>
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo.png"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#" class="active" data-nav="dashboard"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="upload.html" data-nav="upload"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#" data-nav="tracks"><i class="ri-music-2-line"></i><span>My Tracks</span></a>
+<a href="#" data-nav="feed"><i class="ri-hashtag"></i><span>Feed</span></a>
+<a href="#" data-nav="analytics"><i class="ri-bar-chart-2-line"></i><span>Analytics</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-nav="profile"><i class="ri-user-3-line"></i><span>Profile</span></a>
+<a href="#" data-nav="settings"><i class="ri-settings-3-line"></i><span>Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="toggleTheme" title="Toggle theme" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, followers… (⌘/Ctrl + K)"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<span class="pill"><i class="ri-flashlight-line"></i><span id="quickHint">Tips</span></span>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+ <a href="index.html"> <div class="avatar" id="userMenu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">NA</div></a>
+</div>
+
+</header>
+
+<!-- ===== Main ===== -->
+<main class="main" id="main">
+<!-- Row: Metrics + Profile Quick Card -->
+<section class="grid-12" aria-label="Key metrics">
+<div class="card span-4" style="background: linear-gradient(20deg, #121212,#dd1ab3);border: none;" data-animate>
+<h3 style="color: white;">VYNAL Income</h3>
+<div class="metric">109,000,000 USD</div>
+<div class="trend up"><i class="ri-add-line"></i><span>10%</span></div>
+</div>
+<div class="card span-2" data-animate>
+<h3>Followers</h3>
+<div class="metric">900,000</div>
+<div class="trend up"><i class="ri-arrow-up-s-line"></i><span>+5%</span></div>
+</div>
+<div class="card span-5" data-animate>
+<h3>Total Streams</h3>
+<div class="metric">900,000</div>
+<div class="trend down"><i class="ri-arrow-up-s-line"></i><span>+17%</span></div>
+</div>
+
+<div class="card span-6" data-animate style="box-shadow: none;background: #121212">
+<div style="display:flex; gap:14px; align-items:center;">
+<div>
+<div style="font-weight:800; font-size:18px;line-height: .9;margin-bottom: 5px;">Musicians worldwide</div>
+<div class="muted"> 12,212,000 artists</div>
+</div>
+<div style="margin-left:auto; display:flex; gap:8px;">
+<button class="btn ghost" id="btnShare"><i class="ri-eye-2-line"></i></button>
+<button class="btn primary" id="btnNewPost"> Join Group</button>
+</div>
+</div>
+<div class="divider"></div>
+<div class="row">
+<div class="col-4">
+<div class="muted">Administrator</div>
+<div class="nowrap">Midnight </div>
+</div>
+<div class="col-4">
+<div class="muted">Posts</div>
+<div id="avgDaily">20,000</div>
+</div>
+<div class="col-4">
+<div class="muted">Engagement</div>
+<div><span class="badge">High</span></div>
+</div>
+</div>
+</div>
+<div class="card span-6" data-animate
+style="border: none;box-shadow: none;background: linear-gradient(20deg, #121212,#5dd6ff)">
+<div style="display:flex; gap:14px; align-items:center;">
+<div class="cover" style="width:60px; height:60px; border-radius:16px;"></div>
+<div>
+<div style="font-weight:800; font-size:18px;">Vale Artist</div>
+<div class="muted">Indie </div>
+</div>
+<div style="margin-left:auto; display:flex; gap:8px;">
+<button class="btn ghost" id="btnShare"><i class="ri-external-link-line"></i></button>
+<button class="btn primary" id="btnNewPost"> Listen Now</button>
+</div>
+</div>
+<div class="divider"></div>
+<div class="row">
+<div class="col-4">
+<div class="muted">Top Track</div>
+<div class="nowrap">Midnight </div>
+</div>
+<div class="col-4">
+<div class="muted">Likes</div>
+<div id="avgDaily">0</div>
+</div>
+<div class="col-4">
+<div class="muted">Engagement</div>
+<div><span class="badge">High</span></div>
+</div>
+</div>
+</div>
+
+
+</section>
+
+<!-- Row: Feed + Activity + Right Rail Tiles -->
+<section class="grid-12" aria-label="Feed and activity">
+<div class="card span-7" data-animate>
+<h3>Artist Feed</h3>
+<form id="postForm" class="feed-form" novalidate>
+<div class="avatar-lg" aria-hidden="true">NA</div>
+<div>
+<textarea class="input" id="postText" rows="3" placeholder="Share an update…"
+aria-label="Compose post"></textarea>
+<div class="feed-controls" style="margin-top:8px;">
+<label class="btn ghost" for="postImage"><i class="ri-image-add-line"></i> Image</label>
+<input id="postImage" type="file" accept="image/*" class="sr-only" />
+<button class="btn primary" type="submit"><i class="ri-send-plane-2-line"></i> Post</button>
+</div>
+</div>
+<div class="muted" style="padding-top:8px;">Be respectful. No spam.</div>
+</form>
+<div id="feedList" style="display:grid; gap:10px; margin-top:10px;"></div>
+</div>
+
+<div class="card span-5 rail" data-animate>
+<div class="tile">
+<div style="display:flex; align-items:center; gap:8px;">
+<i class="ri-time-line"></i>
+<strong>Recent Activity</strong>
+</div>
+<div id="activity" class="muted" style="display:grid; gap:6px; margin-top:8px;"></div>
+</div>
+<div class="tile">
+<div style="display:flex; align-items:center; gap:8px;">
+<i class="ri-fire-line"></i>
+<strong>Trending Tracks</strong>
+</div>
+<div id="trending" style="display:grid; gap:6px; margin-top:8px;"></div>
+</div>
+<div class="tile">
+<div style="display:flex; align-items:center; gap:8px;">
+<i class="ri-user-heart-line"></i>
+<strong>Top Fans</strong>
+</div>
+<div id="fans" style="display:grid; gap:6px; margin-top:8px;"></div>
+</div>
+</div>
+</section>
+
+<!-- === Post Example === -->
+<section class="grid-12">
+<div class="card span-5" data-animate>
+<div class="post-card">
+  <div class="post-header">
+    <div style="display:flex; gap:14px; align-items:center;">
+<div class="cover" style="width:50px; height:50px; border-radius:50%;background-color: #5dd6ff;"></div>
+<div>
+<div style="font-weight:800; font-size:18px;">Vale Artist</div>
+<div class="muted">Indie </div>
+</div>
+<div style="margin-left:auto; display:flex; gap:8px;">
+<button class="btn ghost" id="btnShare"><i class="ri-external-link-line"></i></button>
+<button class="btn primary" id="btnNewPost"> Listen Now</button>
+</div>
+</div>
+  </div>
+  
+  <div class="post-body">
+  <p>  Just released a new single! 🎶 Check it out and let me know your thoughts.</p>
+  </div>
+  
+  <div class="post-media">
+    <img src="logo.png" alt="Post media">
+    <div class="watermark"><img src="logo.png" alt="logo"></div>
+  </div>
+  
+  <div class="post-actions">
+    <button class="btn ghost like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="btn ghost comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="btn ghost"><i class="ri-repeat-line"></i><span>12</span></button>
+    <button class="btn ghost share-btn"><i class="ri-share-forward-line"></i></button>
+  </div>
+</div>
+</div>
+<div class="card span-5" data-animate>
+<div class="post-card">
+  <div class="post-header">
+    <div style="display:flex; gap:14px; align-items:center;">
+<div class="cover" style="width:50px; height:50px; border-radius:50%;background-color: #5dd6ff;"></div>
+<div>
+<div style="font-weight:800; font-size:18px;">Vale Artist</div>
+<div class="muted">Indie </div>
+</div>
+<div style="margin-left:auto; display:flex; gap:8px;">
+<button class="btn ghost" id="btnShare"><i class="ri-external-link-line"></i></button>
+<button class="btn primary" id="btnNewPost"> Listen Now</button>
+</div>
+</div>
+  </div>
+  
+  <div class="post-body">
+  <p>  Just released a new single! 🎶 Check it out and let me know your thoughts.</p>
+  </div>
+  
+  <div class="post-media">
+    <img src="logo.png" alt="Post media">
+    <div class="watermark"><img src="logo.png" alt="logo"></div>
+  </div>
+  
+  <div class="post-actions">
+    <button class="btn ghost like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="btn ghost comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="btn ghost"><i class="ri-repeat-line"></i><span>12</span></button>
+    <button class="btn ghost share-btn"><i class="ri-share-forward-line"></i></button>
+  </div>
+</div>
+</div>
+
+<div class="card span-5" data-animate>
+<div class="post-card">
+  <div class="post-header">
+    <div style="display:flex; gap:14px; align-items:center;">
+<div class="cover" style="width:50px; height:50px; border-radius:50%;background-color: #5dd6ff;"></div>
+<div>
+<div style="font-weight:800; font-size:18px;">Vale Artist</div>
+<div class="muted">Indie </div>
+</div>
+<div style="margin-left:auto; display:flex; gap:8px;">
+<button class="btn ghost" id="btnShare"><i class="ri-external-link-line"></i></button>
+<button class="btn primary" id="btnNewPost"> Listen Now</button>
+</div>
+</div>
+  </div>
+  
+  <div class="post-body">
+  <p>  Just released a new single! 🎶 Check it out and let me know your thoughts.</p>
+  </div>
+  
+  <div class="post-media">
+    <img src="logo.png" alt="Post media">
+    <div class="watermark"><img src="logo.png" alt="logo"></div>
+  </div>
+  
+  <div class="post-actions">
+    <button class="btn ghost like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="btn ghost comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="btn ghost"><i class="ri-repeat-line"></i><span>12</span></button>
+    <button class="btn ghost share-btn"><i class="ri-share-forward-line"></i></button>
+  </div>
+</div>
+</div>
+</section>
+
+  <!-- Collapsible Comments -->
+   <div class="modal-backdrop hidden" id="CommentModal">
+  <div class="modal" role="document">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <strong>Share Post</strong>
+      <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
+    </div>
+  <div class="comments">
+    <div class="comment"><b>@fan1:</b> Love this! 🔥</div>
+    <div class="comment"><b>@djmix:</b> Added to my playlist 🎧</div>
+    <textarea class="input add-comment" rows="2" placeholder="Write a comment…"></textarea>
+    <button class="btn primary post-comment">Reply</button>
+  </div>
+</div>
+</div>
+<!-- Share Modal -->
+<div class="modal-backdrop hidden" id="shareModal">
+  <div class="modal" role="document">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <strong>Share Post</strong>
+      <button class="btn-icon" id="shareClose"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="divider"></div>
+    <div style="display:grid; gap:10px; margin-top:10px;">
+      <button class="btn ghost"><i class="ri-link"></i> Copy Link</button>
+      <button class="btn ghost"><i class="ri-twitter-line"></i> Share to Twitter</button>
+      <button class="btn ghost"><i class="ri-facebook-circle-line"></i> Share to Facebook</button>
+      <button class="btn ghost"><i class="ri-telegram-line"></i> Share to Telegram</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></div>
+<div class="space"></div>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#" class="active" data-nav="dashboard"><i class="ri-dashboard-fill"></i><span>Dashboard</span></a>
+  <a href="upload.html" data-nav="upload"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+  <a href="#" data-nav="tracks" class="central" style="color: white;"><i class="ri-music-line"></i></a>
+  <a href="#" data-nav="feed"><i class="ri-hashtag"></i><span>Feed</span></a>
+  <a href="#" data-nav="profile"><i class="ri-user-4-line"></i><span>Profile</span></a>
+</nav>
+
+<script>
+// Mobile nav toggle
+const mobileNavLinks = document.querySelectorAll(".bottom-nav a");
+mobileNavLinks.forEach(link => {
+  link.addEventListener("click", e => {
+    mobileNavLinks.forEach(l => l.classList.remove("active"));
+    e.currentTarget.classList.add("active");
+  });
+});
+
+
+// Comments toggle + Share Modal
+document.addEventListener("click", e => {
+   if (e.target.closest(".comment-btn")) {
+    document.getElementById("CommentModal").classList.remove("hidden");
+  }
+  if (e.target.closest("#commentClose") || e.target.id === "CommentModal") {
+    document.getElementById("CommentModal").classList.add("hidden");
+  }
+
+  if (e.target.closest(".share-btn")) {
+    document.getElementById("shareModal").classList.remove("hidden");
+  }
+  if (e.target.closest("#shareClose") || e.target.id === "shareModal") {
+    document.getElementById("shareModal").classList.add("hidden");
+  }
+});
+
+// Like Button Animation
+document.addEventListener("click", e => {
+  if (e.target.closest(".like-btn")) {
+    const btn = e.target.closest(".like-btn");
+    btn.classList.toggle("liked");
+    const icon = btn.querySelector("i");
+    icon.className = btn.classList.contains("liked") ? "ri-heart-fill" : "ri-heart-line";
+  }
+});
+</script>
+</body>
+</html>

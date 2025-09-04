@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VYNAL • Artist Dashboard</title>
+  <link rel="stylesheet" href="remixicon.min.css">
+   <link rel="stylesheet" href="app.css">
+   <link rel="stylesheet" href="mall.css">
+</head>
+<body>
+  <!-- ===== Sidebar ===== -->
+  <aside class="aside" aria-label="Sidebar">
+    <div class="brand"><span>VYNAL</span></div>
+    <div class="side-search">
+      <i class="ri-search-2-line" aria-hidden="true"></i>
+      <input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+    </div>
+
+    <div class="side-group">
+      <div class="side-label">Main</div>
+      <nav class="nav" aria-label="Primary">
+        <a href="dashboard.html" data-nav="dashboard"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+        <a href="#" class="active"><i class="ri-upload-cloud-2-line"></i><span>Let's Upload</span></a>
+        <a href="#" data-nav="tracks"><i class="ri-music-2-line"></i><span>My Tracks</span></a>
+        <a href="#" data-nav="feed"><i class="ri-hashtag"></i><span>Feed</span></a>
+        <a href="#" data-nav="analytics"><i class="ri-bar-chart-2-line"></i><span>Analytics</span></a>
+      </nav>
+    </div>
+
+    <div class="side-group">
+      <div class="side-label">Account</div>
+      <nav class="nav" aria-label="Secondary">
+        <a href="#" data-nav="profile"><i class="ri-user-3-line"></i><span>Profile</span></a>
+        <a href="#" data-nav="settings"><i class="ri-settings-3-line"></i><span>Settings</span></a>
+      </nav>
+    </div>
+
+    <div class="collapse">
+      <button class="btn-icon" id="toggleTheme" title="Toggle theme" aria-label="Toggle theme"><i class="ri-sun-line"></i></button>
+      <button class="btn-icon" id="toggleSidebar" title="Collapse sidebar" aria-label="Collapse sidebar"><i class="ri-sidebar-fold-line"></i></button>
+    </div>
+  </aside>
+
+  <!-- ===== Header ===== -->
+  <header class="header" role="banner">
+    <div class="searchbar">
+      <i class="ri-search-2-line" aria-hidden="true"></i>
+      <input type="search" id="searchAll" placeholder="Search tracks, posts, followers… (⌘/Ctrl + K)" aria-label="Global search" />
+    </div>
+    <div class="actions">
+      <span class="pill"><i class="ri-flashlight-line"></i><span id="quickHint">Tips</span></span>
+      <button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+      <div class="avatar" id="userMenu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">VA</div>
+    </div>
+  </header>
+  
+  <!-- ===== Main ===== -->
+<main class="main" id="main">
+        <!-- Row: Upload + Tracks Table -->
+    <section class="grid-12" aria-label="Upload and tracks">
+      <div class="card span-5" data-animate>
+        <h3>Create New State</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" id="uReset"><i class="ri-restart-line"></i> Reset</button>
+            <button class="btn primary" id="uSubmit" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card span-7" data-animate>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h3 style="margin:0;">Unreleased Tracks</h3>
+          <span class="badge" id="trackCount">0 items</span>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <input class="input" style="width:100px;" type="search" id="trackSearch" placeholder="Filter tracks…">
+            <select id="trackSort" class="input" style="width:80px;">
+              <option value="plays">Sort by Plays</option>
+              <option value="likes">Sort by Likes</option>
+              <option value="date">Sort by Date</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow:auto; max-height: 360px;">
+          <table aria-label="Tracks table">
+            <thead>
+              <tr>
+                <th>Track</th>
+                <th class="nowrap">Plays</th>
+                <th class="nowrap">Likes</th>
+                <th class="nowrap">Comments</th>
+                <th class="nowrap">Genre</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trackRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+      <!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#" class="active" data-nav="dashboard"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+  <a href="upload.html" data-nav="upload"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+  <a href="#" data-nav="tracks"><i class="ri-music-2-line"></i><span>Tracks</span></a>
+  <a href="#" data-nav="feed"><i class="ri-hashtag"></i><span>Feed</span></a>
+  <a href="#" data-nav="profile"><i class="ri-user-3-line"></i><span>Profile</span></a>
+</nav>
+<script src="app.js"></script>
+</body>
+</html>

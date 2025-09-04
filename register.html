@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🔥 Modern Dark Auth</title>
+<style>
+:root {
+  --bg: #0d0d0d;
+  --panel: rgba(26,26,26,0.95);
+  --ink: #f9fafb;
+  --muted: #9ca3af;
+  --brand: #dd1ab3;
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(0,0,0,0.6);
+  --transition: 0.4s ease;
+}
+
+* { box-sizing: border-box; margin:0; padding:0; }
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.auth-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: transparent;
+  backdrop-filter: blur(12px);
+  min-height: 480px;
+}
+
+.forms-container {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  transition: transform 0.5s ease;
+}
+
+form {
+  width: 50%;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  transform: translateX(50px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+form.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 0.3rem;
+  color: #dd1ab3;
+}
+
+p.subtext {
+  font-size: .95rem;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.input-group { position: relative; margin: .6rem 0; }
+.input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  border: none;
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  font-size: .95rem;
+}
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #10a37f55;
+  background: rgba(255,255,255,0.08);
+}
+
+.toggle-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.btn {
+  width: 100%;
+  padding: 0.95rem;
+  margin-top: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+  background: var(--brand);
+  color: #fff;
+  transition: all 0.3s ease;
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+}
+.btn:hover { 
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16,163,127,0.4);
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid #333;
+  background: rgba(255,255,255,0.05);
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin: 0.4rem 0;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.social-btn img { width: 20px; height: 20px; }
+.social-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 1.5rem 0;
+}
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.divider:not(:empty)::before { margin-right: .75em; }
+.divider:not(:empty)::after { margin-left: .75em; }
+
+.toggle-link {
+  margin-top: 1.2rem;
+  text-align: center;
+  display: block;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .auth-wrapper { min-height: auto; }
+  form { width: 100%; padding: 1.5rem; }
+  .forms-container { width: 200%; }
+}
+</style>
+<script>
+    // Import the functions from Firebase SDKs
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCCg745FQtwibMAZ0FvjuGiwww3cyq-6Cw",
+    authDomain: "vynal-dev.firebaseapp.com",
+    projectId: "vynal-dev",
+    storageBucket: "vynal-dev.firebasestorage.app",
+    messagingSenderId: "246996109678",
+    appId: "1:246996109678:web:0161d74a27f4d862ef997f"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // ✅ SIGN UP FORM
+  const signupForm = document.getElementById('signup-form');
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = signupForm.querySelector('input[type="email"]').value;
+    const password = signupForm.querySelector('input[type="password"]').value;
+    const name = signupForm.querySelector('input[type="text"]').value;
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Optional: Set display name
+      await updateProfile(user, { displayName: name });
+
+      alert("✅ Account created successfully!");
+      toggleForm(); // switch to sign-in form
+
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert("❌ " + error.message);
+    }
+  });
+
+  // ✅ SIGN IN FORM
+  const signinForm = document.getElementById('signin-form');
+  signinForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = signinForm.querySelector('input[type="email"]').value;
+    const password = signinForm.querySelector('input[type="password"]').value;
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      alert("✅ Welcome back, " + (user.displayName || "user") + "!");
+      // window.location.href = "/dashboard.html"; // Optional redirect
+
+    } catch (error) {
+      console.error("Signin error:", error);
+      alert("❌ " + error.message);
+    }
+  });
+
+  // ✅ GOOGLE SIGN-IN BUTTONS (shared logic)
+  const googleButtons = document.querySelectorAll('.social-btn img[alt="Google"]');
+  googleButtons.forEach((btn) => {
+    btn.parentElement.addEventListener('click', async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        alert("✅ Signed in as " + user.displayName);
+        // window.location.href = "/dashboard.html"; // Optional redirect
+      } catch (error) {
+        console.error("Google sign-in error:", error);
+        alert("❌ " + error.message);
+      }
+    });
+  });
+</script>
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="forms-container" id="forms-container">
+    <form id="signin-form" class="active">
+  <h1>Welcome Back</h1>
+  <p class="subtext">Sign in to continue</p>
+  <div class="input-group">
+    <input type="email" id="signin-email" class="input" placeholder="Email address" required>
+  </div>
+  <div class="input-group">
+    <input type="password" id="signin-pass" class="input" placeholder="Password" required>
+    <span class="toggle-eye" onclick="togglePassword('signin-pass', this)">👁</span>
+  </div>
+  <button type="submit" class="btn">Continue</button>
+
+  <div class="divider">or</div>
+  <button type="button" class="social-btn" id="google-signin-btn">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+    Continue with Google
+  </button>
+  <button type="button" class="social-btn">
+    <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook">
+    Continue with Facebook
+  </button>
+  <span class="toggle-link" onclick="toggleForm()">Don’t have an account? Sign up</span>
+</form>
+
+<form id="signup-form">
+  <h1>Create Account</h1>
+  <p class="subtext">Join us in seconds</p>
+  <div class="input-group">
+    <input type="text" id="signup-name" class="input" placeholder="Full Name" required>
+  </div>
+  <div class="input-group">
+    <input type="email" id="signup-email" class="input" placeholder="Email address" required>
+  </div>
+  <div class="input-group">
+    <input type="password" id="signup-pass" class="input" placeholder="Password" required>
+    <span class="toggle-eye" onclick="togglePassword('signup-pass', this)">👁</span>
+  </div>
+  <button type="submit" class="btn">Sign Up</button>
+
+  <div class="divider">or</div>
+  <button type="button" class="social-btn" id="google-signup-btn">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+    Continue with Google
+  </button>
+  <button type="button" class="social-btn">
+    <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook">
+    Continue with Facebook
+  </button>
+  <span class="toggle-link" onclick="toggleForm()">Already have an account? Sign in</span>
+</form>
+
+  </div>
+</div>
+
+<script>
+let showingSignIn = true;
+function toggleForm() {
+  const container = document.getElementById('forms-container');
+  const signinForm = document.getElementById('signin-form');
+  const signupForm = document.getElementById('signup-form');
+
+  if(showingSignIn){
+    container.style.transform = 'translateX(-50%)';
+    signinForm.classList.remove('active');
+    signupForm.classList.add('active');
+  } else {
+    container.style.transform = 'translateX(0)';
+    signupForm.classList.remove('active');
+    signinForm.classList.add('active');
+  }
+  showingSignIn = !showingSignIn;
+}
+
+function togglePassword(id, el) {
+  const input = document.getElementById(id);
+  if(input.type==="password") { input.type="text"; el.textContent="🙈"; }
+  else { input.type="password"; el.textContent="👁"; }
+}
+</script>
+<script src="app-2.js">
+
+</script>
+</body>
+</html>

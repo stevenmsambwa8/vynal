@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="VYNAL – modern, accessible HTML/CSS/JS starter" />
+  <title>VYNAL • App Starter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Remix Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    /* === VYNAL Base Styles === */
+    :root {
+      --bg: #0b0f14;
+      --panel: #121212;
+      --panel-2: rgb(221, 26, 179);
+      --text: #e6edf3;
+      --muted: #9fb1c1;
+      --brand: rgb(221, 26, 179);
+      --brand-2: #5dd6ff;
+      --accent: #29f0b4;
+      --danger: #ff6363;
+      --radius: 16px;
+      --shadow: 0 10px 24px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; font-size: small; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color: var(--text);
+      background: #121212;
+      line-height: 1.55;background-repeat: no-repeat;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    button { font: inherit; color: inherit; }
+
+    /* Layout */
+    .shell { display: grid; grid-template-rows: auto 1fr auto; min-height: 100dvh; }
+
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: #121212;
+    }
+
+    .nav { max-width: 1200px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
+    .logo { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a { padding: 6px 8px; border-radius: 6px; transition: background .2s; }
+    .nav-links a:hover { background: rgba(255,255,255,.08); }
+
+    .spacer { flex: 1; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      transition: transform .15s ease, background .2s ease, border-color .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,.14); }
+    .btn.primary { background: var(--brand); color: #fff; }
+
+    /* Hero */
+    .hero { max-width: 1200px; margin: 48px auto;margin-top: 0; padding: 28px 20px; display: grid; gap: 28px; grid-template-columns: 1.15fr 1fr; align-items: center; }
+    .hero-card { background: transparent; border-radius: var(--radius); padding: 28px;  }
+     .hero-card-2 { background: var(--panel); border: 1px solid #e6edf321; border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+    .headline { font-size: clamp(32px, 4vw, 52px); font-weight: 700; line-height: 1.1; margin: 0 0 10px; }
+    .sub { color: var(--muted); margin: 0 0 20px; }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .hero-illustration { width: 100%; height: 320px; border-radius: var(--radius); background: linear-gradient(45deg, var(--brand), var(--brand-2), var(--accent)); animation: gradientShift 6s ease infinite alternate; }
+
+    @keyframes gradientShift { from { filter: hue-rotate(0); } to { filter: hue-rotate(360deg); } }
+
+    /* Features */
+    .features { max-width: 1200px; margin: 60px auto; padding: 0 20px; }
+    .features h2 { text-align: center; font-size: 28px; margin-bottom: 32px; }
+    .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { background: var(--panel); border: 1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); transition: transform .2s; }
+    .card:hover { transform: translateY(-4px); }
+    .card i { font-size: 28px; color: var(--brand); margin-bottom: 10px; display: block; }
+    .card h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+    .meta { color: var(--muted); font-size: 13px; }
+
+    /* Why Section */
+    .why { max-width: 1100px; margin: 80px auto; padding: 0 20px; text-align: center; }
+    .why h2 { font-size: 28px; margin-bottom: 28px; }
+    .why-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
+    .why-card { padding: 20px; border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    .why-card i { font-size: 32px; margin-bottom: 10px; color: var(--accent); }
+
+    /* Testimonials */
+    .testimonials { max-width: 900px; margin: 80px auto; padding: 0 20px; text-align: center; }
+    .testimonials h2 { margin-bottom: 24px; }
+    .testimonial { display: none; }
+    .testimonial.active { display: block; }
+    .testimonial p { font-style: italic; color: var(--muted); }
+    .testimonial .author { margin-top: 10px; font-weight: 600; }
+
+    /* CTA */
+    .cta { max-width: 300px; margin: 100px auto; padding: 40px 20px; background: linear-gradient(20deg, #121212,#5dd6ff); border-radius: var(--radius); color: #fff; text-align: center; box-shadow: var(--shadow); }
+    .cta h2 { margin: 0 0 20px; }
+
+    /* Footer */
+    footer { padding: 32px 20px; color: var(--muted); background: #121212; }
+    .foot { max-width: 1200px; margin: 0 auto; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .socials { display: flex; gap: 14px; }
+    .socials a { font-size: 20px; color: var(--muted); transition: color .2s; }
+    .socials a:hover { color: var(--brand); }
+    .newsletter { display: flex; gap: 10px; }
+    .newsletter input { padding: 10px; border-radius: 8px; border: none; outline: none; flex: 1; }
+
+    @media (max-width: 920px) {
+      .hero { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Header -->
+    <header>
+      <nav class="nav" aria-label="Primary">
+        <a class="logo" href="#" aria-label="VYNAL home">VYNAL</a>
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#why">Why VYNAL</a>
+          <a href="#testimonials">Testimonials</a>
+          <a href="#docs">Docs</a>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="themeToggle" aria-pressed="false" aria-label="Toggle theme"><i class="ri-sun-line"></i><span>Theme</span></button>
+        <a class="btn primary" href="dashboard.html">Get Started</a>
+      </nav>
+    </header>
+
+    <!-- Main -->
+    <main>
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-card">
+          <h1 class="headline">Listen to new sounds with the VYNAL app.</h1>
+          <p class="sub">A clean, accessible template with responsive grid, theming, keyboard focus, and a tiny JS helper.</p>
+          <div class="hero-cta">
+            <button class="btn primary" id="actionPrimary">Start Listening</button>
+            <button class="btn" id="actionSecondary"><i class="ri-book-2-line"></i> Docs</button>
+          </div>
+        </div>
+        <div class="hero-card-2">
+          <h1 class="headline">Extremely RecomList</h1>
+          <p class="sub">A clean, accessible template with responsive grid, theming, keyboard focus, and a tiny JS helper.</p>
+          <div class="hero-cta">
+            <button class="btn primary" id="actionPrimary"><i class="ri-play-fill"></i> Start Listening</button>
+            <button class="btn" id="actionSecondary"><i class="ri-book-2-line"></i> Docs</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section class="features" id="features">
+        <h2>Features</h2>
+        <div class="grid">
+          <div class="card"><i class="ri-drop-line"></i><h3>Zero Dependencies</h3><p class="meta">Vanilla HTML/CSS/JS, ship anywhere.</p></div>
+          <div class="card"><i class="ri-accessibility-line"></i><h3>Accessible First</h3><p class="meta">Semantic markup, focus states, ARIA labels.</p></div>
+          <div class="card"><i class="ri-palette-line"></i><h3>Themeable</h3><p class="meta">CSS custom properties & toggle.</p></div>
+          <div class="card"><i class="ri-rocket-line"></i><h3>Fast & Lightweight</h3><p class="meta">Optimized for performance and speed.</p></div>
+          <div class="card"><i class="ri-code-box-line"></i><h3>Developer Friendly</h3><p class="meta">Clean, modular code structure.</p></div>
+          <div class="card"><i class="ri-device-line"></i><h3>Responsive</h3><p class="meta">Works on mobile, tablet, desktop.</p></div>
+        </div>
+      </section>
+
+      <!-- Why VYNAL -->
+      <section class="why" id="why">
+        <h2>Why Choose VYNAL?</h2>
+        <div class="why-grid">
+          <div class="why-card"><i class="ri-shield-check-line"></i><h3>Secure</h3><p>Built with best practices and security in mind.</p></div>
+          <div class="why-card"><i class="ri-community-line"></i><h3>Community Driven</h3><p>Open-source with contributions from developers worldwide.</p></div>
+          <div class="why-card"><i class="ri-lightbulb-flash-line"></i><h3>Innovative</h3><p>Constantly evolving with new features and ideas.</p></div>
+        </div>
+      </section>
+
+      <!-- Testimonials -->
+      <section class="testimonials" id="testimonials">
+        <h2>What People Say</h2>
+        <div class="testimonial active">
+          <p>“VYNAL is the cleanest starter I've ever used. The accessibility is top-notch.”</p>
+          <div class="author">— Alex, Frontend Developer</div>
+        </div>
+        <div class="testimonial">
+          <p>“Fast, lightweight, and no dependencies. Perfect for modern projects.”</p>
+          <div class="author">— Maria, Designer</div>
+        </div>
+        <div class="testimonial">
+          <p>“Finally, a starter template that doesn’t get in the way.”</p>
+          <div class="author">— James, Engineer</div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta" id="get-started">
+        <h2>Ready to start with VYNAL?</h2>
+        <a class="btn primary" href="#" style="background: #121212;border: none;font-weight: 600px;"><i class="ri-arrow-right-line"></i> Get Started Now</a>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div class="foot">
+        <span>© <span id="year"></span> VYNAL</span>
+        <div class="socials">
+          <a href="#"><i class="ri-twitter-line"></i></a>
+          <a href="#"><i class="ri-github-line"></i></a>
+          <a href="#"><i class="ri-discord-line"></i></a>
+        </div>
+        <form class="newsletter">
+          <input type="email" placeholder="Subscribe for updates" required>
+          <button class="btn primary" type="submit">Join</button>
+        </form>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      const $ = (sel, ctx=document) => ctx.querySelector(sel);
+      const $$ = (sel, ctx=document) => ctx.querySelectorAll(sel);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+      const STORAGE_KEY = 'vynal-theme';
+
+      function applyTheme(mode) { document.documentElement.dataset.theme = mode; }
+      function initTheme() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const mode = saved || (prefersDark.matches ? 'dark' : 'light');
+        applyTheme(mode);
+        $('#themeToggle').setAttribute('aria-pressed', String(mode === 'dark'));
+      }
+      function toggleTheme() {
+        const current = document.documentElement.dataset.theme;
+        const next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next);
+        $('#themeToggle').setAttribute('aria-pressed', String(next === 'dark'));
+      }
+
+      function onKey(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+          e.preventDefault();
+          alert('VYNAL Quick Action — open command palette.');
+        }
+      }
+
+      // Testimonials carousel
+      let index = 0;
+      function showTestimonial(i) {
+        $$('.testimonial').forEach((t, idx) => t.classList.toggle('active', idx === i));
+      }
+      setInterval(() => { index = (index+1) % $$('.testimonial').length; showTestimonial(index); }, 5000);
+
+      // Init
+      document.addEventListener('keydown', onKey);
+      $('#themeToggle').addEventListener('click', toggleTheme);
+      $('#actionPrimary').addEventListener('click', () => console.log('Start Listening'));
+      $('#actionSecondary').addEventListener('click', () => console.log('Docs clicked'));
+      $('#year').textContent = new Date().getFullYear();
+      initTheme();
+    })();
+  </script>
+
+  </body>
+  </html>

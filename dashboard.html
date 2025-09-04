@@ -1,0 +1,152 @@
+<!DOCTYPE html>  
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body>
+  <!-- Splash Screen <div class="loader"></div> -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="logo"><img src="logo.png" style="height: 50px;"></div>
+   
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
+<a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span>Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span>Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="toggleTheme" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content" style="display:none;">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+ <a href="#index.html"> <div class="avatar" id="userMenu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">NA</div></a>
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main" id="contentize">
+
+</main>
+
+<div class="modal-backdrop hidden" id="uploadModal">
+  <div class="modal" role="document" style="width: 400px;">
+        <h3>What to tease for today?</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+  </div>
+</div>
+
+ 
+<div class="space"></div>
+</section>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
+  <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
+  <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
+</nav>
+
+<script src="app.js"></script>
+
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
+
+</script>
+
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("content").classList.add("fade-in");
+    }, 2800);
+  });
+</script>
+
+
+</body>
+</html>
