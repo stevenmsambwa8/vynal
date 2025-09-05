@@ -184,7 +184,7 @@ function initSPA() {
 // --- Start ---
 checkAuth();
 </script>
-<script src="upload.js"></script>
+
 
 
 
@@ -272,12 +272,10 @@ aria-label="Global search" />
             <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
             <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
           </div>
-          
-          <div class="dropzone" id="dropAudio">
-  <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
-  <input id="uFile" type="file" accept="audio/*" class="sr-only" />
-         </div>
-
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
           <div class="row">
             <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
             <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
@@ -289,8 +287,6 @@ aria-label="Global search" />
           </div>
         </form>
   </div>
-  <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
-
 </div>
 
  
@@ -333,63 +329,6 @@ aria-label="Global search" />
   });
 </script>
 
-<script>
-  const dropAudio = document.getElementById("dropAudio");
-const uFile = document.getElementById("uFile");
-
-dropAudio.addEventListener("click", () => uFile.click());
-
-dropAudio.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropAudio.classList.add("drag-over");
-});
-
-dropAudio.addEventListener("dragleave", () => {
-  dropAudio.classList.remove("drag-over");
-});
-
-dropAudio.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropAudio.classList.remove("drag-over");
-  if (e.dataTransfer.files.length) {
-    uFile.files = e.dataTransfer.files;
-  }
-});
-
-  </script>
-  <script>
-    const uploadForm = document.getElementById("uploadForm");
-const uTitle = document.getElementById("uTitle");
-const uBpm = document.getElementById("uBpm");
-
-function validateUploadForm() {
-  const errors = [];
-  if (!uTitle.value.trim()) errors.push("Title is required.");
-  if (!uFile.files.length) errors.push("Audio file is required.");
-  if (uBpm.value && (isNaN(uBpm.value) || uBpm.value < 0 || uBpm.value > 400)) {
-    errors.push("BPM must be between 0 and 400.");
-  }
-  if (errors.length) {
-    alert(errors.join("\n"));
-    return false;
-  }
-  return true;
-}
-
-uploadForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  if (validateUploadForm()) {
-    console.log("✅ Form is valid — ready to upload");
-    // Step 3 will handle the actual upload
-  }
-});
-</script>
-<script>const uProgress = document.getElementById("uProgress");
-
-function setProgressMessage(msg) {
-  uProgress.textContent = msg;
-}
-</script>
 
 </body>
 </html>
