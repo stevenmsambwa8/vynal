@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔥 Modern Dark Auth - Supabase</title>
+<title>🔥 Modern Dark Auth - Social Only</title>
 <style>
 :root {
   --bg: #0d0d0d;
@@ -29,99 +29,26 @@ body {
 }
 
 .auth-wrapper {
-  position: relative;
   width: 100%;
   max-width: 420px;
-  overflow: hidden;
   border-radius: var(--radius);
   background: transparent;
   backdrop-filter: blur(12px);
-  min-height: 480px;
-}
-
-.forms-container {
-  display: flex;
-  width: 200%;
-  height: 100%;
-  transition: transform 0.5s ease;
-}
-
-form {
-  width: 50%;
   padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  opacity: 0;
-  transform: translateX(50px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-form.active {
-  opacity: 1;
-  transform: translateX(0);
+  text-align: center;
 }
 
 h1 {
   font-size: 1.8rem;
   font-weight: 700;
-  text-align: center;
   margin-bottom: 0.3rem;
-  color: #dd1ab3;
+  color: var(--brand);
 }
 
 p.subtext {
   font-size: .95rem;
   color: var(--muted);
-  text-align: center;
   margin-bottom: 1.5rem;
-}
-
-.input-group { position: relative; margin: .6rem 0; }
-.input {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border-radius: var(--radius);
-  border: none;
-  background: rgba(255,255,255,0.05);
-  color: var(--ink);
-  font-size: .95rem;
-}
-.input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #10a37f55;
-  background: rgba(255,255,255,0.08);
-}
-
-.toggle-eye {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 1.1rem;
-}
-
-.btn {
-  width: 100%;
-  padding: 0.95rem;
-  margin-top: 1rem;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 1rem;
-  background: var(--brand);
-  color: #fff;
-  transition: all 0.3s ease;
-  background-size: 200% 200%;
-  background-position: 0% 50%;
-}
-.btn:hover { 
-  background-position: 100% 50%;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16,163,127,0.4);
 }
 
 .social-btn {
@@ -129,206 +56,84 @@ p.subtext {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 0.85rem;
+  padding: 0.95rem;
   border-radius: var(--radius);
   border: 1px solid #333;
   background: rgba(255,255,255,0.05);
   color: var(--ink);
   font-weight: 500;
-  font-size: 0.95rem;
-  margin: 0.4rem 0;
+  font-size: 1rem;
+  margin: 0.6rem 0;
   cursor: pointer;
   transition: var(--transition);
 }
 .social-btn img { width: 20px; height: 20px; }
 .social-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-
-.divider {
-  display: flex;
-  align-items: center;
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin: 1.5rem 0;
-}
-.divider::before, .divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-}
-.divider:not(:empty)::before { margin-right: .75em; }
-.divider:not(:empty)::after { margin-left: .75em; }
-
-.toggle-link {
-  margin-top: 1.2rem;
-  text-align: center;
-  display: block;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-@media (max-width: 480px) {
-  .auth-wrapper { min-height: auto; }
-  form { width: 100%; padding: 1.5rem; }
-  .forms-container { width: 200%; }
-}
 </style>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script type="module">
   import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-  // Replace with your project details
   const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // --- Email/Password SignUp
-  document.getElementById("signup-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("signup-name").value.trim();
-    const email = document.getElementById("signup-email").value.trim();
-    const password = document.getElementById("signup-pass").value;
-
-    const { error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } }
+  async function handleGoogleLogin() {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
     });
-
-    if (error) {
-      console.error(error);
-      alert("❌ " + error.message);
-    } else {
-      alert("✅ Account created! Check your email to confirm.");
-    }
-  });
-
-  // --- Email/Password SignIn
-  document.getElementById("signin-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("signin-email").value.trim();
-    const password = document.getElementById("signin-pass").value;
-
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      console.error(error);
-      alert("❌ " + error.message);
-    }
-    // Success is handled by onAuthStateChange
-  });
-
-async function handleGoogleLogin() {
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html"
-    }
-  });
-  if (error) {
-    console.error(error);
-    alert("❌ " + error.message);
+    if (error) alert("❌ " + error.message);
   }
-}
 
-  document.getElementById("google-signup-btn").addEventListener("click", handleGoogleLogin);
-  document.getElementById("google-signin-btn").addEventListener("click", handleGoogleLogin);
+  async function handleFacebookLogin() {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "facebook",
+      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
+    });
+    if (error) alert("❌ " + error.message);
+  }
 
-  // --- Listen for Auth State Change (works for OAuth & password)
-  sb.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
-      console.log("✅ Logged in as", session.user.email);
-      alert("✅ Logged in as " + session.user.email);
-    }
+  async function handleAppleLogin() {
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
+    });
+    if (error) alert("❌ " + error.message);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("google-btn").addEventListener("click", handleGoogleLogin);
+    document.getElementById("facebook-btn").addEventListener("click", handleFacebookLogin);
+    document.getElementById("apple-btn").addEventListener("click", handleAppleLogin);
+
+    sb.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        alert("✅ Logged in as " + session.user.email);
+      }
+    });
   });
-
-  // --- Check existing session on page load
-  (async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-      console.log("✅ Already logged in:", session.user.email);
-    }
-  })();
 </script>
-
-
-
-
 </head>
-
 <body>
 <div class="auth-wrapper">
-  <div class="forms-container" id="forms-container">
-    <!-- Signin Form -->
-    <form class="active" id="signin-form">
-      <h1>Welcome Back</h1>
-      <p class="subtext">Sign in to continue</p>
-      <div class="input-group">
-        <input type="email" id="signin-email" class="input" placeholder="Email address" required>
-      </div>
-      <div class="input-group">
-        <input type="password" id="signin-pass" class="input" placeholder="Password" required>
-        <span class="toggle-eye" onclick="togglePassword('signin-pass', this)">👁</span>
-      </div>
-      <button type="submit" class="btn">Continue</button>
-      <div class="divider">or</div>
-      <button type="button" class="social-btn" id="google-signin-btn">
-        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-        Continue with Google
-      </button>
-      <span class="toggle-link" onclick="toggleForm()">Don’t have an account? Sign up</span>
-    </form>
+  <h1>Welcome</h1>
+  <p class="subtext">Continue with your social account</p>
 
-    <!-- Signup Form -->
-    <form id="signup-form">
-      <h1>Create Account</h1>
-      <p class="subtext">Join us in seconds</p>
-      <div class="input-group">
-        <input type="text" id="signup-name" class="input" placeholder="Full Name" required>
-      </div>
-      <div class="input-group">
-        <input type="email" id="signup-email" class="input" placeholder="Email address" required>
-      </div>
-      <div class="input-group">
-        <input type="password" id="signup-pass" class="input" placeholder="Password" required>
-        <span class="toggle-eye" onclick="togglePassword('signup-pass', this)">👁</span>
-      </div>
-      <button type="submit" class="btn">Sign Up</button>
-      <div class="divider">or</div>
-      <button type="button" class="social-btn" id="google-signup-btn">
-        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-        Continue with Google
-      </button>
-      <span class="toggle-link" onclick="toggleForm()">Already have an account? Sign in</span>
-    </form>
-  </div>
+  <button type="button" class="social-btn" id="google-btn">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+    Continue with Google
+  </button>
+
+  <button type="button" class="social-btn" id="facebook-btn">
+    <img src="https://www.svgrepo.com/show/448234/facebook-color.svg" alt="Facebook">
+    Continue with Facebook
+  </button>
+
+  <button type="button" class="social-btn" id="apple-btn">
+    <img src="https://www.svgrepo.com/show/303128/apple-logo.svg" alt="Apple">
+    Continue with Apple
+  </button>
 </div>
-
-<script>
-let showingSignIn = true;
-function toggleForm() {
-  const container = document.getElementById('forms-container');
-  const signinForm = document.getElementById('signin-form');
-  const signupForm = document.getElementById('signup-form');
-  if (showingSignIn) {
-    container.style.transform = 'translateX(-50%)';
-    signinForm.classList.remove('active');
-    signupForm.classList.add('active');
-  } else {
-    container.style.transform = 'translateX(0)';
-    signupForm.classList.remove('active');
-    signinForm.classList.add('active');
-  }
-  showingSignIn = !showingSignIn;
-}
-
-function togglePassword(id, el) {
-  const input = document.getElementById(id);
-  if (input.type === "password") { input.type = "text"; el.textContent = "🙈"; }
-  else { input.type = "password"; el.textContent = "👁"; }
-}
-</script>
 </body>
 </html>
-
