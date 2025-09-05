@@ -219,17 +219,18 @@ p.subtext {
     // Success is handled by onAuthStateChange
   });
 
-  // --- Google OAuth
-  async function handleGoogleLogin() {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) {
-      console.error(error);
-      alert("❌ " + error.message);
+async function handleGoogleLogin() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html"
     }
+  });
+  if (error) {
+    console.error(error);
+    alert("❌ " + error.message);
   }
+}
 
   document.getElementById("google-signup-btn").addEventListener("click", handleGoogleLogin);
   document.getElementById("google-signin-btn").addEventListener("click", handleGoogleLogin);
