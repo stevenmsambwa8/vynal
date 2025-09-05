@@ -16,8 +16,8 @@ const SUPABASE_ANON_KEY =
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: true,   // ✅ make sure session is stored
-    autoRefreshToken: true, // ✅ refresh automatically
+    persistSession: true,
+    autoRefreshToken: true,
   },
 });
 
@@ -30,28 +30,36 @@ function renderUser(user) {
     user_metadata?.avatar_url || "default-avatar.png";
 }
 
+let hasHydrated = false;
+
 async function loadUser() {
   const {
     data: { session },
   } = await sb.auth.getSession();
 
+  console.log("Initial session:", session);
+
   if (session?.user) {
     renderUser(session.user);
   }
+  // mark hydration complete
+  hasHydrated = true;
 }
 
-// 🔥 Correct way: listen for hydration & login/logout
-sb.auth.onAuthStateChange((_event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
+  console.log("Auth event:", event, "Session:", session);
+
   if (session?.user) {
     renderUser(session.user);
-  } else {
-    // no session AFTER hydration
+  } else if (hasHydrated) {
+    // redirect ONLY after we confirmed hydration
     window.location.href = "register.html";
   }
 });
 
 window.addEventListener("DOMContentLoaded", loadUser);
 </script>
+
 
 </head>
 
