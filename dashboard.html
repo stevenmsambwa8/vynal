@@ -10,136 +10,37 @@
 
 
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// --- Supabase setup ---
-const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYWxhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+  const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true }
-});
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- User rendering ---
-function renderUser(user) {
-    document.getElementById("user-name").textContent = user.user_metadata?.full_name || "No Name";
-    document.getElementById("user-email").textContent = user.email || "No Email";
-    document.getElementById("user-pic").src = user.user_metadata?.avatar_url || "default-avatar.png";
-}
-
-function clearUser() {
-    document.getElementById("user-name").textContent = "";
-    document.getElementById("user-email").textContent = "";
-    document.getElementById("user-pic").src = "default-avatar.png";
-}
-
-// --- SPA page loader ---
-const contentDiv = document.getElementById("contentize");
-const navLinks = document.querySelectorAll("nav a");
-const pageList = [
-  "mall.html",
-  "start.html",
-  "states.html",
-  "statehome.html",
-  "profile.html",
-  "upload.html",
-];
-let isTransitioning = false;
-const pageCache = {};
-
-async function loadPage(url, addToHistory = true) {
-    if (isTransitioning) return;
-    isTransitioning = true;
-    contentDiv.classList.add("fade-out");
-
-    setTimeout(async () => {
-        try {
-            let html = pageCache[url] || await (await fetch(url, { cache: "force-cache" })).text();
-            pageCache[url] = html;
-            contentDiv.innerHTML = html;
-
-            if (typeof initSliders === "function") initSliders();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            highlightActiveLink(url);
-
-            if (addToHistory) history.pushState({ url }, null, "#" + url);
-
-            contentDiv.classList.remove("fade-out");
-            contentDiv.classList.add("fade-in");
-            setTimeout(() => {
-                contentDiv.classList.remove("fade-in");
-                isTransitioning = false;
-            }, 150);
-        } catch (err) {
-            contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
-            isTransitioning = false;
-        }
-    }, 100);
-}
-
-function highlightActiveLink(url) {
-    navLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === "#" + url));
-}
-
-// --- Auth check & SPA init ---
-async function checkAuthAndLoad() {
-    const { data: { session }, error } = await sb.auth.getSession();
-    if (error) {
-        console.error("Error fetching session:", error);
-        window.location.href = "register.html";
-        return;
+  async function checkSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      // No session, redirect to login
+      window.location.href = "https://stevenmsambwa8.github.io/vynal/index.html";
     }
+  }
 
-    if (!session?.user) {
-        console.log("No session found. Redirecting...");
-        window.location.href = "register.html";
-        return;
+  // Listen for Supabase session changes
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+      // Session is now valid, and user is logged in
+      console.log('✅ User signed in:', session);
+      // Optional: You can do other things here, like updating UI
+    } else if (event === 'SIGNED_OUT') {
+      console.log('❌ User signed out');
+      // Redirect to the login page
+      window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
     }
+  });
 
-    renderUser(session.user);
-
-    // Preload pages
-    pageList.forEach(async page => {
-        try {
-            const res = await fetch(page, { cache: "force-cache" });
-            pageCache[page] = await res.text();
-        } catch {}
-    });
-
-    // Load initial page
-    let currentPage = location.hash.replace("#", "") || "start.html";
-    if (!pageList.includes(currentPage)) currentPage = "start.html";
-    loadPage(currentPage, false);
-    history.replaceState({ url: currentPage }, null, "#" + currentPage);
-}
-
-// --- SPA navigation listeners ---
-document.addEventListener("click", e => {
-    const link = e.target.closest("a[data-link]");
-    if (!link) return;
-    e.preventDefault();
-    const url = link.getAttribute("href").replace("#", "");
-    if (pageList.includes(url)) loadPage(url, true);
-});
-
-window.addEventListener("popstate", e => {
-    if (e.state?.url) loadPage(e.state.url, false);
-});
-
-// --- Listen for auth changes ---
-sb.auth.onAuthStateChange((_event, session) => {
-    if (!session?.user) {
-        clearUser();
-        window.location.href = "register.html";
-    } else {
-        renderUser(session.user);
-    }
-});
-
-// --- Start SPA ---
-window.addEventListener("DOMContentLoaded", checkAuthAndLoad);
+  // Call checkSession on page load to verify user is logged in
+  checkSession();
 </script>
-
 
 
 
