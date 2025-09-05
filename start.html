@@ -190,7 +190,51 @@
   </div>
 </div>
 </section>
+<!-- === Post Example === -->
+<section class="grid-12">
+<!-- Feed Container -->
+<div id="feed" class="feed-container"></div>
 
+<!-- Template for a single post (to be injected dynamically) -->
+<template id="post-template">
+  <div class="post-card" data-post-id="">
+    <div class="post-header">
+      <div class="post-header-left">
+        <img class="avatar" src="default-avatar.jpg" alt="avatar">
+        <div class="post-header-info">
+          <strong class="post-author">Author Name</strong>
+          <div class="muted post-time">Just now</div>
+        </div>
+      </div>
+      <div class="post-header-right">
+        <button class="menu-btn"><i class="ri-add-line"></i></button>
+      </div>
+    </div>
+
+    <div class="post-body">
+      <p class="post-description">Post description goes here...</p>
+      <span class="hashtag">#tag</span>
+    </div>
+
+    <div class="post-media">
+      <img class="post-image" src="media.jpg" alt="Post media" width="100%">
+    </div>
+
+    <div class="post-actions">
+      <button class="action-btn like-btn" data-post-id=""><i class="ri-heart-line"></i><span>0</span></button>
+      <button class="action-btn comment-btn" data-post-id=""><i class="ri-chat-3-line"></i><span>0</span></button>
+      <button class="action-btn share-btn" data-post-id=""><i class="ri-share-forward-line"></i><span>0</span></button>
+      <button class="action-btn"><i class="ri-bookmark-line"></i><span>0</span></button>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="comments-section hidden" id="comments-POST_ID">
+      <!-- Comments will be injected here -->
+    </div>
+  </div>
+</template>
+
+</section>
 <!-- === Post Example === -->
 <section class="grid-12">
 <div class="span-4" data-animate>
@@ -632,4 +676,3 @@
     </div>
   </div>
 </div>
-
