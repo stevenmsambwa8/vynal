@@ -131,7 +131,7 @@ async function handleLogin(button, provider) {
     const { error } = await sb.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: "dashboard.html",
+        redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html",
       },
     });
     if (error) alert("❌ " + error.message);
