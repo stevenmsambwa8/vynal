@@ -10,9 +10,10 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
+// Supabase setup
 const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -21,8 +22,8 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+// Render user info
 function renderUser(user) {
-  console.log("User object:", user);
   document.getElementById("user-name").textContent =
     user.user_metadata?.full_name || "No Name";
   document.getElementById("user-email").textContent = user.email || "No Email";
@@ -30,39 +31,29 @@ function renderUser(user) {
     user.user_metadata?.avatar_url || "default-avatar.png";
 }
 
-async function checkUser() {
-  try {
-    const { data, error } = await sb.auth.getSession();
-    if (error) {
-      console.error("Error fetching session:", error.message);
-      return;
-    }
-
-    const session = data.session;
-
-    // If no session, redirect
-    if (!session?.user) {
-      console.log("No session, redirecting...");
-      window.location.href = "register.html";
-      return;
-    }
-
-    // Session exists → render user
-    renderUser(session.user);
-  } catch (err) {
-    console.error("Unexpected error:", err);
+// Check session and redirect if not logged in
+async function initDashboard() {
+  const { data, error } = await sb.auth.getSession();
+  if (error) {
+    console.error("Error fetching session:", error.message);
+    window.location.href = "register.html";
+    return;
   }
+
+  const session = data.session;
+
+  if (!session?.user) {
+    // Not logged in → redirect
+    window.location.href = "register.html";
+    return;
+  }
+
+  // Logged in → render user info
+  renderUser(session.user);
 }
 
-// Listen for auth changes (logout/login)
-sb.auth.onAuthStateChange((_event, session) => {
-  if (!session?.user) {
-    console.log("User logged out, redirecting...");
-    window.location.href = "register.html";
-  }
-});
-
-window.addEventListener("DOMContentLoaded", checkUser);
+// Start
+window.addEventListener("DOMContentLoaded", initDashboard);
 </script>
 
 
