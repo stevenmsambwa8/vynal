@@ -14,42 +14,44 @@ const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,   // ✅ make sure session is stored
+    autoRefreshToken: true, // ✅ refresh automatically
+  },
+});
+
+function renderUser(user) {
+  const { email, user_metadata } = user;
+  document.getElementById("user-name").textContent =
+    user_metadata?.full_name || "No Name";
+  document.getElementById("user-email").textContent = email || "No Email";
+  document.getElementById("user-pic").src =
+    user_metadata?.avatar_url || "default-avatar.png";
+}
 
 async function loadUser() {
   const {
     data: { session },
   } = await sb.auth.getSession();
 
-  if (!session) {
-    // redirect to login page
-    window.location.href = "register.html";
-    return;
+  if (session?.user) {
+    renderUser(session.user);
   }
-
-  const { user } = session;
-  const { email, user_metadata } = user;
-
-  document.getElementById("user-name").textContent =
-    user_metadata.full_name || "No Name";
-  document.getElementById("user-email").textContent = email || "No Email";
-  document.getElementById("user-pic").src =
-    user_metadata.avatar_url || "default-avatar.png";
 }
 
-// Handle auth state changes reliably
+// 🔥 Correct way: listen for hydration & login/logout
 sb.auth.onAuthStateChange((_event, session) => {
-  if (!session) {
-    window.location.href = "register.html";
+  if (session?.user) {
+    renderUser(session.user);
   } else {
-    loadUser();
+    // no session AFTER hydration
+    window.location.href = "register.html";
   }
 });
 
 window.addEventListener("DOMContentLoaded", loadUser);
 </script>
-
-
 
 </head>
 
