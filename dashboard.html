@@ -7,7 +7,6 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
-
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -18,17 +17,17 @@ const SUPABASE_ANON_KEY =
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadUser() {
-  // Check session instead of direct user
   const {
     data: { session },
   } = await sb.auth.getSession();
 
-  if (!session || !session.user) {
-    window.location.href = ""; // not logged in
+  if (!session) {
+    // redirect to login page
+    window.location.href = "register.html";
     return;
   }
 
-  const user = session.user;
+  const { user } = session;
   const { email, user_metadata } = user;
 
   document.getElementById("user-name").textContent =
@@ -38,15 +37,18 @@ async function loadUser() {
     user_metadata.avatar_url || "default-avatar.png";
 }
 
-// Listen for state changes (handles refresh/login/logout correctly)
+// Handle auth state changes reliably
 sb.auth.onAuthStateChange((_event, session) => {
   if (!session) {
-    window.location.href = "";
+    window.location.href = "register.html";
+  } else {
+    loadUser();
   }
 });
 
 window.addEventListener("DOMContentLoaded", loadUser);
 </script>
+
 
 
 </head>
