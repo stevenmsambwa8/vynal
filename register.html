@@ -138,7 +138,6 @@ async function handleLogin(button, provider) {
   } catch (err) {
     console.error(err);
     alert("❌ Login failed. Please try again.");
-  } finally {
     buttons.forEach((btn) => (btn.disabled = false));
     if (loader) loader.remove();
   }
@@ -158,6 +157,7 @@ window.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", (e) => handleLogin(e.currentTarget, "apple"));
 });
 </script>
+
 
 </head>
 
