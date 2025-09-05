@@ -185,7 +185,7 @@ function initSPA() {
 checkAuth();
 </script>
 
-
+<script src="post.js"></script>
 
 
 
@@ -262,20 +262,12 @@ aria-label="Global search" />
         <form id="uploadForm" class="upload" novalidate>
           <div class="row">
             <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
-            <div class="col-6">
-              <select id="uGenre" class="input" aria-label="Genre">
-                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
-              </select>
-            </div>
+            
           </div>
           <div class="row">
             <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
-            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
           </div>
-          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
-            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
-            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
-          </div>
+          
           <div class="row">
             <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
             <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
