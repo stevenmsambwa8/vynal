@@ -7,6 +7,39 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function loadUser() {
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+
+  if (!user) {
+    // Not logged in → back to login
+    window.location.href = "index.html";
+    return;
+  }
+
+  const { email, user_metadata } = user;
+
+  document.getElementById("user-name").textContent =
+    user_metadata.full_name || "No Name";
+  document.getElementById("user-email").textContent = email || "No Email";
+  document.getElementById("user-pic").src =
+    user_metadata.avatar_url || "default-avatar.png";
+}
+
+window.addEventListener("DOMContentLoaded", loadUser);
+</script>
+
 </head>
 
 <body>
@@ -41,8 +74,8 @@
 <div class="side-group">
 <div class="side-label">Account</div>
 <nav class="nav" aria-label="Secondary">
-<a href="#" data-link><i class="ri-user-3-line"></i><span>Profile</span></a>
-<a href="#" data-link><i class="ri-settings-3-line"></i><span>Settings</span></a>
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
 </nav>
 </div>
 
@@ -65,7 +98,7 @@ aria-label="Global search" />
 <button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
 <button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
 <a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
- <a href="#index.html"> <div class="avatar" id="userMenu" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">NA</div></a>
+ <a href="#index.html"> <img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false"></a>
 </div>
 
 </header>
