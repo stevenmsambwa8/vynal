@@ -3,324 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔥 Modern Dark Auth</title>
+<title>🔥 Modern Dark Auth - Supabase</title>
 <style>
-:root {
-  --bg: #0d0d0d;
-  --panel: rgba(26,26,26,0.95);
-  --ink: #f9fafb;
-  --muted: #9ca3af;
-  --brand: #dd1ab3;
-  --radius: 16px;
-  --shadow: 0 10px 30px rgba(0,0,0,0.6);
-  --transition: 0.4s ease;
-}
-
-* { box-sizing: border-box; margin:0; padding:0; }
-body {
-  font-family: "Inter", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 1rem;
-}
-
-.auth-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  overflow: hidden;
-  border-radius: var(--radius);
-  background: transparent;
-  backdrop-filter: blur(12px);
-  min-height: 480px;
-}
-
-.forms-container {
-  display: flex;
-  width: 200%;
-  height: 100%;
-  transition: transform 0.5s ease;
-}
-
-form {
-  width: 50%;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  opacity: 0;
-  transform: translateX(50px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-
-form.active {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 0.3rem;
-  color: #dd1ab3;
-}
-
-p.subtext {
-  font-size: .95rem;
-  color: var(--muted);
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.input-group { position: relative; margin: .6rem 0; }
-.input {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border-radius: var(--radius);
-  border: none;
-  background: rgba(255,255,255,0.05);
-  color: var(--ink);
-  font-size: .95rem;
-}
-.input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #10a37f55;
-  background: rgba(255,255,255,0.08);
-}
-
-.toggle-eye {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 1.1rem;
-}
-
-.btn {
-  width: 100%;
-  padding: 0.95rem;
-  margin-top: 1rem;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 1rem;
-  background: var(--brand);
-  color: #fff;
-  transition: all 0.3s ease;
-  background-size: 200% 200%;
-  background-position: 0% 50%;
-}
-.btn:hover { 
-  background-position: 100% 50%;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16,163,127,0.4);
-}
-
-.social-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0.85rem;
-  border-radius: var(--radius);
-  border: 1px solid #333;
-  background: rgba(255,255,255,0.05);
-  color: var(--ink);
-  font-weight: 500;
-  font-size: 0.95rem;
-  margin: 0.4rem 0;
-  cursor: pointer;
-  transition: var(--transition);
-}
-.social-btn img { width: 20px; height: 20px; }
-.social-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
-
-.divider {
-  display: flex;
-  align-items: center;
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin: 1.5rem 0;
-}
-.divider::before, .divider::after {
-  content: "";
-  flex: 1;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-}
-.divider:not(:empty)::before { margin-right: .75em; }
-.divider:not(:empty)::after { margin-left: .75em; }
-
-.toggle-link {
-  margin-top: 1.2rem;
-  text-align: center;
-  display: block;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-@media (max-width: 480px) {
-  .auth-wrapper { min-height: auto; }
-  form { width: 100%; padding: 1.5rem; }
-  .forms-container { width: 200%; }
-}
+/* Keep your existing CSS exactly the same */
 </style>
+
+<!-- Supabase SDK -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <script type="module">
-  import {
-    initializeApp
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithRedirect,
-    getRedirectResult,
-    updateProfile
-  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+  // ✅ Initialize Supabase
+  const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ✅ Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyCCg745FQtwibMAZ0FvjuGiwww3cyq-6Cw",
-    authDomain: "vynal-dev.firebaseapp.com",
-    projectId: "vynal-dev",
-    storageBucket: "vynal-dev.firebasestorage.app",
-    messagingSenderId: "246996109678",
-    appId: "1:246996109678:web:0161d74a27f4d862ef997f"
-  };
+  // ✅ Get form elements
+  const signupForm = document.getElementById("signup-form");
+  const signinForm = document.querySelector("form.active");
+  const googleSignupBtn = document.getElementById("google-signup-btn");
+  const googleSigninBtn = document.getElementById("google-signin-btn");
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
-
-  // ✅ Handle redirect result
-  getRedirectResult(auth)
-    .then((result) => {
-      if (result && result.user) {
-        const user = result.user;
-        alert("✅ Welcome, " + (user.displayName || "user") + "!");
-        // Optional: redirect to dashboard
-        // window.location.href = "/dashboard.html";
-      }
-    })
-    .catch((error) => {
-      console.error("Redirect sign-in error:", error);
-    });
-
-  // ✅ Signup
-  const signupForm = document.getElementById('signup-form');
+  // ✅ Sign Up with Email + Password
   if (signupForm) {
-    signupForm.addEventListener('submit', async (e) => {
+    signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = signupForm.querySelector('input[type="email"]').value;
-      const password = signupForm.querySelector('input[type="password"]').value;
-      const name = signupForm.querySelector('input[type="text"]').value;
+      const name = document.getElementById("signup-name").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-pass").value;
 
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        await updateProfile(user, { displayName: name });
-        alert("✅ Account created successfully!");
-        toggleForm();
-      } catch (error) {
-        console.error("Signup error:", error);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: window.location.origin + "/dashboard.html"
+        }
+      });
+
+      if (error) {
         alert("❌ " + error.message);
+      } else {
+        alert("✅ Account created! Check your email to confirm.");
       }
     });
   }
 
-  // ✅ Signin
-  const signinForm = document.getElementById('signin-form');
+  // ✅ Sign In with Email + Password
   if (signinForm) {
-    signinForm.addEventListener('submit', async (e) => {
+    signinForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = signinForm.querySelector('input[type="email"]').value;
-      const password = signinForm.querySelector('input[type="password"]').value;
+      const email = document.getElementById("signin-email").value.trim();
+      const password = document.getElementById("signin-pass").value;
 
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        alert("✅ Welcome back, " + (user.displayName || "user") + "!");
-      } catch (error) {
-        console.error("Signin error:", error);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
         alert("❌ " + error.message);
+      } else {
+        alert("✅ Welcome back!");
+        window.location.href = "/dashboard.html"; // Redirect after login
       }
     });
   }
 
-  // ✅ Google redirect sign-in
-  const googleButtons = document.querySelectorAll('.social-btn img[alt="Google"]');
-  googleButtons.forEach((btn) => {
-    btn.parentElement.addEventListener('click', () => {
-      signInWithRedirect(auth, provider);
+  // ✅ Google OAuth Sign-In
+  async function handleGoogleLogin() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/dashboard.html"
+      }
     });
-  });
+
+    if (error) {
+      alert("❌ " + error.message);
+    }
+  }
+
+  googleSignupBtn?.addEventListener("click", handleGoogleLogin);
+  googleSigninBtn?.addEventListener("click", handleGoogleLogin);
+
+  // ✅ Check Session & Auto-Redirect
+  async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && window.location.pathname === "/auth.html") {
+      window.location.href = "/dashboard.html";
+    }
+  }
+  checkSession();
 </script>
-
 </head>
-<body>
 
+<body>
 <div class="auth-wrapper">
   <div class="forms-container" id="forms-container">
-    <form id="signin-form" class="active">
-  <h1>Welcome Back</h1>
-  <p class="subtext">Sign in to continue</p>
-  <div class="input-group">
-    <input type="email" id="signin-email" class="input" placeholder="Email address" required>
-  </div>
-  <div class="input-group">
-    <input type="password" id="signin-pass" class="input" placeholder="Password" required>
-    <span class="toggle-eye" onclick="togglePassword('signin-pass', this)">👁</span>
-  </div>
-  <button type="submit" class="btn">Continue</button>
+    <!-- Signin Form -->
+    <form class="active" id="signin-form">
+      <h1>Welcome Back</h1>
+      <p class="subtext">Sign in to continue</p>
+      <div class="input-group">
+        <input type="email" id="signin-email" class="input" placeholder="Email address" required>
+      </div>
+      <div class="input-group">
+        <input type="password" id="signin-pass" class="input" placeholder="Password" required>
+        <span class="toggle-eye" onclick="togglePassword('signin-pass', this)">👁</span>
+      </div>
+      <button type="submit" class="btn">Continue</button>
+      <div class="divider">or</div>
+      <button type="button" class="social-btn" id="google-signin-btn">
+        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+        Continue with Google
+      </button>
+      <span class="toggle-link" onclick="toggleForm()">Don’t have an account? Sign up</span>
+    </form>
 
-  <div class="divider">or</div>
-  <button type="button" class="social-btn" id="google-signin-btn">
-    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-    Continue with Google
-  </button>
-  <button type="button" class="social-btn">
-    <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook">
-    Continue with Facebook
-  </button>
-  <span class="toggle-link" onclick="toggleForm()">Don’t have an account? Sign up</span>
-</form>
-
-<form id="signup-form">
-  <h1>Create Account</h1>
-  <p class="subtext">Join us in seconds</p>
-  <div class="input-group">
-    <input type="text" id="signup-name" class="input" placeholder="Full Name" required>
-  </div>
-  <div class="input-group">
-    <input type="email" id="signup-email" class="input" placeholder="Email address" required>
-  </div>
-  <div class="input-group">
-    <input type="password" id="signup-pass" class="input" placeholder="Password" required>
-    <span class="toggle-eye" onclick="togglePassword('signup-pass', this)">👁</span>
-  </div>
-  <button type="submit" class="btn">Sign Up</button>
-
-  <div class="divider">or</div>
-  <button type="button" class="social-btn" id="google-signup-btn">
-    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-    Continue with Google
-  </button>
-  <button type="button" class="social-btn">
-    <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook">
-    Continue with Facebook
-  </button>
-  <span class="toggle-link" onclick="toggleForm()">Already have an account? Sign in</span>
-</form>
-
+    <!-- Signup Form -->
+    <form id="signup-form">
+      <h1>Create Account</h1>
+      <p class="subtext">Join us in seconds</p>
+      <div class="input-group">
+        <input type="text" id="signup-name" class="input" placeholder="Full Name" required>
+      </div>
+      <div class="input-group">
+        <input type="email" id="signup-email" class="input" placeholder="Email address" required>
+      </div>
+      <div class="input-group">
+        <input type="password" id="signup-pass" class="input" placeholder="Password" required>
+        <span class="toggle-eye" onclick="togglePassword('signup-pass', this)">👁</span>
+      </div>
+      <button type="submit" class="btn">Sign Up</button>
+      <div class="divider">or</div>
+      <button type="button" class="social-btn" id="google-signup-btn">
+        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+        Continue with Google
+      </button>
+      <span class="toggle-link" onclick="toggleForm()">Already have an account? Sign in</span>
+    </form>
   </div>
 </div>
 
@@ -330,8 +148,7 @@ function toggleForm() {
   const container = document.getElementById('forms-container');
   const signinForm = document.getElementById('signin-form');
   const signupForm = document.getElementById('signup-form');
-
-  if(showingSignIn){
+  if (showingSignIn) {
     container.style.transform = 'translateX(-50%)';
     signinForm.classList.remove('active');
     signupForm.classList.add('active');
@@ -345,12 +162,9 @@ function toggleForm() {
 
 function togglePassword(id, el) {
   const input = document.getElementById(id);
-  if(input.type==="password") { input.type="text"; el.textContent="🙈"; }
-  else { input.type="password"; el.textContent="👁"; }
+  if (input.type === "password") { input.type = "text"; el.textContent = "🙈"; }
+  else { input.type = "password"; el.textContent = "👁"; }
 }
-</script>
-<script src="app-2.js">
-
 </script>
 </body>
 </html>
