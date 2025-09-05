@@ -183,7 +183,9 @@ function initSPA() {
 
 // --- Start ---
 checkAuth();
-// --- Upload Post ---
+
+
+
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -192,26 +194,32 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   const desc = document.getElementById("uDesc").value;
   const cover = document.getElementById("uCover").files[0];
 
+  if (!cover) return alert("Please select a cover image.");
+
   const { data: fileData, error: uploadError } = await sb.storage
     .from("post-media")
-    .upload(`public/${Date.now()}_${cover.name}`, cover);
+    .upload(`${Date.now()}_${cover.name}`, cover);
 
   if (uploadError) return console.error(uploadError);
 
   const mediaUrl = sb.storage
     .from("post-media")
-    .getPublicUrl(fileData.path).publicUrl;
+    .getPublicUrl(fileData.path).data.publicUrl;
 
-  const { error: insertError } = await sb.from("posts").insert([{
+  const { data: insertedPost, error: insertError } = await sb.from("posts").insert([{
     author: currentUser.email,
     title,
     description: desc,
     tags,
     media_url: mediaUrl
-  }]);
+  }]).select().single();
 
-  if (insertError) console.error(insertError);
-  else document.getElementById("uploadModal").classList.add("hidden");
+  if (insertError) {
+    console.error(insertError);
+  } else {
+    renderPost(insertedPost);
+    document.getElementById("uploadModal").classList.add("hidden");
+  }
 });
 
 // --- Add Interaction ---
@@ -277,6 +285,25 @@ function handleRealtimeUpdate(interaction) {
       container.insertAdjacentHTML("beforeend", html);
     }
   }
+}
+function renderPost(post) {
+  const template = document.getElementById("post-template");
+  const clone = template.content.cloneNode(true);
+
+  clone.querySelector(".post-card").dataset.postId = post.id;
+  clone.querySelector(".post-author").textContent = post.author;
+  clone.querySelector(".post-time").textContent = "Just now";
+  clone.querySelector(".post-description").textContent = post.description;
+  clone.querySelector(".post-image").src = post.media_url;
+  clone.querySelector(".hashtag").textContent = post.tags?.[0] ? `#${post.tags[0]}` : "";
+
+  clone.querySelectorAll(".action-btn").forEach(btn => {
+    btn.dataset.postId = post.id;
+  });
+
+  clone.querySelector(".comments-section").id = `comments-${post.id}`;
+
+  document.getElementById("feed").prepend(clone);
 }
 
 </script>
