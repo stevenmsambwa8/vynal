@@ -138,7 +138,7 @@ async function handleLogin(button, provider) {
      
   }
 }
-
+async function handleGoogleLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); } async function handleFacebookLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); } async function handleAppleLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); }
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("google-btn").addEventListener("click", e => handleLogin(e.currentTarget, "google"));
   document.getElementById("facebook-btn").addEventListener("click", e => handleLogin(e.currentTarget, "facebook"));
