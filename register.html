@@ -175,13 +175,11 @@ p.subtext {
 </style>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script type="module">
-  // ✅ Initialize Supabase
   const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ✅ SIGN UP (Email + Password)
+  // --- Email/Password SignUp
   document.getElementById("signup-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = document.getElementById("signup-name").value.trim();
@@ -191,92 +189,55 @@ p.subtext {
     const { data, error } = await sb.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: window.location.origin // ✅ No redirect to dashboard
-      },
+      options: { data: { full_name: name } }
     });
 
-    if (error) {
-      alert("❌ " + error.message);
-    } else {
-      alert("✅ Account created! Check your email to confirm.");
-    }
+    if (error) alert("❌ " + error.message);
+    else alert("✅ Account created! Check your email to confirm.");
   });
 
-  // ✅ SIGN IN (Email + Password)
+  // --- Email/Password SignIn
   document.getElementById("signin-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("signin-email").value.trim();
     const password = document.getElementById("signin-pass").value;
 
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      alert("❌ " + error.message);
-    } else {
-      alert("✅ Welcome back!");
-      // ✅ No redirect to dashboard
-    }
+    if (error) alert("❌ " + error.message);
+    else alert("✅ Welcome back, " + data.user.email);
   });
 
-  // ✅ GOOGLE OAUTH LOGIN
+  // --- Google OAuth
   async function handleGoogleLogin() {
-    const { data, error } = await sb.auth.signInWithOAuth({
+    const { error } = await sb.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: window.location.origin, // ✅ Return to the same page
-      },
+      options: { redirectTo: window.location.origin }
     });
-
-    if (error) {
-      alert("❌ " + error.message);
-    }
+    if (error) alert("❌ " + error.message);
   }
 
   document.getElementById("google-signup-btn").addEventListener("click", handleGoogleLogin);
   document.getElementById("google-signin-btn").addEventListener("click", handleGoogleLogin);
 
-  // ✅ HANDLE OAUTH TOKENS FROM URL
-  async function handleOAuthCallback() {
-    const hash = window.location.hash;
+  // --- Listen for Auth State Change (works for OAuth)
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      console.log("✅ Logged in as", session.user.email);
+      alert("✅ Logged in as " + session.user.email);
 
-    if (hash && hash.includes("access_token")) {
-      const params = new URLSearchParams(hash.substring(1));
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
-
-      if (access_token && refresh_token) {
-        const { data, error } = await sb.auth.setSession({
-          access_token,
-          refresh_token,
-        });
-
-        if (error) {
-          console.error("Session error:", error.message);
-          alert("❌ Failed to set session");
-        } else {
-          alert(`✅ Logged in as ${data.user.email}`);
-        }
-
-        // ✅ Clean URL after session is set
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
+      // ✅ Optionally update UI here, e.g., show profile
     }
-  }
+  });
 
-  handleOAuthCallback();
-
-  // ✅ CHECK ACTIVE SESSION
-  async function checkSession() {
+  // --- Check existing session on page load
+  (async () => {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      console.log("✅ User is already logged in:", session.user.email);
+    if (session && session.user) {
+      console.log("✅ Already logged in:", session.user.email);
     }
-  }
-
-  checkSession();
+  })();
 </script>
+
 
 
 </head>
