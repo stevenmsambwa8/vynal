@@ -109,42 +109,56 @@ p.subtext { color: var(--muted); margin-bottom: 1.5rem; }
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
 const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function handleLogin(button, provider) {
-  // Disable all buttons
-  const buttons = document.querySelectorAll('.social-btn');
-  buttons.forEach(btn => btn.disabled = true);
+  const buttons = document.querySelectorAll(".social-btn");
+  buttons.forEach((btn) => (btn.disabled = true));
 
-  // Add loader span if not already present
-  let loader = button.querySelector('.loader');
-  if(!loader){
-    loader = document.createElement('span');
-    loader.className = 'loader';
+  let loader = button.querySelector(".loader");
+  if (!loader) {
+    loader = document.createElement("span");
+    loader.className = "loader";
     button.appendChild(loader);
   }
 
   try {
     const { error } = await sb.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: "/" }
+      options: {
+        redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html",
+      },
     });
-    if(error) alert("❌ " + error.message);
-  } catch(err) {
+    if (error) alert("❌ " + error.message);
+  } catch (err) {
     console.error(err);
+    alert("❌ Login failed. Please try again.");
   } finally {
-     
+    buttons.forEach((btn) => (btn.disabled = false));
+    if (loader) loader.remove();
   }
 }
-async function handleGoogleLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); } async function handleFacebookLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); } async function handleAppleLogin() { const { error } = await sb.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } }); if (error) alert("❌ " + error.message); }
+
 window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("google-btn").addEventListener("click", e => handleLogin(e.currentTarget, "google"));
-  document.getElementById("facebook-btn").addEventListener("click", e => handleLogin(e.currentTarget, "facebook"));
-  document.getElementById("apple-btn").addEventListener("click", e => handleLogin(e.currentTarget, "apple"));
+  document
+    .getElementById("google-btn")
+    .addEventListener("click", (e) => handleLogin(e.currentTarget, "google"));
+  document
+    .getElementById("facebook-btn")
+    .addEventListener("click", (e) =>
+      handleLogin(e.currentTarget, "facebook")
+    );
+  document
+    .getElementById("apple-btn")
+    .addEventListener("click", (e) => handleLogin(e.currentTarget, "apple"));
 });
 </script>
+
 </head>
 
 <body>
