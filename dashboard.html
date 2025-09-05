@@ -24,7 +24,7 @@ async function loadUser() {
   } = await sb.auth.getSession();
 
   if (!session || !session.user) {
-    window.location.href = "index.html"; // not logged in
+    window.location.href = ""; // not logged in
     return;
   }
 
@@ -41,7 +41,7 @@ async function loadUser() {
 // Listen for state changes (handles refresh/login/logout correctly)
 sb.auth.onAuthStateChange((_event, session) => {
   if (!session) {
-    window.location.href = "index.html";
+    window.location.href = "";
   }
 });
 
