@@ -173,67 +173,55 @@ p.subtext {
   .forms-container { width: 200%; }
 }
 </style>
-<!-- Supabase SDK -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <script type="module">
-  // ✅ Initialize Supabase
+  // ✅ Initialize Supabase correctly
   const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ✅ Get form elements
-  const signupForm = document.getElementById("signup-form");
-  const signinForm = document.querySelector("form.active");
-  const googleSignupBtn = document.getElementById("google-signup-btn");
-  const googleSigninBtn = document.getElementById("google-signin-btn");
+  // ✅ Sign Up
+  document.getElementById("signup-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("signup-name").value.trim();
+    const email = document.getElementById("signup-email").value.trim();
+    const password = document.getElementById("signup-pass").value;
 
-  // ✅ Sign Up with Email + Password
-  if (signupForm) {
-    signupForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("signup-name").value.trim();
-      const email = document.getElementById("signup-email").value.trim();
-      const password = document.getElementById("signup-pass").value;
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name },
-          emailRedirectTo: window.location.origin + "/dashboard.html"
-        }
-      });
-
-      if (error) {
-        alert("❌ " + error.message);
-      } else {
-        alert("✅ Account created! Check your email to confirm.");
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: window.location.origin + "/dashboard.html"
       }
     });
-  }
 
-  // ✅ Sign In with Email + Password
-  if (signinForm) {
-    signinForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("signin-email").value.trim();
-      const password = document.getElementById("signin-pass").value;
+    if (error) {
+      alert("❌ " + error.message);
+    } else {
+      alert("✅ Account created! Check your email to confirm.");
+    }
+  });
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // ✅ Sign In
+  document.getElementById("signin-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("signin-email").value.trim();
+    const password = document.getElementById("signin-pass").value;
 
-      if (error) {
-        alert("❌ " + error.message);
-      } else {
-        alert("✅ Welcome back!");
-        window.location.href = "/dashboard.html"; // Redirect after login
-      }
-    });
-  }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
-  // ✅ Google OAuth Sign-In
+    if (error) {
+      alert("❌ " + error.message);
+    } else {
+      alert("✅ Welcome back!");
+      window.location.href = "/dashboard.html";
+    }
+  });
+
+  // ✅ Google OAuth
   async function handleGoogleLogin() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await sb.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/dashboard.html"
@@ -245,18 +233,19 @@ p.subtext {
     }
   }
 
-  googleSignupBtn?.addEventListener("click", handleGoogleLogin);
-  googleSigninBtn?.addEventListener("click", handleGoogleLogin);
+  document.getElementById("google-signup-btn").addEventListener("click", handleGoogleLogin);
+  document.getElementById("google-signin-btn").addEventListener("click", handleGoogleLogin);
 
-  // ✅ Check Session & Auto-Redirect
+  // ✅ Check Active Session
   async function checkSession() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (session && window.location.pathname === "/auth.html") {
       window.location.href = "/dashboard.html";
     }
   }
   checkSession();
 </script>
+
 </head>
 
 <body>
@@ -333,4 +322,5 @@ function togglePassword(id, el) {
 </script>
 </body>
 </html>
+
 
