@@ -23,6 +23,12 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const contentDiv = document.getElementById("contentize");
 const navLinks = document.querySelectorAll("nav a");
 
+// Elements for user info (make sure these exist in your HTML)
+const userNameEl = document.getElementById("user-name");
+const userEmailEl = document.getElementById("user-email");
+const userPicEl = document.getElementById("user-pic");
+const logoutBtn = document.getElementById("logout-btn");
+
 // --- SPA Page List ---
 const pageList = [
   "mall.html",
@@ -49,8 +55,29 @@ async function checkAuth() {
   console.log("✅ Logged in as:", session.user.email);
   window.currentUser = session.user;
 
+  // Display user info
+  displayUserInfo(session.user);
+
   // Start SPA after confirming auth
   initSPA();
+}
+
+// --- Display User Info ---
+function displayUserInfo(user) {
+  if (userNameEl) userNameEl.textContent = user.user_metadata.full_name || "No Name";
+  if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
+  if (userPicEl) {
+    userPicEl.src = user.user_metadata.avatar_url || "default-avatar.png";
+    userPicEl.alt = user.user_metadata.full_name || "User Avatar";
+  }
+}
+
+// --- Logout Handler ---
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+  });
 }
 
 // --- Listen for logout or expired session ---
@@ -157,6 +184,7 @@ function initSPA() {
 // --- Start ---
 checkAuth();
 </script>
+
 
 
 
