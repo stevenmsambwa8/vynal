@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔥 Modern Dark Auth - Social Only</title>
+<title>🔥 Modern Dark Auth - Social Grid</title>
 <style>
 :root {
   --bg: #0d0d0d;
@@ -12,7 +12,6 @@
   --muted: #9ca3af;
   --brand: #dd1ab3;
   --radius: 16px;
-  --shadow: 0 10px 30px rgba(0,0,0,0.6);
   --transition: 0.4s ease;
 }
 
@@ -48,14 +47,20 @@ h1 {
 p.subtext {
   font-size: .95rem;
   color: var(--muted);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.social-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
 .social-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   padding: 0.95rem;
   border-radius: var(--radius);
   border: 1px solid #333;
@@ -63,7 +68,6 @@ p.subtext {
   color: var(--ink);
   font-weight: 500;
   font-size: 1rem;
-  margin: 0.6rem 0;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -71,48 +75,39 @@ p.subtext {
 .social-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
 </style>
 <script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-  const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  async function handleGoogleLogin() {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
-    });
-    if (error) alert("❌ " + error.message);
-  }
+async function handleGoogleLogin() {
+  const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } });
+  if (error) alert("❌ " + error.message);
+}
 
-  async function handleFacebookLogin() {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "facebook",
-      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
-    });
-    if (error) alert("❌ " + error.message);
-  }
+async function handleFacebookLogin() {
+  const { error } = await sb.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } });
+  if (error) alert("❌ " + error.message);
+}
 
-  async function handleAppleLogin() {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "apple",
-      options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" }
-    });
-    if (error) alert("❌ " + error.message);
-  }
+async function handleAppleLogin() {
+  const { error } = await sb.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: "http://stevenmsambwa8.github.io/vynal/dashboard.html" } });
+  if (error) alert("❌ " + error.message);
+}
 
-  window.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("google-btn").addEventListener("click", handleGoogleLogin);
-    document.getElementById("facebook-btn").addEventListener("click", handleFacebookLogin);
-    document.getElementById("apple-btn").addEventListener("click", handleAppleLogin);
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("google-btn").addEventListener("click", handleGoogleLogin);
+  document.getElementById("facebook-btn").addEventListener("click", handleFacebookLogin);
+  document.getElementById("apple-btn").addEventListener("click", handleAppleLogin);
 
-    sb.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        alert("✅ Logged in as " + session.user.email);
-      }
-    });
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      alert("✅ Logged in as " + session.user.email);
+    }
   });
+});
 </script>
 </head>
 <body>
@@ -120,20 +115,22 @@ p.subtext {
   <h1>Welcome</h1>
   <p class="subtext">Continue with your social account</p>
 
-  <button type="button" class="social-btn" id="google-btn">
-    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-    Continue with Google
-  </button>
+  <div class="social-grid">
+    <button type="button" class="social-btn" id="google-btn">
+      <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+      Google
+    </button>
 
-  <button type="button" class="social-btn" id="facebook-btn">
-    <img src="https://www.svgrepo.com/show/448234/facebook-color.svg" alt="Facebook">
-    Continue with Facebook
-  </button>
+    <button type="button" class="social-btn" id="facebook-btn">
+      <img src="https://www.svgrepo.com/show/448234/facebook-color.svg" alt="Facebook">
+      Facebook
+    </button>
 
-  <button type="button" class="social-btn" id="apple-btn">
-    <img src="https://www.svgrepo.com/show/303128/apple-logo.svg" alt="Apple">
-    Continue with Apple
-  </button>
+    <button type="button" class="social-btn" id="apple-btn">
+      <img src="https://www.svgrepo.com/show/303128/apple-logo.svg" alt="Apple">
+      Apple
+    </button>
+  </div>
 </div>
 </body>
 </html>
