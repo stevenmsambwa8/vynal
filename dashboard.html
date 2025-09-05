@@ -22,43 +22,40 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 function renderUser(user) {
-  const { email, user_metadata } = user;
-  document.getElementById("user-name").textContent =
-    user_metadata?.full_name || "No Name";
-  document.getElementById("user-email").textContent = email || "No Email";
-  document.getElementById("user-pic").src =
-    user_metadata?.avatar_url || "default-avatar.png";
-}
+  console.log("User object:", user);
 
-let hasHydrated = false;
+  document.getElementById("user-name").textContent =
+    user.user_metadata?.full_name || "No Name";
+  document.getElementById("user-email").textContent = user.email || "No Email";
+  document.getElementById("user-pic").src =
+    user.user_metadata?.avatar_url || "default-avatar.png";
+}
 
 async function loadUser() {
   const {
-    data: { session },
-  } = await sb.auth.getSession();
+    data: { user },
+    error,
+  } = await sb.auth.getUser();
 
-  console.log("Initial session:", session);
+  console.log("Fetched user:", user, "Error:", error);
 
-  if (session?.user) {
-    renderUser(session.user);
+  if (user) {
+    renderUser(user);
   }
-  // mark hydration complete
-  hasHydrated = true;
 }
 
-sb.auth.onAuthStateChange((event, session) => {
-  console.log("Auth event:", event, "Session:", session);
-
+// Handle login/logout events
+sb.auth.onAuthStateChange((_event, session) => {
   if (session?.user) {
-    renderUser(session.user);
-  } else if (hasHydrated) {
-    // redirect ONLY after we confirmed hydration
+    loadUser(); // fetch full user profile
+  } else {
     window.location.href = "register.html";
   }
 });
 
 window.addEventListener("DOMContentLoaded", loadUser);
 </script>
+
 
 
 </head>
