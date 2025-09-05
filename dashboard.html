@@ -10,6 +10,7 @@
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
+// Supabase client
 const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
@@ -21,9 +22,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+// Render user info
 function renderUser(user) {
   console.log("User object:", user);
-
   document.getElementById("user-name").textContent =
     user.user_metadata?.full_name || "No Name";
   document.getElementById("user-email").textContent = user.email || "No Email";
@@ -31,29 +32,30 @@ function renderUser(user) {
     user.user_metadata?.avatar_url || "default-avatar.png";
 }
 
-async function loadUser() {
-  const {
-    data: { user },
-    error,
-  } = await sb.auth.getUser();
+// Initialize dashboard
+async function init() {
+  // Check initial session
+  const { data: { session }, error } = await sb.auth.getSession();
+  console.log("Initial session:", session, "Error:", error);
 
-  console.log("Fetched user:", user, "Error:", error);
-
-  if (user) {
-    renderUser(user);
+  if (session?.user) {
+    renderUser(session.user);
+  } else {
+    // No session → redirect
+    window.location.href = "register.html";
+    return;
   }
+
+  // Listen to future auth state changes (logout)
+  sb.auth.onAuthStateChange((_event, newSession) => {
+    if (!newSession?.user) {
+      window.location.href = "register.html";
+    }
+  });
 }
 
-// Handle login/logout events
-sb.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) {
-    loadUser(); // fetch full user profile
-  } else {
-    window.location.href = "register.html";
-  }
-});
-
-window.addEventListener("DOMContentLoaded", loadUser);
+// Start on DOM load
+window.addEventListener("DOMContentLoaded", init);
 </script>
 
 
