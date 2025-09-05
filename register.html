@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🔥 Modern Dark Auth - Social Grid</title>
+<title>🔥 Modern Dark Auth - Staggered Social</title>
 <style>
 :root {
   --bg: #0d0d0d;
-  --panel: rgba(26,26,26,0.95);
   --ink: #f9fafb;
   --muted: #9ca3af;
   --brand: #dd1ab3;
@@ -31,7 +30,6 @@ body {
   width: 100%;
   max-width: 420px;
   border-radius: var(--radius);
-  background: transparent;
   backdrop-filter: blur(12px);
   padding: 2rem;
   text-align: center;
@@ -52,8 +50,19 @@ p.subtext {
 
 .social-grid {
   display: grid;
+  grid-template-areas:
+    "google facebook"
+    ". apple .";
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+#google-btn { grid-area: google; }
+#facebook-btn { grid-area: facebook; }
+#apple-btn {
+  grid-area: apple;
+  justify-self: center;
 }
 
 .social-btn {
@@ -73,6 +82,15 @@ p.subtext {
 }
 .social-btn img { width: 20px; height: 20px; }
 .social-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+@media (max-width: 480px) {
+  .social-grid { grid-template-areas:
+    "google"
+    "facebook"
+    "apple";
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
