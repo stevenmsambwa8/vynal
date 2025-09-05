@@ -7,49 +7,44 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
+
+
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 // Supabase setup
 const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+    },
 });
 
 // Render user info
 function renderUser(user) {
-  document.getElementById("user-name").textContent =
-    user.user_metadata?.full_name || "No Name";
-  document.getElementById("user-email").textContent = user.email || "No Email";
-  document.getElementById("user-pic").src =
-    user.user_metadata?.avatar_url || "default-avatar.png";
+    document.getElementById("user-name").textContent =
+        user.user_metadata?.full_name || "No Name";
+    document.getElementById("user-email").textContent = user.email || "No Email";
+    document.getElementById("user-pic").src =
+        user.user_metadata?.avatar_url || "default-avatar.png";
 }
 
 // Check session and redirect if not logged in
 async function initDashboard() {
-  const { data, error } = await sb.auth.getSession();
-  if (error) {
-    console.error("Error fetching session:", error.message);
-    window.location.href = "register.html";
-    return;
-  }
+    const { data: { session }, error } = await sb.auth.getSession();
 
-  const session = data.session;
+    // Check for an error or if the session is not present
+    if (error || !session) {
+        console.error("No session found or an error occurred:", error ? error.message : "Session not present");
+        window.location.href = "register.html";
+        return;
+    }
 
-  if (!session?.user) {
-    // Not logged in → redirect
-    window.location.href = "register.html";
-    return;
-  }
-
-  // Logged in → render user info
-  renderUser(session.user);
+    // Logged in → render user info
+    renderUser(session.user);
 }
 
 // Start
