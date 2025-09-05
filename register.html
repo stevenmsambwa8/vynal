@@ -175,9 +175,13 @@ p.subtext {
 </style>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+  // Replace with your project details
   const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4";
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // --- Email/Password SignUp
   document.getElementById("signup-form").addEventListener("submit", async (e) => {
@@ -186,14 +190,18 @@ p.subtext {
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-pass").value;
 
-    const { data, error } = await sb.auth.signUp({
+    const { error } = await sb.auth.signUp({
       email,
       password,
       options: { data: { full_name: name } }
     });
 
-    if (error) alert("❌ " + error.message);
-    else alert("✅ Account created! Check your email to confirm.");
+    if (error) {
+      console.error(error);
+      alert("❌ " + error.message);
+    } else {
+      alert("✅ Account created! Check your email to confirm.");
+    }
   });
 
   // --- Email/Password SignIn
@@ -202,9 +210,13 @@ p.subtext {
     const email = document.getElementById("signin-email").value.trim();
     const password = document.getElementById("signin-pass").value;
 
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) alert("❌ " + error.message);
-    else alert("✅ Welcome back, " + data.user.email);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      console.error(error);
+      alert("❌ " + error.message);
+    }
+    // Success is handled by onAuthStateChange
   });
 
   // --- Google OAuth
@@ -213,30 +225,32 @@ p.subtext {
       provider: "google",
       options: { redirectTo: window.location.origin }
     });
-    if (error) alert("❌ " + error.message);
+    if (error) {
+      console.error(error);
+      alert("❌ " + error.message);
+    }
   }
 
   document.getElementById("google-signup-btn").addEventListener("click", handleGoogleLogin);
   document.getElementById("google-signin-btn").addEventListener("click", handleGoogleLogin);
 
-  // --- Listen for Auth State Change (works for OAuth)
+  // --- Listen for Auth State Change (works for OAuth & password)
   sb.auth.onAuthStateChange((event, session) => {
-    if (session && session.user) {
+    if (session?.user) {
       console.log("✅ Logged in as", session.user.email);
       alert("✅ Logged in as " + session.user.email);
-
-      // ✅ Optionally update UI here, e.g., show profile
     }
   });
 
   // --- Check existing session on page load
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user) {
+    if (session?.user) {
       console.log("✅ Already logged in:", session.user.email);
     }
   })();
 </script>
+
 
 
 
