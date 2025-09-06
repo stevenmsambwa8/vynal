@@ -108,58 +108,57 @@ p.subtext { color: var(--muted); margin-bottom: 1.5rem; }
 </style>
 
 <script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-  const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  async function handleLogin(button, provider) {
-    const buttons = document.querySelectorAll(".social-btn");
-    buttons.forEach((btn) => (btn.disabled = true));
+async function handleLogin(button, provider) {
+  const buttons = document.querySelectorAll(".social-btn");
+  buttons.forEach((btn) => (btn.disabled = true));
 
-    let loader = button.querySelector(".loader");
-    if (!loader) {
-      loader = document.createElement("span");
-      loader.className = "loader";
-      button.appendChild(loader);
-    }
-
-    try {
-      const { error } = await sb.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html",
-        },
-      });
-      if (error) alert("❌ " + error.message);
-    } catch (err) {
-      console.error(err);
-      alert("❌ Login failed. Please try again.");
-      buttons.forEach((btn) => (btn.disabled = false));
-      if (loader) loader.remove();
-    }
+  let loader = button.querySelector(".loader");
+  if (!loader) {
+    loader = document.createElement("span");
+    loader.className = "loader";
+    button.appendChild(loader);
   }
 
-  window.addEventListener("DOMContentLoaded", () => {
-    document
-      .getElementById("google-btn")
-      .addEventListener("click", (e) => handleLogin(e.currentTarget, "google"));
+  try {
+    await sb.auth.signInWithOAuth({
+  provider: "spotify",
+  options: {
+    redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html", // This is YOUR app’s post-login page
+  },
+});
 
-    document
-      .getElementById("facebook-btn")
-      .addEventListener("click", (e) =>
-        handleLogin(e.currentTarget, "facebook")
-      );
+    
+    if (error) alert("❌ " + error.message);
+  } catch (err) {
+    console.error(err);
+    alert("❌ Login failed. Please try again.");
+    buttons.forEach((btn) => (btn.disabled = false));
+    if (loader) loader.remove();
+  }
+}
 
-    document
-      .getElementById("spotify-btn")
-      .addEventListener("click", (e) => handleLogin(e.currentTarget, "spotify"));
-  });
+window.addEventListener("DOMContentLoaded", () => {
+  document
+    .getElementById("google-btn")
+    .addEventListener("click", (e) => handleLogin(e.currentTarget, "google"));
+  document
+    .getElementById("facebook-btn")
+    .addEventListener("click", (e) =>
+      handleLogin(e.currentTarget, "facebook")
+    );
+  document
+    .getElementById("spotify-btn")
+    .addEventListener("click", (e) => handleLogin(e.currentTarget, "spotify"));
+});
 </script>
-
 
 
 </head>
