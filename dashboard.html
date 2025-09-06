@@ -16,308 +16,57 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- Global State ---
-    window.currentUser = null;
-    let currentPostId = null;
+    // --- Global Variables ---
     let isTransitioning = false;
     const pageCache = {};
-    let appInitialized = false;
-    
     const pageList = ["mall.html", "start.html", "states.html", "statehome.html", "profile.html", "upload.html"];
+    
+    // Global State
+    window.currentUser = null;
+    let currentPostId = null;
 
-    // --- Ensure DOM is Ready ---
-    function waitForDOM() {
-        return new Promise((resolve) => {
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', resolve);
-            } else {
-                resolve();
-            }
-        });
+    // --- DOM Elements (will be dynamically found) ---
+    let contentDiv, navLinks, userNameEl, userEmailEl, userPicEl, logoutBtn;
+    let postFeedContainer, commentForm, commentInput;
+    let uploadModal, uploadBtn, uploadCloseBtn, uploadForm;
+    let commentModal, commentCloseBtn, commentsContainer;
+
+    // --- Utility Functions ---
+    function getElement(selector) {
+        return contentDiv?.querySelector(selector) || document.getElementById(selector) || document.querySelector(selector);
     }
 
-    // --- Wait for specific element ---
-    function waitForElement(selector, timeout = 5000) {
-        return new Promise((resolve, reject) => {
-            const element = document.getElementById(selector) || document.querySelector(selector);
-            if (element) {
-                resolve(element);
-                return;
-            }
-
-            const observer = new MutationObserver((mutations, obs) => {
-                const element = document.getElementById(selector) || document.querySelector(selector);
-                if (element) {
-                    obs.disconnect();
-                    resolve(element);
-                }
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-
-            setTimeout(() => {
-                observer.disconnect();
-                reject(new Error(`Element ${selector} not found within ${timeout}ms`));
-            }, timeout);
-        });
+    function updateDOMReferences() {
+        contentDiv = document.getElementById("contentize");
+        navLinks = document.querySelectorAll("nav a");
+        userNameEl = getElement("user-name");
+        userEmailEl = getElement("user-email");
+        userPicEl = getElement("user-pic");
+        logoutBtn = getElement("logout-btn");
+        postFeedContainer = getElement('post-feed-container');
+        commentForm = getElement('commentForm');
+        commentInput = getElement('commentText');
+        uploadModal = getElement('uploadModal');
+        uploadBtn = getElement('.upload-btn');
+        uploadCloseBtn = getElement('uploadClose');
+        uploadForm = getElement('uploadForm');
+        commentModal = getElement('CommentModal');
+        commentCloseBtn = getElement('commentClose');
+        commentsContainer = commentModal?.querySelector('.comments');
     }
 
-    // --- Initialize App ---
-    async function initializeApp() {
-        if (appInitialized) return;
-        
-        console.log('🚀 Initializing app...');
-        
-        try {
-            // Wait for DOM to be ready
-            await waitForDOM();
-            console.log('✅ DOM ready');
-
-            // Wait for content container
-            await waitForElement('contentize');
-            console.log('✅ Content container found');
-
-            // Check authentication
-            const authSuccess = await checkAuth();
-            if (!authSuccess) return;
-
-            // Small delay to ensure everything is loaded
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Initialize SPA
-            await initSPA();
-            
-            // Setup real-time listeners
-            setupRealtimeListeners();
-            
-            appInitialized = true;
-            console.log('✅ App initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ App initialization failed:', error);
-            // Retry after a short delay
-            setTimeout(() => {
-                appInitialized = false;
-                initializeApp();
-            }, 1000);
-        }
-    }
-
-    // --- Authentication ---
+    // --- Auth Functions ---
     async function checkAuth() {
-        try {
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session) {
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
-                return false;
-            }
-            window.currentUser = session.user;
-            console.log('✅ User authenticated:', session.user.email);
-            return true;
-        } catch (error) {
-            console.error('❌ Auth check failed:', error);
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+            window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
             return false;
         }
+        window.currentUser = session.user;
+        return true;
     }
 
-    // --- SPA Core ---
-    async function initSPA() {
-        const contentDiv = document.getElementById("contentize");
-        if (!contentDiv) {
-            throw new Error('Content div not found');
-        }
-
-        console.log('🔧 Initializing SPA...');
-
-        // Preload pages in background
-        preloadPages();
-
-        // Determine initial page
-        let currentPage = location.hash.replace("#", "") || "start.html";
-        if (!pageList.includes(currentPage)) currentPage = "start.html";
-        
-        console.log(`📄 Loading initial page: ${currentPage}`);
-
-        // Load initial page
-        await loadPage(currentPage, false);
-        history.replaceState({ url: currentPage }, null, "#" + currentPage);
-
-        // Setup navigation handlers
-        setupNavigationHandlers();
-        
-        console.log('✅ SPA initialized');
-    }
-
-    function preloadPages() {
-        // Preload pages asynchronously
-        pageList.forEach(async (page) => {
-            try {
-                const res = await fetch(page);
-                if (res.ok) {
-                    pageCache[page] = await res.text();
-                    console.log(`📄 Preloaded: ${page}`);
-                }
-            } catch (e) {
-                console.warn(`⚠️ Failed to preload ${page}`);
-            }
-        });
-    }
-
-    function setupNavigationHandlers() {
-        // Remove existing handlers to prevent duplicates
-        document.removeEventListener("click", handleNavigation);
-        window.removeEventListener("popstate", handlePopState);
-        
-        // Add new handlers
-        document.addEventListener("click", handleNavigation);
-        window.addEventListener("popstate", handlePopState);
-    }
-
-    function handleNavigation(e) {
-        const link = e.target.closest("a[data-link]");
-        if (!link) return;
-
-        e.preventDefault();
-        const url = link.getAttribute("href").replace("#", "");
-        const current = location.hash.replace("#", "") || "start.html";
-
-        if (url === current) return;
-        if (pageList.includes(url)) {
-            loadPage(url, true);
-        }
-    }
-
-    function handlePopState(e) {
-        if (e.state && e.state.url) {
-            loadPage(e.state.url, false);
-        }
-    }
-
-    async function loadPage(url, addToHistory = true) {
-        if (isTransitioning) {
-            console.log('⏳ Page transition in progress, skipping...');
-            return;
-        }
-        
-        isTransitioning = true;
-
-        const contentDiv = document.getElementById("contentize");
-        if (!contentDiv) {
-            isTransitioning = false;
-            return;
-        }
-
-        try {
-            console.log(`📄 Loading page: ${url}`);
-            
-            // Show loading state
-            contentDiv.style.opacity = '0.5';
-            
-            // Get page content
-            let html;
-            if (pageCache[url]) {
-                html = pageCache[url];
-                console.log(`📄 Using cached content for ${url}`);
-            } else {
-                console.log(`📄 Fetching ${url} from server...`);
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`Failed to load ${url}: ${response.status}`);
-                html = await response.text();
-                pageCache[url] = html;
-            }
-
-            // Update content
-            contentDiv.innerHTML = html;
-            contentDiv.style.opacity = '1';
-            
-            // Wait a moment for DOM to update
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            // Initialize page-specific functionality
-            await initializePage(url);
-            
-            // Update history
-            if (addToHistory) {
-                history.pushState({ url }, null, "#" + url);
-            }
-
-            // Update navigation
-            updateActiveNav(url);
-            
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            
-            console.log(`✅ Page loaded successfully: ${url}`);
-            
-        } catch (error) {
-            console.error('❌ Page load error:', error);
-            contentDiv.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <h2 style="color: #ff6b6b;">⚠️ Page not found</h2>
-                    <p>Could not load ${url}</p>
-                    <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 10px;">Refresh Page</button>
-                </div>
-            `;
-            contentDiv.style.opacity = '1';
-        }
-        
-        isTransitioning = false;
-    }
-
-    function updateActiveNav(url) {
-        const navLinks = document.querySelectorAll("nav a");
-        navLinks.forEach(link => {
-            link.classList.toggle("active", link.getAttribute("href") === "#" + url);
-        });
-    }
-
-    // --- Page Initialization ---
-    async function initializePage(pageName) {
-        console.log(`🔧 Initializing page: ${pageName}`);
-        
-        try {
-            // Display user info on all pages
-            await displayUserInfo();
-            
-            // Setup common event listeners
-            setupCommonListeners();
-
-            // Page-specific initialization
-            switch (pageName) {
-                case "start.html":
-                    await initStartPage();
-                    break;
-                case "profile.html":
-                    await initProfilePage();
-                    break;
-                case "upload.html":
-                    await initUploadPage();
-                    break;
-                default:
-                    console.log(`📄 No specific initialization for ${pageName}`);
-            }
-            
-            console.log(`✅ Page initialized: ${pageName}`);
-            
-        } catch (error) {
-            console.error(`❌ Page initialization failed for ${pageName}:`, error);
-        }
-    }
-
-    async function displayUserInfo() {
-        if (!window.currentUser) return;
-
-        // Wait for elements to be available
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        const user = window.currentUser;
-        const userNameEl = document.getElementById("user-name");
-        const userEmailEl = document.getElementById("user-email");
-        const userPicEl = document.getElementById("user-pic");
-
+    function displayUserInfo(user) {
         if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || "No Name";
         if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
         if (userPicEl) {
@@ -326,217 +75,159 @@
         }
     }
 
-    function setupCommonListeners() {
+    // --- SPA Navigation ---
+    async function loadPage(url, addToHistory = true) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        try {
+            if (contentDiv) contentDiv.classList.add("fade-out");
+
+            setTimeout(async () => {
+                try {
+                    let html;
+                    if (pageCache[url]) {
+                        html = pageCache[url];
+                    } else {
+                        const response = await fetch(url, { cache: "force-cache" });
+                        html = await response.text();
+                        pageCache[url] = html;
+                    }
+
+                    if (contentDiv) {
+                        contentDiv.innerHTML = html;
+                        updateDOMReferences(); // Update DOM references after content change
+                        await initPage(); // Initialize page-specific functionality
+                    }
+
+                    if (typeof initSliders === "function") {
+                        initSliders();
+                    }
+
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    highlightActiveLink(url);
+
+                    if (addToHistory) {
+                        history.pushState({ url }, null, "#" + url);
+                    }
+
+                    if (contentDiv) {
+                        contentDiv.classList.remove("fade-out");
+                        contentDiv.classList.add("fade-in");
+                    }
+
+                    setTimeout(() => {
+                        if (contentDiv) {
+                            contentDiv.classList.remove("fade-in");
+                        }
+                        isTransitioning = false;
+                    }, 150);
+                } catch (error) {
+                    console.error("Page load error:", error);
+                    if (contentDiv) {
+                        contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
+                    }
+                    isTransitioning = false;
+                }
+            }, 100);
+        } catch (error) {
+            console.error("❌ Load error:", error);
+            isTransitioning = false;
+        }
+    }
+
+    function highlightActiveLink(url) {
+        if (navLinks) {
+            navLinks.forEach(link => {
+                link.classList.toggle("active", link.getAttribute("href") === "#" + url);
+            });
+        }
+    }
+
+    // --- Page Initialization ---
+    async function initPage() {
+        // Check auth and display user info
+        if (window.currentUser) {
+            displayUserInfo(window.currentUser);
+        }
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Initialize page-specific content
+        const pageName = location.hash.replace("#", "") || "start.html";
+        switch (pageName) {
+            case "start.html":
+                await fetchAndRenderPosts();
+                break;
+            case "profile.html":
+                // Profile page logic
+                break;
+            case "upload.html":
+                // Upload page logic
+                break;
+            case "statehome.html":
+                // State home logic
+                break;
+        }
+    }
+
+    // --- Event Listeners Setup ---
+    function setupEventListeners() {
         // Logout button
-        const logoutBtn = document.getElementById("logout-btn");
-        if (logoutBtn && !logoutBtn.hasAttribute('data-setup')) {
-            logoutBtn.setAttribute('data-setup', 'true');
+        if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
+            logoutBtn.setAttribute('data-listener', 'true');
             logoutBtn.addEventListener("click", async () => {
                 await sb.auth.signOut();
                 window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
             });
         }
 
-        // Post interactions (likes, comments)
-        setupPostInteractions();
-    }
-
-    // --- Start Page (Feed) ---
-    async function initStartPage() {
-        console.log('🏠 Initializing start page...');
-        
-        // Wait for post container to be available
-        try {
-            await waitForElement('post-feed-container', 2000);
-            await fetchAndRenderPosts();
-        } catch (error) {
-            console.warn('⚠️ Post feed container not found, skipping post loading');
-        }
-    }
-
-    async function fetchAndRenderPosts() {
-        const postFeedContainer = document.getElementById('post-feed-container');
-        if (!postFeedContainer) {
-            console.warn('⚠️ Post feed container not found');
-            return;
-        }
-
-        postFeedContainer.innerHTML = '<div style="text-align:center; padding:20px;">Loading posts...</div>';
-
-        try {
-            console.log('📡 Fetching posts...');
-            
-            const { data: posts, error } = await sb
-                .from('posts')
-                .select(`
-                    *,
-                    profiles!fk_user(full_name, avatar_url),
-                    comments(id),
-                    likes(post_id)
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            postFeedContainer.innerHTML = '';
-
-            if (!posts || posts.length === 0) {
-                postFeedContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No posts found. Be the first to share! 🚀</p>';
-                return;
-            }
-
-            posts.forEach(post => {
-                const postElement = createPostElement(post);
-                postFeedContainer.appendChild(postElement);
+        // Upload modal
+        if (uploadBtn && !uploadBtn.hasAttribute('data-listener')) {
+            uploadBtn.setAttribute('data-listener', 'true');
+            uploadBtn.addEventListener('click', () => {
+                if (uploadModal) uploadModal.classList.remove('hidden');
             });
+        }
 
-            console.log(`✅ Rendered ${posts.length} posts`);
+        if (uploadCloseBtn && !uploadCloseBtn.hasAttribute('data-listener')) {
+            uploadCloseBtn.setAttribute('data-listener', 'true');
+            uploadCloseBtn.addEventListener('click', () => {
+                if (uploadModal) uploadModal.classList.add('hidden');
+            });
+        }
 
-        } catch (error) {
-            console.error('❌ Error fetching posts:', error);
-            postFeedContainer.innerHTML = '<p style="text-align: center; color: red; padding: 40px;">⚠️ Could not load posts. <button onclick="location.reload()">Retry</button></p>';
+        // Upload form
+        if (uploadForm && !uploadForm.hasAttribute('data-listener')) {
+            uploadForm.setAttribute('data-listener', 'true');
+            uploadForm.addEventListener('submit', handleUploadSubmit);
+        }
+
+        // Comment form
+        if (commentForm && !commentForm.hasAttribute('data-listener')) {
+            commentForm.setAttribute('data-listener', 'true');
+            commentForm.addEventListener('submit', handleCommentSubmit);
+        }
+
+        // Comment modal close
+        if (commentCloseBtn && !commentCloseBtn.hasAttribute('data-listener')) {
+            commentCloseBtn.setAttribute('data-listener', 'true');
+            commentCloseBtn.addEventListener('click', () => {
+                if (commentModal) commentModal.classList.add('hidden');
+            });
         }
     }
 
-    function createPostElement(post) {
-        const postElement = document.createElement('div');
-        postElement.className = 'span-4 post-card';
-        postElement.dataset.postId = post.id;
-
-        const commentCount = post.comments?.length || 0;
-        const likeCount = post.likes?.length || 0;
-
-        postElement.innerHTML = `
-            <div class="post-header">
-                <div class="post-header-left">
-                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar" style="width:40px;height:40px;border-radius:50%;">
-                    <div class="post-header-info">
-                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
-                        <div style="color:#666;font-size:12px;">${new Date(post.created_at).toLocaleString()}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="post-body" style="margin:10px 0;">
-                <div>${post.title || ''}</div>
-                ${post.description ? `<div style="margin-top:5px;">${post.description}</div>` : ''}
-                ${(post.tags && post.tags.length > 0) ? `<div style="margin-top:5px;color:#0066cc;">#${post.tags.join(' #')}</div>` : ''}
-            </div>
-            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media" style="width:100%;max-height:400px;object-fit:cover;border-radius:8px;"></div>` : ''}
-            <div class="post-actions" style="margin-top:10px;display:flex;gap:15px;">
-                <button class="like-btn" data-post-id="${post.id}" style="background:none;border:none;cursor:pointer;">
-                    ❤️ <span>${likeCount}</span>
-                </button>
-                <button class="comment-btn" data-post-id="${post.id}" style="background:none;border:none;cursor:pointer;">
-                    💬 <span>${commentCount}</span>
-                </button>
-                <button style="background:none;border:none;cursor:pointer;">🔗 Share</button>
-            </div>
-        `;
-
-        return postElement;
-    }
-
-    function setupPostInteractions() {
-        // Remove existing listener to prevent duplicates
-        document.removeEventListener('click', handlePostClick);
-        document.addEventListener('click', handlePostClick);
-    }
-
-    async function handlePostClick(e) {
-        // Handle like button
-        const likeBtn = e.target.closest('.like-btn');
-        if (likeBtn) {
-            const postId = likeBtn.dataset.postId;
-            await handleLike(postId);
-            return;
-        }
-
-        // Handle comment button
-        const commentBtn = e.target.closest('.comment-btn');
-        if (commentBtn) {
-            const postId = commentBtn.dataset.postId;
-            await handleComment(postId);
-            return;
-        }
-    }
-
-    async function handleLike(postId) {
-        try {
-            const userId = window.currentUser?.id;
-            if (!userId) return;
-
-            const { error } = await sb
-                .from('likes')
-                .insert({ user_id: userId, post_id: postId });
-
-            if (error && error.code !== '23505') { // Ignore duplicate likes
-                throw error;
-            }
-
-            console.log('✅ Post liked');
-            // Refresh posts to show updated count
-            await fetchAndRenderPosts();
-
-        } catch (error) {
-            console.error('❌ Error liking post:', error);
-        }
-    }
-
-    async function handleComment(postId) {
-        const content = prompt('Enter your comment:');
-        if (!content) return;
-
-        try {
-            const userId = window.currentUser?.id;
-            if (!userId) return;
-
-            const { error } = await sb
-                .from('comments')
-                .insert({ 
-                    user_id: userId, 
-                    post_id: postId, 
-                    content: content.trim() 
-                });
-
-            if (error) throw error;
-
-            console.log('✅ Comment posted');
-            // Refresh posts to show updated count
-            await fetchAndRenderPosts();
-
-        } catch (error) {
-            console.error('❌ Error posting comment:', error);
-            alert('Failed to post comment');
-        }
-    }
-
-    // --- Upload Page ---
-    async function initUploadPage() {
-        console.log('📤 Initializing upload page...');
-        
-        try {
-            await waitForElement('uploadForm', 2000);
-            const uploadForm = document.getElementById('uploadForm');
-            if (uploadForm && !uploadForm.hasAttribute('data-setup')) {
-                uploadForm.setAttribute('data-setup', 'true');
-                uploadForm.addEventListener('submit', handleUpload);
-            }
-        } catch (error) {
-            console.warn('⚠️ Upload form not found');
-        }
-    }
-
-    async function handleUpload(e) {
+    // --- Upload Handler ---
+    async function handleUploadSubmit(e) {
         e.preventDefault();
-        
-        const form = e.target;
-        const formData = new FormData(form);
-        
-        const title = formData.get('title') || document.getElementById('uTitle')?.value;
-        const description = formData.get('description') || document.getElementById('uDesc')?.value;
-        const genre = formData.get('genre') || document.getElementById('uGenre')?.value;
-        const tags = (formData.get('tags') || document.getElementById('uTags')?.value || '').split(',').map(tag => tag.trim()).filter(Boolean);
-        const coverFile = formData.get('cover') || document.getElementById('uCover')?.files[0];
+        const title = getElement('uTitle')?.value;
+        const description = getElement('uDesc')?.value;
+        const genre = getElement('uGenre')?.value;
+        const tags = getElement('uTags')?.value.split(',').map(tag => tag.trim());
+        const coverFile = getElement('uCover')?.files[0];
+        const userId = window.currentUser.id;
 
         if (!title || !coverFile) {
             alert('Title and cover image are required.');
@@ -544,95 +235,296 @@
         }
 
         try {
-            console.log('📤 Uploading post...');
-            
-            const userId = window.currentUser.id;
             const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
-            
-            // Upload file
             const { error: storageError } = await sb.storage
                 .from('post-covers')
                 .upload(filePath, coverFile);
-            
             if (storageError) throw storageError;
 
-            // Get public URL
-            const { data: publicUrlData } = sb.storage
-                .from('post-covers')
-                .getPublicUrl(filePath);
+            const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
+            const mediaUrl = publicUrlData.publicUrl;
 
-            // Insert post
             const { error: insertError } = await sb
                 .from('posts')
                 .insert({
                     user_id: userId,
                     title: title,
                     description: description,
-                    media_url: publicUrlData.publicUrl,
+                    media_url: mediaUrl,
                     genre: genre,
                     tags: tags,
                 });
-            
             if (insertError) throw insertError;
 
-            alert('✅ Post uploaded successfully!');
-            form.reset();
-            
-            // Navigate to start page
-            loadPage('start.html', true);
-
+            alert('Post uploaded successfully!');
+            if (uploadForm) uploadForm.reset();
+            if (uploadModal) uploadModal.classList.add('hidden');
         } catch (error) {
-            console.error('❌ Upload error:', error);
+            console.error('Error uploading post:', error);
             alert('Failed to upload post: ' + error.message);
         }
     }
 
-    // --- Profile Page ---
-    async function initProfilePage() {
-        console.log('👤 Initializing profile page...');
-        // Add profile-specific functionality here
+    // --- Comment Handler ---
+    async function handleCommentSubmit(e) {
+        e.preventDefault();
+        const content = commentInput?.value.trim();
+        if (content && currentPostId) {
+            await postComment(currentPostId, content);
+            if (commentInput) commentInput.value = '';
+        }
     }
 
-    // --- Real-time Updates ---
-    function setupRealtimeListeners() {
-        console.log('🔄 Setting up real-time listeners...');
+    // --- Post Functions ---
+    async function fetchAndRenderPosts() {
+        if (!postFeedContainer) return;
+        postFeedContainer.innerHTML = '';
         
-        sb.channel('public:posts')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-                console.log('🔄 Posts updated');
-                const currentPage = location.hash.replace("#", "") || "start.html";
-                if (currentPage === 'start.html') {
-                    fetchAndRenderPosts();
+        try {
+            const { data: posts, error } = await sb
+                .from('posts')
+                .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (!posts || posts.length === 0) {
+                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+                return;
+            }
+
+            posts.forEach(post => {
+                const postElement = createPostElement(post);
+                postFeedContainer.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+        }
+    }
+
+    function createPostElement(post) {
+        const postElement = document.createElement('div');
+        postElement.className = 'span-4 post-card';
+        postElement.dataset.postId = post.id;
+        postElement.dataset.animate = true;
+
+        const commentCount = post.comments?.length || 0;
+        const likeCount = post.likes?.length || 0;
+
+        const postHtml = `
+            <div class="post-header">
+                <div class="post-header-left">
+                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <div class="post-header-info">
+                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
+                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="post-header-right">
+                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
+                </div>
+            </div>
+            <div class="post-body">
+                ${post.title || ''}
+                ${post.description ? `<br>${post.description}` : ''}
+                ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+            </div>
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+            <div class="post-actions">
+                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
+                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
+                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
+            </div>
+        `;
+        postElement.innerHTML = postHtml;
+        return postElement;
+    }
+
+    // --- Interaction Functions ---
+    async function likePost(postId) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('likes')
+                .insert({ user_id: userId, post_id: postId });
+
+            if (error) {
+                if (error.code === '23505') {
+                    alert('You have already liked this post.');
+                } else {
+                    throw error;
                 }
+            } else {
+                console.log('Post liked successfully!');
+            }
+        } catch (error) {
+            console.error('Error liking post:', error);
+            alert('Failed to like post: ' + error.message);
+        }
+    }
+
+    async function postComment(postId, content) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('comments')
+                .insert({ user_id: userId, post_id: postId, content: content });
+
+            if (error) throw error;
+            console.log('Comment posted successfully!');
+        } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Failed to post comment: ' + error.message);
+        }
+    }
+
+    async function fetchAndRenderComments(postId) {
+        if (!commentsContainer) return;
+        commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+        
+        try {
+            const { data: comments, error } = await sb
+                .from('comments')
+                .select('*, profiles!comments_user_id_fkey(full_name, avatar_url)')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            commentsContainer.innerHTML = '';
+            
+            if (comments.length === 0) {
+                commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
+                return;
+            }
+
+            comments.forEach(comment => {
+                const commentHtml = `
+                    <div class="comment">
+                        <div class="comment-avatar">
+                            <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="${comment.profiles?.full_name || 'Anonymous'}">
+                        </div>
+                        <div class="comment-body">
+                            <div class="comment-header">
+                                <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
+                                <div class="comment-like">
+                                    <i class="ri-heart-line"></i> <span>0</span>
+                                </div>
+                            </div>
+                            <div class="comment-text">${comment.content || ''}</div>
+                            <div class="comment-footer">
+                                <span>Reply</span>
+                                <span>Report</span>
+                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+            });
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
+        }
+    }
+
+    // --- Global Event Listeners ---
+    document.addEventListener('click', async (e) => {
+        // Handle navigation links
+        const link = e.target.closest("a[data-link]");
+        if (link) {
+            e.preventDefault();
+            const url = link.getAttribute("href").replace("#", "");
+            const current = location.hash.replace("#", "") || "start.html";
+
+            if (url === current) return;
+            if (pageList.includes(url)) {
+                loadPage(url, true);
+            }
+        }
+
+        // Handle like button clicks
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const postId = likeBtn.dataset.postId;
+            await likePost(postId);
+        }
+
+        // Handle comment button clicks
+        const commentBtn = e.target.closest('.comment-btn');
+        if (commentBtn) {
+            currentPostId = commentBtn.dataset.postId;
+            if (commentModal) commentModal.classList.remove('hidden');
+            await fetchAndRenderComments(currentPostId);
+        }
+    });
+
+    // --- Real-time Listeners ---
+    function setupRealtimeListeners() {
+        sb.channel('public:posts')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+                console.log('Posts change received!', payload);
+                fetchAndRenderPosts();
             })
             .subscribe();
 
         sb.channel('public:comments')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-                console.log('🔄 Comments updated');
-                const currentPage = location.hash.replace("#", "") || "start.html";
-                if (currentPage === 'start.html') {
-                    fetchAndRenderPosts();
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
+                if (payload.new?.post_id === currentPostId) {
+                    fetchAndRenderComments(currentPostId);
                 }
+                fetchAndRenderPosts();
             })
             .subscribe();
 
         sb.channel('public:likes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
-                console.log('🔄 Likes updated');
-                const currentPage = location.hash.replace("#", "") || "start.html";
-                if (currentPage === 'start.html') {
-                    fetchAndRenderPosts();
-                }
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+                fetchAndRenderPosts();
             })
             .subscribe();
     }
 
-    // --- Start the App ---
-    console.log('📱 SPA script loaded, initializing...');
-    initializeApp();
+    // --- SPA Initialization ---
+    function initSPA() {
+        updateDOMReferences();
+        
+        // Preload all pages
+        pageList.forEach(async (page) => {
+            try {
+                const res = await fetch(page, { cache: "force-cache" });
+                pageCache[page] = await res.text();
+            } catch (error) {
+                console.warn(`Failed to preload ${page}:`, error);
+            }
+        });
 
+        let currentPage = location.hash.replace("#", "") || "start.html";
+        if (!pageList.includes(currentPage)) currentPage = "start.html";
+
+        loadPage(currentPage, false);
+        history.replaceState({ url: currentPage }, null, "#" + currentPage);
+
+        // Handle back/forward
+        window.addEventListener("popstate", (e) => {
+            if (e.state && e.state.url) {
+                loadPage(e.state.url, false);
+            }
+        });
+    }
+
+    // --- App Initialization ---
+    async function initApp() {
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) return;
+
+        initSPA();
+        setupRealtimeListeners();
+    }
+
+    // --- Start the App ---
+    initApp();
 </script>
+
 
 
 
