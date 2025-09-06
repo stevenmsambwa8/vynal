@@ -1,319 +1,12 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VYNAL • Artist Dashboard</title>
-    <link rel="stylesheet" href="remixicon.min.css">
-    <link rel="stylesheet" href="app.css">
-</head>
-
-<body>
-    <div id="splash">
-        <div class="splash-content">
-            <div class="logo"><img src="logo.png" style="height: 50px;"></div>
-        </div>
-    </div>
-
-    <aside class="aside" aria-label="Sidebar">
-        <div class="brand"><span><img src="logo2.png" width="300"> </span></div>
-        <div class="side-search">
-            <i class="ri-search-2-line" aria-hidden="true"></i>
-            <input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
-        </div>
-        <div class="side-group">
-            <div class="side-label">Main</div>
-            <nav class="nav" aria-label="Primary">
-                <a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
-                <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
-                <a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
-                <a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
-                <a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
-            </nav>
-        </div>
-        <div class="side-group">
-            <div class="side-label">Account</div>
-            <nav class="nav" aria-label="Secondary">
-                <a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
-                <a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
-            </nav>
-        </div>
-        <div class="collapse">
-            <button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i class="ri-sun-line"></i></button>
-        </div>
-    </aside>
-
-    <section id="content" style="display:none;">
-        <header class="header" role="banner">
-            <div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
-            <div class="searchbar">
-                <i class="ri-search-2-line" aria-hidden="true"></i>
-                <input type="search" id="searchAll" placeholder="Search tracks, posts, connected…" aria-label="Global search" />
-            </div>
-            <div class="actions">
-                <button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
-                <button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
-                <a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
-                <img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
-            </div>
-        </header>
-
-        <main class="main">
-            <!-- Row: Metrics + Profile Quick Card -->
-<section class="grid-12" aria-label="Key metrics">
-<div class="card span-6" data-animate style="border:none;padding: 0; box-shadow: none;background:transparent;">
-  <div class="slider">
-    <div class="slides">
-            <div class="slide" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Introducing VYNAL States">Introducing VYNAL...</span></div>
-            <div class="muted">Own your state inside Vynal land, accept the requests from artists who wants to join your new state.!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-alert-line ri-l"></i> Go</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Administrator</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Posts</div>
-            <div>20,000</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-            <div class="slide" style=" background: linear-gradient(40deg, #121212, #07a521);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Coin system">Coin system</span></div>
-            <div class="muted" style="color: #ffffffa6;">Learn more about the official Vynal coin system, you can spend these below coins in the Mi-mall. Cart More - Spend Less!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">LA Coin</div>
-            <div class="nowrap">53.2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Durable Coin</div>
-            <div>2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Premium Coin</div>
-            <div><span class="badge">79.46% Profit</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#071e9c);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Audiophiler">Audiophiler</span></div>
-            <div class="muted" style="color: #ffffffa6;">Craft your next track & upload it to the globe. Show them your skills...Available at Upload land</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-add-line ri-l"></i> Upload</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#c50404);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Artistic Connections">Artistic...</span></div>
-            <div class="muted" style="color: #ffffffa6;">Start your career with connections to other artists. Find the best upcoming artists and get connections for a deal!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-         <!--  <div class="slide" style="border: 1px solid #fff3fc10; color:white; display:flex; align-items:center; justify-content:center;border-radius: 20px;">
-        <p style="font-size:14px;">Hi there, Check out some features of Vynal land</p>    
-      </div>-->
-
-    </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
-
-<div class="card span-6" data-animate style="padding: 0; box-shadow: none;background: rgba(255, 255, 255, 0.068);">
-  <div class="slider">
-    <div class="slides">
-      <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px; height:60px;">
-            <img src="logobefore.png" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Vale Artist</div>
-            <div class="muted">Indie</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-     <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Nabobeatz</div>
-            <div class="muted">Hasta la vista!!!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
-</section>
-            <div class="grid-12" id="post-feed-container">
-            </div>
-        </main>
-        
-        <div class="modal-backdrop hidden" id="uploadModal">
-            <div class="modal" role="document" style="width: 400px;">
-                <h3>What to tease for today?</h3>
-                <form id="uploadForm" class="upload" novalidate>
-                    <div class="row">
-                        <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
-                        <div class="col-6">
-                            <select id="uGenre" class="input" aria-label="Genre">
-                                <option>Pop</option>
-                                <option>Hip-Hop</option>
-                                <option>EDM</option>
-                                <option>Indie</option>
-                                <option>Jazz</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
-                        <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
-                        <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
-                    </div>
-                    <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button type="button" class="btn ghost" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
-                        <button class="btn primary" id="uSubmit" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="modal-backdrop hidden" id="CommentModal">
-            <div class="modal" role="document" style="width: 500px;">
-                <button type="button" class="btn-icon" style="position: absolute; right: 10px; top: 10px;" id="commentClose">
-                    <i class="ri-close-line"></i>
-                </button>
-                <h3>Comments</h3>
-                <div class="comments" style="max-height: 400px; overflow-y: auto;">
-                    </div>
-                <div class="comment-input" style="padding-top: 1rem;">
-                    <form id="commentForm">
-                        <input type="text" id="commentText" class="input" placeholder="Write a comment..." required>
-                        <button type="submit" class="btn primary">Post</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        
-        <div class="space"></div>
-    </section>
-
-    <nav class="bottom-nav" aria-label="Mobile navigation">
-        <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
-        <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
-        <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
-        <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
-        <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
-    </nav>
-
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
 <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -323,6 +16,24 @@
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // --- DOM Elements ---
+const contentDiv = document.getElementById("contentize");
+const navLinks = document.querySelectorAll("nav a");
+
+
+// --- SPA Page List ---
+const pageList = [
+  "mall.html",
+  "start.html",
+  "states.html",
+  "statehome.html",
+  "profile.html",
+  "upload.html",
+];
+
+let isTransitioning = false;
+const pageCache = {}; // cache for faster reloads
+
 
     // --- DOM Elements ---
     const userNameEl = document.getElementById("user-name");
@@ -344,7 +55,99 @@
     const commentCloseBtn = document.getElementById('commentClose');
     const commentsContainer = commentModal.querySelector('.comments');
     let currentPostId = null;
+// --- SPA Loader ---
+async function loadPage(url, addToHistory = true) {
+  if (isTransitioning) return;
+  isTransitioning = true;
 
+  try {
+    contentDiv.classList.add("fade-out");
+
+    setTimeout(async () => {
+      try {
+        let html;
+        if (pageCache[url]) {
+          html = pageCache[url];
+        } else {
+          const response = await fetch(url, { cache: "force-cache" });
+          html = await response.text();
+          pageCache[url] = html;
+        }
+
+        contentDiv.innerHTML = html;
+
+        if (typeof initSliders === "function") {
+          initSliders();
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        highlightActiveLink(url);
+
+        if (addToHistory) {
+          history.pushState({ url }, null, "#" + url);
+        }
+
+        contentDiv.classList.remove("fade-out");
+        contentDiv.classList.add("fade-in");
+
+        setTimeout(() => {
+          contentDiv.classList.remove("fade-in");
+          isTransitioning = false;
+        }, 150);
+      } catch (error) {
+        contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
+        isTransitioning = false;
+      }
+    }, 100);
+  } catch (error) {
+    console.error("❌ Load error:", error);
+    isTransitioning = false;
+  }
+}
+
+function highlightActiveLink(url) {
+  navLinks.forEach(link => {
+    link.classList.toggle("active", link.getAttribute("href") === "#" + url);
+  });
+}
+
+function initSPA() {
+  // Preload all pages
+  pageList.forEach(async (page) => {
+    try {
+      const res = await fetch(page, { cache: "force-cache" });
+      pageCache[page] = await res.text();
+    } catch {}
+  });
+
+  let currentPage = location.hash.replace("#", "") || "start.html";
+  if (!pageList.includes(currentPage)) currentPage = "start.html";
+
+  loadPage(currentPage, false);
+  history.replaceState({ url: currentPage }, null, "#" + currentPage);
+
+  // Handle clicks
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[data-link]");
+    if (link) {
+      e.preventDefault();
+      const url = link.getAttribute("href").replace("#", "");
+      const current = location.hash.replace("#", "") || "start.html";
+
+      if (url === current) return;
+      if (pageList.includes(url)) {
+        loadPage(url, true);
+      }
+    }
+  });
+
+  // Handle back/forward
+  window.addEventListener("popstate", (e) => {
+    if (e.state && e.state.url) {
+      loadPage(e.state.url, false);
+    }
+  });
+}
     // --- AUTH CHECK ---
     async function checkAuth() {
         const { data: { session } } = await sb.auth.getSession();
@@ -654,17 +457,168 @@ async function fetchAndRenderComments(postId) {
     setupRealtimeListeners();
 </script>
 
-    <script src="app.js"></script>
-    <script>
-        // Additional scripts, such as this one for the splash screen, can go here
-        window.addEventListener("load", () => {
-            setTimeout(() => {
-                document.getElementById("splash").style.display = "none";
-                document.getElementById("content").style.display = "block";
-                document.getElementById("content").classList.add("fade-in");
-            }, 2800);
-        });
-    </script>
-</body>
 
+
+
+
+
+</head>
+
+<body>
+  <!-- Splash Screen <div class="loader"></div> -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="logo"><img src="logo.png" style="height: 50px;"></div>
+   
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
+<a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content" style="display:none;">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main" id="contentize">
+
+</main>
+
+<div class="modal-backdrop hidden" id="uploadModal">
+            <div class="modal" role="document" style="width: 400px;">
+                <h3>What to tease for today?</h3>
+                <form id="uploadForm" class="upload" novalidate>
+                    <div class="row">
+                        <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+                        <div class="col-6">
+                            <select id="uGenre" class="input" aria-label="Genre">
+                                <option>Pop</option>
+                                <option>Hip-Hop</option>
+                                <option>EDM</option>
+                                <option>Indie</option>
+                                <option>Jazz</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+                        <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+                        <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+                    </div>
+                    <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end;">
+                        <button type="button" class="btn ghost" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+                        <button class="btn primary" id="uSubmit" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal-backdrop hidden" id="CommentModal">
+            <div class="modal" role="document" style="width: 500px;">
+                <button type="button" class="btn-icon" style="position: absolute; right: 10px; top: 10px;" id="commentClose">
+                    <i class="ri-close-line"></i>
+                </button>
+                <h3>Comments</h3>
+                <div class="comments" style="max-height: 400px; overflow-y: auto;">
+                    </div>
+                <div class="comment-input" style="padding-top: 1rem;">
+                    <form id="commentForm">
+                        <input type="text" id="commentText" class="input" placeholder="Write a comment..." required>
+                        <button type="submit" class="btn primary">Post</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+ 
+<div class="space"></div>
+</section>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
+  <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
+  <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
+</nav>
+
+<script src="app.js"></script>
+
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
+
+</script>
+
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("content").classList.add("fade-in");
+    }, 2800);
+  });
+</script>
+
+
+</body>
 </html>
