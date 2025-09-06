@@ -18,10 +18,10 @@
 
   <!-- Navigation -->
   <nav>
-    <a href="#start.html" data-link>Home</a>
-    <a href="#mall.html" data-link>Mall</a>
+    <a data-link>Home</a>
+    <a data-link>Mall</a>
     <a href="#profile.html" data-link>Profile</a>
-    <a href="#upload.html" data-link>Upload</a>
+    <a  data-link>Upload</a>
     <button id="logout-btn">Logout</button>
   </nav>
 
@@ -184,8 +184,8 @@
       pageList.forEach(async (page) => {
         try { pageCache[page] = await (await fetch(page, { cache: "force-cache" })).text(); } catch {}
       });
-      let currentPage = location.hash.replace("#", "") || "start.html";
-      if (!pageList.includes(currentPage)) currentPage = "start.html";
+      let currentPage = location.hash.replace("#", "") || "";
+      if (!pageList.includes(currentPage)) currentPage = "";
       loadPage(currentPage, false);
       history.replaceState({ url: currentPage }, null, "#" + currentPage);
       document.addEventListener("click", (e) => {
