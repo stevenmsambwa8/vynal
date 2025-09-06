@@ -257,9 +257,9 @@ async function fetchAndRenderPosts() {
     postFeedContainer.innerHTML = '';
     try {
         const { data: posts, error } = await sb
-            .from('posts')
-            .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(id)')
-            .order('created_at', { ascending: false });
+    .from('posts')
+    .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
+    .order('created_at', { ascending: false });
 
         if (error) throw error;
         if (!posts || posts.length === 0) {
