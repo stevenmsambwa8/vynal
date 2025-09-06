@@ -251,32 +251,31 @@
         });
     }
 
-    // --- Post and Comment Rendering Logic ---
-    async function fetchAndRenderPosts() {
-        if (!postFeedContainer) return;
-        postFeedContainer.innerHTML = '';
-        try {
-            const { data: posts, error } = await sb
-                .from('posts')
-                .select('*, profiles(full_name, avatar_url), comments(id), likes(id)')
-                .order('created_at', { ascending: false });
+ // --- Post and Comment Rendering Logic ---
+async function fetchAndRenderPosts() {
+    if (!postFeedContainer) return;
+    postFeedContainer.innerHTML = '';
+    try {
+        const { data: posts, error } = await sb
+            .from('posts')
+            .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(id)')
+            .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            if (!posts || posts.length === 0) {
-                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
-                return;
-            }
-
-            posts.forEach(post => {
-                const postElement = createPostElement(post);
-                postFeedContainer.appendChild(postElement);
-            });
-        } catch (error) {
-            console.error('Error fetching posts:', error);
-            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+        if (error) throw error;
+        if (!posts || posts.length === 0) {
+            postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+            return;
         }
-    }
 
+        posts.forEach(post => {
+            const postElement = createPostElement(post);
+            postFeedContainer.appendChild(postElement);
+        });
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+    }
+}
     // Function to create a single post HTML element
     function createPostElement(post) {
         const postElement = document.createElement('div');
@@ -420,51 +419,52 @@
         });
     }
 
-    async function fetchAndRenderComments(postId) {
-        if (!commentsContainer) return;
-        commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
-        try {
-            const { data: comments, error } = await sb
-                .from('comments')
-                .select('*, profiles(full_name, avatar_url)')
-                .eq('post_id', postId)
-                .order('created_at', { ascending: true });
+// --- Comment Modal Management ---
+async function fetchAndRenderComments(postId) {
+    if (!commentsContainer) return;
+    commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+    try {
+        const { data: comments, error } = await sb
+            .from('comments')
+            .select('*, profiles!comments_user_id_fkey(full_name, avatar_url)')
+            .eq('post_id', postId)
+            .order('created_at', { ascending: true });
 
-            if (error) throw error;
-            commentsContainer.innerHTML = '';
-            if (comments.length === 0) {
-                commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
-            }
+        if (error) throw error;
+        commentsContainer.innerHTML = '';
+        if (comments.length === 0) {
+            commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
+        }
 
-            comments.forEach(comment => {
-                const commentHtml = `
-                    <div class="comment">
-                        <div class="comment-avatar">
-                            <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="${comment.profiles?.full_name || 'Anonymous'}">
+        comments.forEach(comment => {
+            const commentHtml = `
+                <div class="comment">
+                    <div class="comment-avatar">
+                        <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="${comment.profiles?.full_name || 'Anonymous'}">
+                    </div>
+                    <div class="comment-body">
+                        <div class="comment-header">
+                            <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
+                            <div class="comment-like">
+                                <i class="ri-heart-line"></i> <span>0</span>
+                            </div>
                         </div>
-                        <div class="comment-body">
-                            <div class="comment-header">
-                                <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
-                                <div class="comment-like">
-                                    <i class="ri-heart-line"></i> <span>0</span> </div>
-                            </div>
-                            <div class="comment-text">${comment.content || ''}</div>
-                            <div class="comment-footer">
-                                <span>Reply</span>
-                                <span>Report</span>
-                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-                            </div>
+                        <div class="comment-text">${comment.content || ''}</div>
+                        <div class="comment-footer">
+                            <span>Reply</span>
+                            <span>Report</span>
+                            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                     </div>
-                `;
-                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
-            });
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-            commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
-        }
+                </div>
+            `;
+            commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+        });
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+        commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
     }
-
+}
     // --- Start the App ---
     checkAuth();
     setupRealtimeListeners();
