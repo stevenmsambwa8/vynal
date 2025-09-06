@@ -128,6 +128,8 @@
         <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
         <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
     </nav>
+
+
 <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -144,6 +146,8 @@
     const userPicEl = document.getElementById("user-pic");
     const logoutBtn = document.getElementById("logout-btn");
     const postFeedContainer = document.getElementById('post-feed-container');
+    const commentForm = document.getElementById('commentForm');
+    const commentInput = document.getElementById('commentText');
 
     // Elements for Upload Modal
     const uploadModal = document.getElementById('uploadModal');
@@ -216,15 +220,12 @@
 
             try {
                 const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
-                const { data: storageData, error: storageError } = await sb.storage
+                const { error: storageError } = await sb.storage
                     .from('post-covers')
                     .upload(filePath, coverFile);
-
                 if (storageError) throw storageError;
 
-                const { data: publicUrlData } = sb.storage
-                    .from('post-covers')
-                    .getPublicUrl(filePath);
+                const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
                 const mediaUrl = publicUrlData.publicUrl;
 
                 const { error: insertError } = await sb
@@ -237,13 +238,12 @@
                         genre: genre,
                         tags: tags,
                     });
-
                 if (insertError) throw insertError;
 
                 alert('Post uploaded successfully!');
                 uploadForm.reset();
                 uploadModal.classList.add('hidden');
-                fetchAndRenderPosts(); // Re-render posts after upload
+                // Real-time listener will update the feed, no need to manually re-render
             } catch (error) {
                 console.error('Error uploading post:', error);
                 alert('Failed to upload post: ' + error.message);
@@ -262,48 +262,13 @@
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-
             if (!posts || posts.length === 0) {
                 postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
                 return;
             }
 
             posts.forEach(post => {
-                const postElement = document.createElement('div');
-                postElement.className = 'span-4 post-card';
-                postElement.dataset.postId = post.id;
-                postElement.dataset.animate = true;
-
-                const commentCount = post.comments?.length || 0;
-                const likeCount = post.likes?.length || 0;
-
-                const postHtml = `
-                    <div class="post-header">
-                        <div class="post-header-left">
-                            <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
-                            <div class="post-header-info">
-                                <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
-                                <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
-                            </div>
-                        </div>
-                        <div class="post-header-right">
-                            <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
-                        </div>
-                    </div>
-                    <div class="post-body">
-                        ${post.title || ''}
-                        ${post.description ? `<br>${post.description}` : ''}
-                        ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
-                    </div>
-                    ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
-                    <div class="post-actions">
-                        <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
-                        <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
-                        <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
-                        <button class="action-btn"><i class="ri-bookmark-line"></i></button>
-                    </div>
-                `;
-                postElement.innerHTML = postHtml;
+                const postElement = createPostElement(post);
                 postFeedContainer.appendChild(postElement);
             });
         } catch (error) {
@@ -312,14 +277,56 @@
         }
     }
 
-    // Comments modal management
-    if (commentCloseBtn) {
-        commentCloseBtn.addEventListener('click', () => {
-            commentModal.classList.add('hidden');
-        });
+    // Function to create a single post HTML element
+    function createPostElement(post) {
+        const postElement = document.createElement('div');
+        postElement.className = 'span-4 post-card';
+        postElement.dataset.postId = post.id;
+        postElement.dataset.animate = true;
+
+        const commentCount = post.comments?.length || 0;
+        const likeCount = post.likes?.length || 0;
+
+        const postHtml = `
+            <div class="post-header">
+                <div class="post-header-left">
+                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <div class="post-header-info">
+                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
+                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="post-header-right">
+                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
+                </div>
+            </div>
+            <div class="post-body">
+                ${post.title || ''}
+                ${post.description ? `<br>${post.description}` : ''}
+                ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+            </div>
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+            <div class="post-actions">
+                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
+                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
+                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
+            </div>
+        `;
+        postElement.innerHTML = postHtml;
+        return postElement;
     }
 
+    // --- Like and Comment Interaction Logic ---
     document.addEventListener('click', async (e) => {
+        // Handle like button clicks
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const postId = likeBtn.dataset.postId;
+            await likePost(postId);
+        }
+
+        // Handle comment button clicks
         const commentBtn = e.target.closest('.comment-btn');
         if (commentBtn) {
             currentPostId = commentBtn.dataset.postId;
@@ -327,6 +334,91 @@
             await fetchAndRenderComments(currentPostId);
         }
     });
+
+    // Handle new comment submission
+    if (commentForm) {
+        commentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = commentInput.value.trim();
+            if (content && currentPostId) {
+                await postComment(currentPostId, content);
+                commentInput.value = ''; // Clear input field
+            }
+        });
+    }
+
+    // Function to handle a new like
+    async function likePost(postId) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('likes')
+                .insert({ user_id: userId, post_id: postId });
+
+            if (error) {
+                if (error.code === '23505') { // 23505 is the unique constraint violation code (already liked)
+                    alert('You have already liked this post.');
+                } else {
+                    throw error;
+                }
+            } else {
+                console.log('Post liked successfully!');
+                // Real-time listener handles the update, no manual DOM changes needed here
+            }
+        } catch (error) {
+            console.error('Error liking post:', error);
+            alert('Failed to like post: ' + error.message);
+        }
+    }
+
+    // Function to handle a new comment
+    async function postComment(postId, content) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('comments')
+                .insert({ user_id: userId, post_id: postId, content: content });
+
+            if (error) throw error;
+            console.log('Comment posted successfully!');
+            // Real-time listener handles the comment display
+        } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Failed to post comment: ' + error.message);
+        }
+    }
+
+    // --- Real-time Listeners (Crucial for live updates!) ---
+    function setupRealtimeListeners() {
+        sb.channel('public:posts')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+                console.log('Change received!', payload);
+                fetchAndRenderPosts(); // Re-fetch all posts to reflect changes
+            })
+            .subscribe();
+
+        sb.channel('public:comments')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
+                if (payload.new.post_id === currentPostId) {
+                    fetchAndRenderComments(currentPostId); // Only update comments for the open modal
+                }
+                fetchAndRenderPosts(); // Update comment count on the main feed
+            })
+            .subscribe();
+
+        sb.channel('public:likes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+                fetchAndRenderPosts(); // Update like count on the main feed
+            })
+            .subscribe();
+    }
+
+    // --- Comment Modal Management ---
+    if (commentCloseBtn) {
+        commentCloseBtn.addEventListener('click', () => {
+            commentModal.classList.add('hidden');
+        });
+    }
 
     async function fetchAndRenderComments(postId) {
         if (!commentsContainer) return;
@@ -354,8 +446,7 @@
                             <div class="comment-header">
                                 <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
                                 <div class="comment-like">
-                                    <i class="ri-heart-line"></i> <span>${comment.likes || 0}</span>
-                                </div>
+                                    <i class="ri-heart-line"></i> <span>0</span> </div>
                             </div>
                             <div class="comment-text">${comment.content || ''}</div>
                             <div class="comment-footer">
@@ -376,7 +467,9 @@
 
     // --- Start the App ---
     checkAuth();
+    setupRealtimeListeners();
 </script>
+
     <script src="app.js"></script>
     <script>
         // Additional scripts, such as this one for the splash screen, can go here
