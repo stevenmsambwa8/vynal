@@ -7,16 +7,25 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
-<script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+ <script type="module">
 
-    // --- Supabase Config & Client ---
-    const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-    const SUPABASE_ANON_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
+    // --- Supabase Config ---
+
+    const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+
+    const SUPABASE_ANON_KEY =
+
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+
+
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  
     // --- SPA Core Elements ---
     const contentDiv = document.getElementById("contentize");
     const navLinks = document.querySelectorAll("nav a");
@@ -28,22 +37,20 @@
         "profile.html",
         "upload.html",
     ];
-
     let isTransitioning = false;
     const pageCache = {}; // cache for faster reloads
 
     // --- Global State ---
     window.currentUser = null;
-    let currentPostId = null;
+
 
     // --- Utility Functions ---
     // Function to find an element in the currently loaded page
     function getElement(selector) {
         return contentDiv.querySelector(selector) || document.getElementById(selector);
     }
-    
+
     // --- Auth, Data Fetching & UI Rendering ---
-    // This is the main function that runs after a page is loaded
     async function initPage() {
         // --- AUTH CHECK & UI UPDATE ---
         const { data: { session } } = await sb.auth.getSession();
@@ -67,370 +74,857 @@
             case "upload.html":
                 setupUploadModal();
                 break;
+            case "statehome.html":
+                // Logic for statehome.html if needed
+                break;
             // Add other pages here as needed
         }
     }
 
-    function displayUserInfo(user) {
-        const userNameEl = getElement("user-name");
-        const userEmailEl = getElement("user-email");
-        const userPicEl = getElement("user-pic");
-        const logoutBtn = getElement("logout-btn");
 
-        if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || "No Name";
-        if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
-        if (userPicEl) {
-            userPicEl.src = user.user_metadata?.avatar_url || "default-avatar.png";
-            userPicEl.alt = user.user_metadata?.full_name || "User Avatar";
-        }
-        if (logoutBtn) {
-            logoutBtn.addEventListener("click", async () => {
-                await sb.auth.signOut();
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
-            });
-        }
-    }
 
-    function setupUploadModal() {
-        const uploadModal = getElement('uploadModal');
-        const uploadBtn = getElement('.upload-btn');
-        const uploadCloseBtn = getElement('uploadClose');
-        const uploadForm = getElement('uploadForm');
 
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', () => {
-                uploadModal.classList.remove('hidden');
-            });
-        }
-        if (uploadCloseBtn) {
-            uploadCloseBtn.addEventListener('click', () => {
-                uploadModal.classList.add('hidden');
-            });
-        }
-        if (uploadForm) {
-            uploadForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const title = getElement('uTitle').value;
-                const description = getElement('uDesc').value;
-                const genre = getElement('uGenre').value;
-                const tags = getElement('uTags').value.split(',').map(tag => tag.trim());
-                const coverFile = getElement('uCover').files[0];
-                const userId = window.currentUser.id;
 
-                if (!title || !coverFile) {
-                    alert('Title and cover image are required.');
-                    return;
-                }
+    // --- DOM Elements ---
 
-                try {
-                    const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
-                    const { error: storageError } = await sb.storage
-                        .from('post-covers')
-                        .upload(filePath, coverFile);
-                    if (storageError) throw storageError;
+    const userNameEl = document.getElementById("user-name");
 
-                    const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
-                    const mediaUrl = publicUrlData.publicUrl;
+    const userEmailEl = document.getElementById("user-email");
 
-                    const { error: insertError } = await sb
-                        .from('posts')
-                        .insert({
-                            user_id: userId,
-                            title: title,
-                            description: description,
-                            media_url: mediaUrl,
-                            genre: genre,
-                            tags: tags,
-                        });
-                    if (insertError) throw insertError;
+    const userPicEl = document.getElementById("user-pic");
 
-                    alert('Post uploaded successfully!');
-                    uploadForm.reset();
-                    uploadModal.classList.add('hidden');
-                } catch (error) {
-                    console.error('Error uploading post:', error);
-                    alert('Failed to upload post: ' + error.message);
-                }
-            });
-        }
-    }
+    const logoutBtn = document.getElementById("logout-btn");
 
-    async function fetchAndRenderPosts() {
-        const postFeedContainer = getElement('post-feed-container');
-        if (!postFeedContainer) return;
-        postFeedContainer.innerHTML = '';
-        try {
-            const { data: posts, error } = await sb
-                .from('posts')
-                .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
-                .order('created_at', { ascending: false });
+    const postFeedContainer = document.getElementById('post-feed-container');
 
-            if (error) throw error;
-            if (!posts || posts.length === 0) {
-                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
-                return;
-            }
-            posts.forEach(post => {
-                const postElement = createPostElement(post);
-                postFeedContainer.appendChild(postElement);
-            });
-        } catch (error) {
-            console.error('Error fetching posts:', error);
-            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
-        }
-    }
+    const commentForm = document.getElementById('commentForm');
 
-    function createPostElement(post) {
-        const postElement = document.createElement('div');
-        postElement.className = 'span-4 post-card';
-        postElement.dataset.postId = post.id;
-        postElement.dataset.animate = true;
-        const commentCount = post.comments?.length || 0;
-        const likeCount = post.likes?.length || 0;
-        const postHtml = `
-            <div class="post-header">
-                <div class="post-header-left">
-                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
-                    <div class="post-header-info">
-                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
-                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
-                    </div>
-                </div>
-                <div class="post-header-right">
-                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
-                </div>
-            </div>
-            <div class="post-body">
-                ${post.title || ''}
-                ${post.description ? `<br>${post.description}` : ''}
-                ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
-            </div>
-            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
-            <div class="post-actions">
-                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
-                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
-                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
-                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
-            </div>
-        `;
-        postElement.innerHTML = postHtml;
-        return postElement;
-    }
+    const commentInput = document.getElementById('commentText');
 
-    function setupPostInteractions() {
-        const commentModal = getElement('CommentModal');
-        const commentCloseBtn = getElement('commentClose');
-        const commentForm = getElement('commentForm');
-        const commentInput = getElement('commentText');
 
-        if (commentCloseBtn) {
-            commentCloseBtn.addEventListener('click', () => {
-                commentModal.classList.add('hidden');
-            });
-        }
 
-        document.addEventListener('click', async (e) => {
-            const likeBtn = e.target.closest('.like-btn');
-            if (likeBtn) {
-                const postId = likeBtn.dataset.postId;
-                await likePost(postId);
-            }
-            const commentBtn = e.target.closest('.comment-btn');
-            if (commentBtn) {
-                currentPostId = commentBtn.dataset.postId;
-                commentModal.classList.remove('hidden');
-                await fetchAndRenderComments(currentPostId);
-            }
-        });
+    // Elements for Upload Modal
 
-        if (commentForm) {
-            commentForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const content = commentInput.value.trim();
-                if (content && currentPostId) {
-                    await postComment(currentPostId, content);
-                    commentInput.value = '';
-                }
-            });
-        }
-    }
+    const uploadModal = document.getElementById('uploadModal');
 
-    async function likePost(postId) {
-        try {
-            const userId = window.currentUser.id;
-            const { error } = await sb
-                .from('likes')
-                .insert({ user_id: userId, post_id: postId });
-            if (error && error.code !== '23505') throw error;
-        } catch (error) {
-            console.error('Error liking post:', error);
-            alert('Failed to like post: ' + error.message);
-        }
-    }
+    const uploadBtn = document.querySelector('.upload-btn');
 
-    async function postComment(postId, content) {
-        try {
-            const userId = window.currentUser.id;
-            const { error } = await sb
-                .from('comments')
-                .insert({ user_id: userId, post_id: postId, content: content });
-            if (error) throw error;
-            console.log('Comment posted successfully!');
-        } catch (error) {
-            console.error('Error posting comment:', error);
-            alert('Failed to post comment: ' + error.message);
-        }
-    }
+    const uploadCloseBtn = document.getElementById('uploadClose');
 
-    async function fetchAndRenderComments(postId) {
-        const commentsContainer = getElement('.comments');
-        if (!commentsContainer) return;
-        commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
-        try {
-            const { data: comments, error } = await sb
-                .from('comments')
-                .select('*, profiles!comments_user_id_fkey(full_name, avatar_url)')
-                .eq('post_id', postId)
-                .order('created_at', { ascending: true });
-            if (error) throw error;
-            commentsContainer.innerHTML = '';
-            if (comments.length === 0) {
-                commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
-            }
-            comments.forEach(comment => {
-                const commentHtml = `
-                    <div class="comment">
-                        <div class="comment-avatar">
-                            <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="${comment.profiles?.full_name || 'Anonymous'}">
-                        </div>
-                        <div class="comment-body">
-                            <div class="comment-header">
-                                <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
-                                <div class="comment-like">
-                                    <i class="ri-heart-line"></i> <span>0</span>
-                                </div>
-                            </div>
-                            <div class="comment-text">${comment.content || ''}</div>
-                            <div class="comment-footer">
-                                <span>Reply</span>
-                                <span>Report</span>
-                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
-            });
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-            commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
-        }
-    }
+    const uploadForm = document.getElementById('uploadForm');
 
-    // --- Real-time Listeners ---
-    function setupRealtimeListeners() {
-        sb.channel('public:posts')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => fetchAndRenderPosts())
-            .subscribe();
 
-        sb.channel('public:comments')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
-                if (payload.new.post_id === currentPostId) {
-                    fetchAndRenderComments(currentPostId);
-                }
-                fetchAndRenderPosts();
-            })
-            .subscribe();
 
-        sb.channel('public:likes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => fetchAndRenderPosts())
-            .subscribe();
-    }
+    // Elements for Comment Modal
 
-    // --- SPA Loader (Unchanged) ---
-    async function loadPage(url, addToHistory = true) {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        try {
-            contentDiv.classList.add("fade-out");
-            setTimeout(async () => {
-                try {
-                    let html;
-                    if (pageCache[url]) {
-                        html = pageCache[url];
-                    } else {
-                        const response = await fetch(url, { cache: "force-cache" });
-                        html = await response.text();
-                        pageCache[url] = html;
-                    }
-                    contentDiv.innerHTML = html;
-                    if (typeof initSliders === "function") initSliders();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                    highlightActiveLink(url);
-                    if (addToHistory) history.pushState({ url }, null, "#" + url);
-                    
-                    // --- THE FIX: CALL initPage() AFTER THE NEW CONTENT IS LOADED ---
-                    await initPage();
+    const commentModal = document.getElementById('CommentModal');
 
-                    contentDiv.classList.remove("fade-out");
-                    contentDiv.classList.add("fade-in");
-                    setTimeout(() => {
-                        contentDiv.classList.remove("fade-in");
-                        isTransitioning = false;
-                    }, 150);
-                } catch (error) {
-                    contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
-                    isTransitioning = false;
-                }
-            }, 100);
-        } catch (error) {
-            console.error("❌ Load error:", error);
-            isTransitioning = false;
-        }
-    }
+    const commentCloseBtn = document.getElementById('commentClose');
 
-    function highlightActiveLink(url) {
-        navLinks.forEach(link => {
-            link.classList.toggle("active", link.getAttribute("href") === "#" + url);
-        });
-    }
+    const commentsContainer = commentModal.querySelector('.comments');
 
-    function initSPA() {
-        pageList.forEach(async (page) => {
-            try {
-                const res = await fetch(page, { cache: "force-cache" });
-                pageCache[page] = await res.text();
-            } catch {}
-        });
+    let currentPostId = null;
 
-        let currentPage = location.hash.replace("#", "") || "start.html";
-        if (!pageList.includes(currentPage)) currentPage = "start.html";
-        loadPage(currentPage, false);
-        history.replaceState({ url: currentPage }, null, "#" + currentPage);
+// --- SPA Loader ---
 
-        document.addEventListener("click", (e) => {
-            const link = e.target.closest("a[data-link]");
-            if (link) {
-                e.preventDefault();
-                const url = link.getAttribute("href").replace("#", "");
-                const current = location.hash.replace("#", "") || "start.html";
-                if (url === current) return;
-                if (pageList.includes(url)) {
-                    loadPage(url, true);
-                }
-            }
-        });
+async function loadPage(url, addToHistory = true) {
 
-        window.addEventListener("popstate", (e) => {
-            if (e.state && e.state.url) {
-                loadPage(e.state.url, false);
-            }
-        });
-    }
+  if (isTransitioning) return;
 
-    // --- Start the App ---
-    setupRealtimeListeners();
-    initSPA();
+  isTransitioning = true;
+
+
+
+  try {
+
+    contentDiv.classList.add("fade-out");
+
+
+
+    setTimeout(async () => {
+
+      try {
+
+        let html;
+
+        if (pageCache[url]) {
+
+          html = pageCache[url];
+
+        } else {
+
+          const response = await fetch(url, { cache: "force-cache" });
+
+          html = await response.text();
+
+          pageCache[url] = html;
+
+        }
+
+
+
+        contentDiv.innerHTML = html;
+
+
+
+        if (typeof initSliders === "function") {
+
+          initSliders();
+
+        }
+
+
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        highlightActiveLink(url);
+
+
+
+        if (addToHistory) {
+
+          history.pushState({ url }, null, "#" + url);
+
+        }
+
+
+
+        contentDiv.classList.remove("fade-out");
+
+        contentDiv.classList.add("fade-in");
+
+
+
+        setTimeout(() => {
+
+          contentDiv.classList.remove("fade-in");
+
+          isTransitioning = false;
+
+        }, 150);
+
+      } catch (error) {
+
+        contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
+
+        isTransitioning = false;
+
+      }
+
+    }, 100);
+
+  } catch (error) {
+
+    console.error("❌ Load error:", error);
+
+    isTransitioning = false;
+
+  }
+
+}
+
+
+
+function highlightActiveLink(url) {
+
+  navLinks.forEach(link => {
+
+    link.classList.toggle("active", link.getAttribute("href") === "#" + url);
+
+  });
+
+}
+
+
+
+function initSPA() {
+
+  // Preload all pages
+
+  pageList.forEach(async (page) => {
+
+    try {
+
+      const res = await fetch(page, { cache: "force-cache" });
+
+      pageCache[page] = await res.text();
+
+    } catch {}
+
+  });
+
+
+
+  let currentPage = location.hash.replace("#", "") || "start.html";
+
+  if (!pageList.includes(currentPage)) currentPage = "start.html";
+
+
+
+  loadPage(currentPage, false);
+
+  history.replaceState({ url: currentPage }, null, "#" + currentPage);
+
+
+
+  // Handle clicks
+
+  document.addEventListener("click", (e) => {
+
+    const link = e.target.closest("a[data-link]");
+
+    if (link) {
+
+      e.preventDefault();
+
+      const url = link.getAttribute("href").replace("#", "");
+
+      const current = location.hash.replace("#", "") || "start.html";
+
+
+
+      if (url === current) return;
+
+      if (pageList.includes(url)) {
+
+        loadPage(url, true);
+
+      }
+
+    }
+
+  });
+
+
+
+  // Handle back/forward
+
+  window.addEventListener("popstate", (e) => {
+
+    if (e.state && e.state.url) {
+
+      loadPage(e.state.url, false);
+
+    }
+
+  });
+
+}
+
+    // --- AUTH CHECK ---
+
+    async function checkAuth() {
+
+        const { data: { session } } = await sb.auth.getSession();
+
+        if (!session) {
+
+            window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+
+            return;
+
+        }
+
+        window.currentUser = session.user;
+
+        displayUserInfo(session.user);
+
+        fetchAndRenderPosts();
+
+    }
+
+
+
+    // --- Display User Info ---
+
+    function displayUserInfo(user) {
+
+        if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || "No Name";
+
+        if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
+
+        if (userPicEl) {
+
+            userPicEl.src = user.user_metadata?.avatar_url || "default-avatar.png";
+
+            userPicEl.alt = user.user_metadata?.full_name || "User Avatar";
+
+        }
+
+    }
+
+
+
+    // --- Logout Handler ---
+
+    if (logoutBtn) {
+
+        logoutBtn.addEventListener("click", async () => {
+
+            await sb.auth.signOut();
+
+            window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+
+        });
+
+    }
+
+
+
+    // --- Upload Logic ---
+
+    if (uploadBtn) {
+
+        uploadBtn.addEventListener('click', () => {
+
+            uploadModal.classList.remove('hidden');
+
+        });
+
+    }
+
+    if (uploadCloseBtn) {
+
+        uploadCloseBtn.addEventListener('click', () => {
+
+            uploadModal.classList.add('hidden');
+
+        });
+
+    }
+
+
+
+    if (uploadForm) {
+
+        uploadForm.addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+
+            const title = document.getElementById('uTitle').value;
+
+            const description = document.getElementById('uDesc').value;
+
+            const genre = document.getElementById('uGenre').value;
+
+            const tags = document.getElementById('uTags').value.split(',').map(tag => tag.trim());
+
+            const coverFile = document.getElementById('uCover').files[0];
+
+            const userId = window.currentUser.id;
+
+
+
+            if (!title || !coverFile) {
+
+                alert('Title and cover image are required.');
+
+                return;
+
+            }
+
+
+
+            try {
+
+                const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
+
+                const { error: storageError } = await sb.storage
+
+                    .from('post-covers')
+
+                    .upload(filePath, coverFile);
+
+                if (storageError) throw storageError;
+
+
+
+                const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
+
+                const mediaUrl = publicUrlData.publicUrl;
+
+
+
+                const { error: insertError } = await sb
+
+                    .from('posts')
+
+                    .insert({
+
+                        user_id: userId,
+
+                        title: title,
+
+                        description: description,
+
+                        media_url: mediaUrl,
+
+                        genre: genre,
+
+                        tags: tags,
+
+                    });
+
+                if (insertError) throw insertError;
+
+
+
+                alert('Post uploaded successfully!');
+
+                uploadForm.reset();
+
+                uploadModal.classList.add('hidden');
+
+                // Real-time listener will update the feed, no need to manually re-render
+
+            } catch (error) {
+
+                console.error('Error uploading post:', error);
+
+                alert('Failed to upload post: ' + error.message);
+
+            }
+
+        });
+
+    }
+
+
+
+ // --- Post and Comment Rendering Logic ---
+
+async function fetchAndRenderPosts() {
+
+    if (!postFeedContainer) return;
+
+    postFeedContainer.innerHTML = '';
+
+    try {
+
+        const { data: posts, error } = await sb
+
+    .from('posts')
+
+    .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
+
+    .order('created_at', { ascending: false });
+
+
+
+        if (error) throw error;
+
+        if (!posts || posts.length === 0) {
+
+            postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+
+            return;
+
+        }
+
+
+
+        posts.forEach(post => {
+
+            const postElement = createPostElement(post);
+
+            postFeedContainer.appendChild(postElement);
+
+        });
+
+    } catch (error) {
+
+        console.error('Error fetching posts:', error);
+
+        postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+
+    }
+
+}
+
+    // Function to create a single post HTML element
+
+    function createPostElement(post) {
+
+        const postElement = document.createElement('div');
+
+        postElement.className = 'span-4 post-card';
+
+        postElement.dataset.postId = post.id;
+
+        postElement.dataset.animate = true;
+
+
+
+        const commentCount = post.comments?.length || 0;
+
+        const likeCount = post.likes?.length || 0;
+
+
+
+        const postHtml = `
+
+            <div class="post-header">
+
+                <div class="post-header-left">
+
+                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
+
+                    <div class="post-header-info">
+
+                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
+
+                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+
+                    </div>
+
+                </div>
+
+                <div class="post-header-right">
+
+                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
+
+                </div>
+
+            </div>
+
+            <div class="post-body">
+
+                ${post.title || ''}
+
+                ${post.description ? `<br>${post.description}` : ''}
+
+                ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+
+            </div>
+
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+
+            <div class="post-actions">
+
+                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
+
+                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+
+                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
+
+                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
+
+            </div>
+
+        `;
+
+        postElement.innerHTML = postHtml;
+
+        return postElement;
+
+    }
+
+
+
+    // --- Like and Comment Interaction Logic ---
+
+    document.addEventListener('click', async (e) => {
+
+        // Handle like button clicks
+
+        const likeBtn = e.target.closest('.like-btn');
+
+        if (likeBtn) {
+
+            const postId = likeBtn.dataset.postId;
+
+            await likePost(postId);
+
+        }
+
+
+
+        // Handle comment button clicks
+
+        const commentBtn = e.target.closest('.comment-btn');
+
+        if (commentBtn) {
+
+            currentPostId = commentBtn.dataset.postId;
+
+            commentModal.classList.remove('hidden');
+
+            await fetchAndRenderComments(currentPostId);
+
+        }
+
+    });
+
+
+
+    // Handle new comment submission
+
+    if (commentForm) {
+
+        commentForm.addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+
+            const content = commentInput.value.trim();
+
+            if (content && currentPostId) {
+
+                await postComment(currentPostId, content);
+
+                commentInput.value = ''; // Clear input field
+
+            }
+
+        });
+
+    }
+
+
+
+    // Function to handle a new like
+
+    async function likePost(postId) {
+
+        try {
+
+            const userId = window.currentUser.id;
+
+            const { error } = await sb
+
+                .from('likes')
+
+                .insert({ user_id: userId, post_id: postId });
+
+
+
+            if (error) {
+
+                if (error.code === '23505') { // 23505 is the unique constraint violation code (already liked)
+
+                    alert('You have already liked this post.');
+
+                } else {
+
+                    throw error;
+
+                }
+
+            } else {
+
+                console.log('Post liked successfully!');
+
+                // Real-time listener handles the update, no manual DOM changes needed here
+
+            }
+
+        } catch (error) {
+
+            console.error('Error liking post:', error);
+
+            alert('Failed to like post: ' + error.message);
+
+        }
+
+    }
+
+
+
+    // Function to handle a new comment
+
+    async function postComment(postId, content) {
+
+        try {
+
+            const userId = window.currentUser.id;
+
+            const { error } = await sb
+
+                .from('comments')
+
+                .insert({ user_id: userId, post_id: postId, content: content });
+
+
+
+            if (error) throw error;
+
+            console.log('Comment posted successfully!');
+
+            // Real-time listener handles the comment display
+
+        } catch (error) {
+
+            console.error('Error posting comment:', error);
+
+            alert('Failed to post comment: ' + error.message);
+
+        }
+
+    }
+
+
+
+    // --- Real-time Listeners (Crucial for live updates!) ---
+
+    function setupRealtimeListeners() {
+
+        sb.channel('public:posts')
+
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+
+                console.log('Change received!', payload);
+
+                fetchAndRenderPosts(); // Re-fetch all posts to reflect changes
+
+            })
+
+            .subscribe();
+
+
+
+        sb.channel('public:comments')
+
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
+
+                if (payload.new.post_id === currentPostId) {
+
+                    fetchAndRenderComments(currentPostId); // Only update comments for the open modal
+
+                }
+
+                fetchAndRenderPosts(); // Update comment count on the main feed
+
+            })
+
+            .subscribe();
+
+
+
+        sb.channel('public:likes')
+
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+
+                fetchAndRenderPosts(); // Update like count on the main feed
+
+            })
+
+            .subscribe();
+
+    }
+
+
+
+    // --- Comment Modal Management ---
+
+    if (commentCloseBtn) {
+
+        commentCloseBtn.addEventListener('click', () => {
+
+            commentModal.classList.add('hidden');
+
+        });
+
+    }
+
+
+
+// --- Comment Modal Management ---
+
+async function fetchAndRenderComments(postId) {
+
+    if (!commentsContainer) return;
+
+    commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+
+    try {
+
+        const { data: comments, error } = await sb
+
+            .from('comments')
+
+            .select('*, profiles!comments_user_id_fkey(full_name, avatar_url)')
+
+            .eq('post_id', postId)
+
+            .order('created_at', { ascending: true });
+
+
+
+        if (error) throw error;
+
+        commentsContainer.innerHTML = '';
+
+        if (comments.length === 0) {
+
+            commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
+
+        }
+
+
+
+        comments.forEach(comment => {
+
+            const commentHtml = `
+
+                <div class="comment">
+
+                    <div class="comment-avatar">
+
+                        <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="${comment.profiles?.full_name || 'Anonymous'}">
+
+                    </div>
+
+                    <div class="comment-body">
+
+                        <div class="comment-header">
+
+                            <span class="comment-author">@${comment.profiles?.full_name || 'Anonymous'}</span>
+
+                            <div class="comment-like">
+
+                                <i class="ri-heart-line"></i> <span>0</span>
+
+                            </div>
+
+                        </div>
+
+                        <div class="comment-text">${comment.content || ''}</div>
+
+                        <div class="comment-footer">
+
+                            <span>Reply</span>
+
+                            <span>Report</span>
+
+                            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+            commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+
+        });
+
+    } catch (error) {
+
+        console.error('Error fetching comments:', error);
+
+        commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
+
+    }
+
+}
+
+    // --- Start the App ---
+
+    checkAuth();
+
+    setupRealtimeListeners();
+
 </script>
 
 
