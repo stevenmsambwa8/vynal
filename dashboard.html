@@ -1,428 +1,427 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VYNAL • Artist Dashboard</title>
-    <link rel="stylesheet" href="remixicon.min.css">
-    <link rel="stylesheet" href="app.css">
-    <script type="module">
-        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-        // --- Supabase Config ---
-        const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-        const SUPABASE_ANON_KEY =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+// --- Supabase Config ---
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // --- DOM Elements ---
-        const contentDiv = document.getElementById("contentize");
-        const userNameEl = document.getElementById("user-name");
-        const userEmailEl = document.getElementById("user-email");
-        const userPicEl = document.getElementById("user-pic");
-        const logoutBtn = document.getElementById("logout-btn");
+// --- DOM Elements ---
+const contentDiv = document.getElementById("contentize");
+const userNameEl = document.getElementById("user-name");
+const userEmailEl = document.getElementById("user-email");
+const userPicEl = document.getElementById("user-pic");
+const logoutBtn = document.getElementById("logout-btn");
 
-        // Elements for Upload Modal
-        const uploadModal = document.getElementById('uploadModal');
-        const uploadBtn = document.querySelector('.upload-btn');
-        const uploadCloseBtn = document.getElementById('uploadClose');
-        const uploadForm = document.getElementById('uploadForm');
+// Elements for Upload Modal
+const uploadModal = document.getElementById('uploadModal');
+const uploadBtn = document.querySelector('.upload-btn');
+const uploadCloseBtn = document.getElementById('uploadClose');
+const uploadForm = document.getElementById('uploadForm');
 
-        // Elements for Comment Modal
-        const commentModal = document.getElementById('CommentModal');
-        const commentCloseBtn = document.getElementById('commentClose');
-        const commentsContainer = commentModal.querySelector('.comments');
-        let currentPostId = null;
+// Elements for Comment Modal
+const commentModal = document.getElementById('CommentModal');
+const commentCloseBtn = document.getElementById('commentClose');
+const commentsContainer = commentModal.querySelector('.comments');
+let currentPostId = null;
 
-        // --- AUTH CHECK ---
-        async function checkAuth() {
-            const { data: { session } } = await sb.auth.getSession();
+// --- AUTH CHECK ---
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
 
-            if (!session) {
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
-                return;
-            }
+  if (!session) {
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+    return;
+  }
 
-            console.log("✅ Logged in as:", session.user.email);
-            window.currentUser = session.user;
+  console.log("✅ Logged in as:", session.user.email);
+  window.currentUser = session.user;
 
-            displayUserInfo(session.user);
-            fetchAndRenderPosts(); // Call post rendering directly
+  displayUserInfo(session.user);
+  fetchAndRenderPosts(); // Call post rendering directly
+}
+
+// --- Display User Info ---
+function displayUserInfo(user) {
+  if (userNameEl) userNameEl.textContent = user.user_metadata.full_name || "No Name";
+  if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
+  if (userPicEl) {
+    userPicEl.src = user.user_metadata.avatar_url || "default-avatar.png";
+    userPicEl.alt = user.user_metadata.full_name || "User Avatar";
+  }
+}
+
+// --- Logout Handler ---
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+  });
+}
+
+// --- Listen for logout or expired session ---
+sb.auth.onAuthStateChange((_event, session) => {
+  if (!session) {
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+  }
+});
+
+// --- Upload Logic ---
+if (uploadBtn) {
+  uploadBtn.addEventListener('click', () => {
+    uploadModal.classList.remove('hidden');
+  });
+}
+if (uploadCloseBtn) {
+  uploadCloseBtn.addEventListener('click', () => {
+    uploadModal.classList.add('hidden');
+  });
+}
+
+if (uploadForm) {
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('uTitle').value;
+    const description = document.getElementById('uDesc').value;
+    const genre = document.getElementById('uGenre').value;
+    const tags = document.getElementById('uTags').value.split(',').map(tag => tag.trim());
+    const coverFile = document.getElementById('uCover').files[0];
+    const userId = window.currentUser.id;
+
+    if (!title || !coverFile) {
+      alert('Title and cover image are required.');
+      return;
+    }
+
+    try {
+      const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
+      const { data: storageData, error: storageError } = await sb.storage
+        .from('post-covers')
+        .upload(filePath, coverFile);
+
+      if (storageError) throw storageError;
+
+      const { data: publicUrlData } = sb.storage
+        .from('post-covers')
+        .getPublicUrl(filePath);
+      const mediaUrl = publicUrlData.publicUrl;
+
+      const { error: insertError } = await sb
+        .from('posts')
+        .insert({
+          user_id: userId,
+          title: title,
+          description: description,
+          media_url: mediaUrl,
+          genre: genre,
+          tags: tags,
+        });
+
+      if (insertError) throw insertError;
+
+      alert('Post uploaded successfully!');
+      uploadForm.reset();
+      uploadModal.classList.add('hidden');
+      fetchAndRenderPosts(); // Re-render posts after upload
+    } catch (error) {
+      console.error('Error uploading post:', error);
+      alert('Failed to upload post: ' + error.message);
+    }
+  });
+}
+
+async function fetchAndRenderPosts() {
+    const postFeedContainer = document.getElementById('post-feed-container');
+    if (!postFeedContainer) return;
+
+    postFeedContainer.innerHTML = '';
+    try {
+        const { data: posts, error } = await sb
+            .from('posts')
+            .select('*, profiles(full_name, avatar_url), comments(id), likes(id)')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (posts.length === 0) {
+            postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+            return;
         }
 
-        // --- Display User Info ---
-        function displayUserInfo(user) {
-            if (userNameEl) userNameEl.textContent = user.user_metadata.full_name || "No Name";
-            if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
-            if (userPicEl) {
-                userPicEl.src = user.user_metadata.avatar_url || "default-avatar.png";
-                userPicEl.alt = user.user_metadata.full_name || "User Avatar";
-            }
-        }
+        posts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.className = 'span-4 post-card';
+            postElement.dataset.postId = post.id;
+            postElement.dataset.animate = true;
 
-        // --- Logout Handler ---
-        if (logoutBtn) {
-            logoutBtn.addEventListener("click", async () => {
-                await sb.auth.signOut();
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
-            });
-        }
+            // Correctly get the counts from the fetched data
+            const commentCount = post.comments ? post.comments.length : 0;
+            const likeCount = post.likes ? post.likes.length : 0;
 
-        // --- Listen for logout or expired session ---
-        sb.auth.onAuthStateChange((_event, session) => {
-            if (!session) {
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
-            }
+            const postHtml = `
+            <div class="post-header">
+                <div class="post-header-left">
+                    <img src="${post.profiles.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <div class="post-header-info">
+                        <strong>${post.profiles.full_name || 'Anonymous'}</strong>
+                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="post-header-right">
+                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
+                </div>
+            </div>
+            <div class="post-body">
+                ${post.title}
+                ${post.description ? `<br>${post.description}` : ''}
+                ${post.tags.length > 0 ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+            </div>
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+            <div class="post-actions">
+                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
+                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
+                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
+            </div>
+        `;
+            postElement.innerHTML = postHtml;
+            postFeedContainer.appendChild(postElement);
         });
+    } catch (error) {
+        console.error('Error fetching posts:', error);
+        postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+    }
+}
 
-        // --- Upload Logic ---
-        if (uploadBtn) {
-            uploadBtn.addEventListener('click', () => {
-                uploadModal.classList.remove('hidden');
-            });
-        }
-        if (uploadCloseBtn) {
-            uploadCloseBtn.addEventListener('click', () => {
-                uploadModal.classList.add('hidden');
-            });
-        }
+// Comments modal management
+if (commentCloseBtn) {
+  commentCloseBtn.addEventListener('click', () => {
+    commentModal.classList.add('hidden');
+  });
+}
 
-        if (uploadForm) {
-            uploadForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const title = document.getElementById('uTitle').value;
-                const description = document.getElementById('uDesc').value;
-                const genre = document.getElementById('uGenre').value;
-                const tags = document.getElementById('uTags').value.split(',').map(tag => tag.trim());
-                const coverFile = document.getElementById('uCover').files[0];
-                const userId = window.currentUser.id;
+document.addEventListener('click', async (e) => {
+  const commentBtn = e.target.closest('.comment-btn');
+  if (commentBtn) {
+    currentPostId = commentBtn.dataset.postId;
+    commentModal.classList.remove('hidden');
+    await fetchAndRenderComments(currentPostId);
+  }
+});
 
-                if (!title || !coverFile) {
-                    alert('Title and cover image are required.');
-                    return;
-                }
+async function fetchAndRenderComments(postId) {
+  commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+  try {
+    const { data: comments, error } = await sb
+      .from('comments')
+      .select('*, profiles(full_name, avatar_url)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
 
-                try {
-                    const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
-                    const { data: storageData, error: storageError } = await sb.storage
-                        .from('post-covers')
-                        .upload(filePath, coverFile);
+    if (error) throw error;
+    commentsContainer.innerHTML = '';
+    if (comments.length === 0) {
+      commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
+    }
 
-                    if (storageError) throw storageError;
+    comments.forEach(comment => {
+      const commentHtml = `
+        <div class="comment">
+            <div class="comment-avatar">
+                <img src="${comment.profiles.avatar_url || 'default-avatar.png'}" alt="${comment.profiles.full_name}">
+            </div>
+            <div class="comment-body">
+                <div class="comment-header">
+                    <span class="comment-author">@${comment.profiles.full_name || 'Anonymous'}</span>
+                    <div class="comment-like">
+                        <i class="ri-heart-line"></i> <span>${comment.likes}</span>
+                    </div>
+                </div>
+                <div class="comment-text">${comment.content}</div>
+                <div class="comment-footer">
+                    <span>Reply</span>
+                    <span>Report</span>
+                    <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+                </div>
+            </div>
+        </div>
+      `;
+      commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
+  }
+}
 
-                    const { data: publicUrlData } = sb.storage
-                        .from('post-covers')
-                        .getPublicUrl(filePath);
-                    const mediaUrl = publicUrlData.publicUrl;
+// --- Start the App ---
+checkAuth();
+  </script>
 
-                    const { error: insertError } = await sb
-                        .from('posts')
-                        .insert({
-                            user_id: userId,
-                            title: title,
-                            description: description,
-                            media_url: mediaUrl,
-                            genre: genre,
-                            tags: tags,
-                        });
 
-                    if (insertError) throw insertError;
-
-                    alert('Post uploaded successfully!');
-                    uploadForm.reset();
-                    uploadModal.classList.add('hidden');
-                    fetchAndRenderPosts(); // Re-render posts after upload
-                } catch (error) {
-                    console.error('Error uploading post:', error);
-                    alert('Failed to upload post: ' + error.message);
-                }
-            });
-        }
-
-        // --- Post and Comment Rendering Logic ---
-        async function fetchAndRenderPosts() {
-            const postFeedContainer = document.getElementById('post-feed-container');
-            if (!postFeedContainer) return;
-
-            postFeedContainer.innerHTML = '';
-            try {
-                const { data: posts, error } = await sb
-                    .from('posts')
-                    .select('*, profiles(full_name, avatar_url), comments(id), likes(id)')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-                if (posts.length === 0) {
-                    postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
-                    return;
-                }
-
-                posts.forEach(post => {
-                    const postElement = document.createElement('div');
-                    postElement.className = 'span-4 post-card';
-                    postElement.dataset.postId = post.id;
-                    postElement.dataset.animate = true;
-                    const commentCount = post.comments ? post.comments.length : 0;
-                    const likeCount = post.likes ? post.likes.length : 0;
-                    const postHtml = `
-                    <div class="post-header">
-                        <div class="post-header-left">
-                            <img src="${post.profiles.avatar_url || 'default-avatar.png'}" alt="avatar">
-                            <div class="post-header-info">
-                                <strong>${post.profiles.full_name || 'Anonymous'}</strong>
-                                <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
-                            </div>
-                        </div>
-                        <div class="post-header-right">
-                            <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
-                        </div>
-                    </div>
-                    <div class="post-body">
-                        ${post.title}
-                        ${post.description ? `<br>${post.description}` : ''}
-                        ${post.tags.length > 0 ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
-                    </div>
-                    ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
-                    <div class="post-actions">
-                        <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
-                        <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
-                        <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
-                        <button class="action-btn"><i class="ri-bookmark-line"></i></button>
-                    </div>
-                `;
-                    postElement.innerHTML = postHtml;
-                    postFeedContainer.appendChild(postElement);
-                });
-            } catch (error) {
-                console.error('Error fetching posts:', error);
-                postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
-            }
-        }
-
-        // Comments modal management
-        if (commentCloseBtn) {
-            commentCloseBtn.addEventListener('click', () => {
-                commentModal.classList.add('hidden');
-            });
-        }
-
-        document.addEventListener('click', async (e) => {
-            const commentBtn = e.target.closest('.comment-btn');
-            if (commentBtn) {
-                currentPostId = commentBtn.dataset.postId;
-                commentModal.classList.remove('hidden');
-                await fetchAndRenderComments(currentPostId);
-            }
-        });
-
-        async function fetchAndRenderComments(postId) {
-            if (!commentsContainer) return;
-            commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
-            try {
-                const { data: comments, error } = await sb
-                    .from('comments')
-                    .select('*, profiles(full_name, avatar_url)')
-                    .eq('post_id', postId)
-                    .order('created_at', { ascending: true });
-
-                if (error) throw error;
-                commentsContainer.innerHTML = '';
-                if (comments.length === 0) {
-                    commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
-                }
-
-                comments.forEach(comment => {
-                    const commentHtml = `
-                    <div class="comment">
-                        <div class="comment-avatar">
-                            <img src="${comment.profiles.avatar_url || 'default-avatar.png'}" alt="${comment.profiles.full_name}">
-                        </div>
-                        <div class="comment-body">
-                            <div class="comment-header">
-                                <span class="comment-author">@${comment.profiles.full_name || 'Anonymous'}</span>
-                                <div class="comment-like">
-                                    <i class="ri-heart-line"></i> <span>${comment.likes}</span>
-                                </div>
-                            </div>
-                            <div class="comment-text">${comment.content}</div>
-                            <div class="comment-footer">
-                                <span>Reply</span>
-                                <span>Report</span>
-                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                    commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
-                });
-            } catch (error) {
-                console.error('Error fetching comments:', error);
-                commentsContainer.innerHTML = '<div class="error" style="text-align:center;">⚠️ Could not load comments.</div>';
-            }
-        }
-
-        // --- Start the App ---
-        checkAuth();
-    </script>
 </head>
 
 <body>
-    <div id="splash">
-        <div class="splash-content">
-            <div class="logo"><img src="logo.png" style="height: 50px;"></div>
-        </div>
+  <!-- Splash Screen <div class="loader"></div> -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="logo"><img src="logo.png" style="height: 50px;"></div>
+   
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
+<a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content" style="display:none;">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main">
+
+
+<div class="page-header">
+    <h2>Feed</h2>
+    <div class="muted">See what's new from the community.</div>
+</div>
+
+<div class="feed-grid" id="post-feed-container">
     </div>
 
-    <aside class="aside" aria-label="Sidebar">
-        <div class="brand"><span><img src="logo2.png" width="300"> </span></div>
-        <div class="side-search">
-            <i class="ri-search-2-line" aria-hidden="true"></i>
-            <input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
-        </div>
-        <div class="side-group">
-            <div class="side-label">Main</div>
-            <nav class="nav" aria-label="Primary">
-                <a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
-                <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
-                <a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
-                <a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
-                <a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
-            </nav>
-        </div>
-        <div class="side-group">
-            <div class="side-label">Account</div>
-            <nav class="nav" aria-label="Secondary">
-                <a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
-                <a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
-            </nav>
-        </div>
-        <div class="collapse">
-            <button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
-                    class="ri-sun-line"></i></button>
-        </div>
-    </aside>
 
-    <section id="content" style="display:none;">
-        <header class="header" role="banner">
-            <div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
-            <div class="searchbar">
-                <i class="ri-search-2-line" aria-hidden="true"></i>
-                <input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
-                    aria-label="Global search" />
+
+</main>
+<!-- TEMPLATE UPLOAD AREA-->
+<div class="modal-backdrop hidden" id="uploadModal">
+  <div class="modal" role="document" style="width: 400px;">
+        <h3>What to tease for today?</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
             </div>
-            <div class="actions">
-                <button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
-                <button class="btn-icon" id="btnNoti" aria-label="Notifications"><i
-                        class="ri-notification-3-line"></i></button>
-                <a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i
-                            class="ri-shopping-bag-line"></i></button></a>
-                <img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
-            </div>
-        </header>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+  </div>
+</div>
 
-        <main class="main">
-            <div class="page-header">
-                <h2>Feed</h2>
-                <div class="muted">See what's new from the community.</div>
-            </div>
-            <div class="feed-grid" id="post-feed-container">
-            </div>
-        </main>
+ 
+<div class="space"></div>
+</section>
 
-        <div class="modal-backdrop hidden" id="uploadModal">
-            <div class="modal" role="document" style="width: 400px;">
-                <h3>What to tease for today?</h3>
-                <form id="uploadForm" class="upload" novalidate>
-                    <div class="row">
-                        <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required>
-                        </div>
-                        <div class="col-6">
-                            <select id="uGenre" class="input" aria-label="Genre">
-                                <option>Pop</option>
-                                <option>Hip-Hop</option>
-                                <option>EDM</option>
-                                <option>Indie</option>
-                                <option>Jazz</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-8"><input class="input" type="text" id="uTags"
-                                placeholder="Tags (comma separated)"></div>
-                        <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*"
-                                aria-label="Cover image"></div>
-                        <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description">
-                        </div>
-                    </div>
-                    <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button type="button" class="btn ghost" title="Why cancel?"
-                            style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i>
-                            Cancel</button>
-                        <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i
-                                class="ri-upload-2-line"></i> Upload</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
+  <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
+  <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
+</nav>
 
-        <div class="modal-backdrop hidden" id="CommentModal">
-            <div class="modal" role="document" style="width: 500px;">
-                <button type="button" class="btn-icon" style="position: absolute; right: 10px; top: 10px;" id="commentClose">
-                    <i class="ri-close-line"></i>
-                </button>
-                <h3>Comments</h3>
-                <div class="comments" style="max-height: 400px; overflow-y: auto;">
-                    </div>
-                <div class="comment-input" style="padding-top: 1rem;">
-                    <form id="commentForm">
-                        <input type="text" id="commentText" class="input" placeholder="Write a comment..." required>
-                        <button type="submit" class="btn primary">Post</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+<script src="app.js"></script>
 
-        <div class="space"></div>
-    </section>
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
 
-    <nav class="bottom-nav" aria-label="Mobile navigation">
-        <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
-        <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
-        <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
-        <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
-        <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
-    </nav>
+</script>
 
-    <script src="app.js"></script>
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("content").classList.add("fade-in");
+    }, 2800);
+  });
+</script>
 
-    <script>
-        function toggleReplies(el) {
-            const replies = el.nextElementSibling;
-            if (replies.style.display === "block") {
-                replies.style.display = "none";
-                el.textContent = el.dataset.original || "View replies";
-            } else {
-                replies.style.display = "block";
-                if (!el.dataset.original) el.dataset.original = el.textContent;
-                el.textContent = "Hide replies";
-            }
-        }
-    </script>
 
-    <script>
-        window.addEventListener("load", () => {
-            setTimeout(() => {
-                document.getElementById("splash").style.display = "none";
-                document.getElementById("content").style.display = "block";
-                document.getElementById("content").classList.add("fade-in");
-            }, 2800);
-        });
-    </script>
+
+
+
+
+
+
 </body>
 </html>
