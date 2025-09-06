@@ -1,210 +1,334 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    nav a.active { font-weight: bold; }
-    .profile, .post-form, .posts { margin-bottom: 30px; }
-    img { max-width: 100px; border-radius: 50%; }
-    .post { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 10px; }
-    .actions button { margin-right: 10px; }
-  </style>
-</head>
-<body>
-  <h1>Dashboard</h1>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
 
-  <!-- Navigation -->
-  <nav>
-    <a data-link>Home</a>
-    <a data-link>Mall</a>
-    <a href="#profile.html" data-link>Profile</a>
-    <a  data-link>Upload</a>
-    <button id="logout-btn">Logout</button>
-  </nav>
 
-  <div id="contentize">
-    <!-- Profile Section -->
-    <div class="profile">
-      <h2>Profile</h2>
-      <img id="user-pic" src="" alt="Profile Picture">
-      <p><strong>Name:</strong> <span id="user-name"></span></p>
-      <p><strong>Email:</strong> <span id="user-email"></span></p>
-      <input type="text" id="username" placeholder="Edit username">
-      <input type="file" id="profile-upload">
-      <button id="save-profile">Save Profile</button>
-    </div>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    <!-- Post Form -->
-    <div class="post-form">
-      <h2>Create Post</h2>
-      <textarea id="post-content" placeholder="Write something..."></textarea><br>
-      <select id="post-type">
-        <option value="text">Text</option>
-        <option value="image">Image</option>
-        <option value="link">Link</option>
-      </select><br>
-      <input type="file" id="post-image"><br>
-      <button id="submit-post">Post</button>
-    </div>
+// --- Supabase Config ---
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
-    <!-- Posts Section -->
-    <div class="posts">
-      <h2>All Posts</h2>
-      <div id="posts-container"></div>
-    </div>
-  </div>
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+// --- DOM Elements ---
+const contentDiv = document.getElementById("contentize");
+const navLinks = document.querySelectorAll("nav a");
 
-    const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Elements for user info (make sure these exist in your HTML)
+const userNameEl = document.getElementById("user-name");
+const userEmailEl = document.getElementById("user-email");
+const userPicEl = document.getElementById("user-pic");
+const logoutBtn = document.getElementById("logout-btn");
 
-    const contentDiv = document.getElementById("contentize");
-    const navLinks = document.querySelectorAll("nav a");
-    const userNameEl = document.getElementById("user-name");
-    const userEmailEl = document.getElementById("user-email");
-    const userPicEl = document.getElementById("user-pic");
-    const logoutBtn = document.getElementById("logout-btn");
+// --- SPA Page List ---
+const pageList = [
+  "mall.html",
+  "start.html",
+  "states.html",
+  "statehome.html",
+  "profile.html",
+  "upload.html",
+];
 
-    const pageList = ["mall.html", "start.html", "states.html", "statehome.html", "profile.html", "upload.html"];
-    let isTransitioning = false;
-    const pageCache = {};
-    let currentUser = null;
+let isTransitioning = false;
+const pageCache = {}; // cache for faster reloads
 
-    async function checkAuth() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) {
-        window.location.href = "dashboard.html";
-        return;
-      }
-      currentUser = session.user;
-      displayUserInfo(currentUser);
-      initSPA();
-      loadPosts();
-    }
+// --- AUTH CHECK ---
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
 
-    function displayUserInfo(user) {
-      if (userNameEl) userNameEl.textContent = user.user_metadata.username || "No Name";
-      if (userEmailEl) userEmailEl.textContent = user.email;
-      if (userPicEl) userPicEl.src = user.user_metadata.avatar_url || "default-avatar.png";
-    }
+  if (!session) {
+    // Not logged in — send back to register
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+    return;
+  }
 
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", async () => {
-        await sb.auth.signOut();
-        window.location.href = "register.html";
-      });
-    }
+  console.log("✅ Logged in as:", session.user.email);
+  window.currentUser = session.user;
 
-    sb.auth.onAuthStateChange((_event, session) => {
-      if (!session) window.location.href = "register.html";
-    });
+  // Display user info
+  displayUserInfo(session.user);
 
-    async function saveProfile() {
-      const username = document.getElementById("username").value;
-      const file = document.getElementById("profile-upload").files[0];
-      let avatar_url = currentUser.user_metadata?.avatar_url;
+  // Start SPA after confirming auth
+  initSPA();
+}
 
-      if (file) {
-        const path = `${currentUser.id}/${file.name}`;
-        const { error } = await sb.storage.from("avatars").upload(path, file, { upsert: true });
-        if (!error) avatar_url = `${SUPABASE_URL}/storage/v1/object/public/avatars/${path}`;
-      }
-      await sb.auth.updateUser({ data: { username, avatar_url } });
-      alert("Profile updated");
-      displayUserInfo({ ...currentUser, user_metadata: { username, avatar_url } });
-    }
+// --- Display User Info ---
+function displayUserInfo(user) {
+  if (userNameEl) userNameEl.textContent = user.user_metadata.full_name || "No Name";
+  if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
+  if (userPicEl) {
+    userPicEl.src = user.user_metadata.avatar_url || "default-avatar.png";
+    userPicEl.alt = user.user_metadata.full_name || "User Avatar";
+  }
+}
 
-    async function submitPost() {
-      const content = document.getElementById("post-content").value;
-      const type = document.getElementById("post-type").value;
-      const file = document.getElementById("post-image").files[0];
-      let image_url = null;
+// --- Logout Handler ---
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+  });
+}
 
-      if (file && type === "image") {
-        const path = `${currentUser.id}/${Date.now()}-${file.name}`;
-        const { error } = await sb.storage.from("posts").upload(path, file, { upsert: true });
-        if (!error) image_url = `${SUPABASE_URL}/storage/v1/object/public/posts/${path}`;
-      }
+// --- Listen for logout or expired session ---
+sb.auth.onAuthStateChange((_event, session) => {
+  if (!session) {
+    window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+  }
+});
 
-      await sb.from("posts").insert({ user_id: currentUser.id, content, type, image_url });
-      document.getElementById("post-content").value = "";
-      loadPosts();
-    }
+// --- SPA Loader ---
+async function loadPage(url, addToHistory = true) {
+  if (isTransitioning) return;
+  isTransitioning = true;
 
-    async function loadPosts() {
-      const { data: posts } = await sb.from("posts").select("*").order("created_at", { ascending: false });
-      const container = document.getElementById("posts-container");
-      container.innerHTML = "";
-      posts.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "post";
-        div.innerHTML = `
-          <p><strong>${p.type.toUpperCase()}</strong>: ${p.content}</p>
-          ${p.image_url ? `<img src="${p.image_url}" style="max-width:200px;">` : ""}
-          <p><em>${new Date(p.created_at).toLocaleString()}</em></p>
-          <div class="actions">
-            <button>Like</button>
-            <button>Comment</button>
-            <button>Delete</button>
-          </div>`;
-        container.appendChild(div);
-      });
-    }
+  try {
+    contentDiv.classList.add("fade-out");
 
-    async function loadPage(url, addToHistory = true) {
-      if (isTransitioning) return;
-      isTransitioning = true;
+    setTimeout(async () => {
       try {
-        contentDiv.classList.add("fade-out");
-        setTimeout(async () => {
-          try {
-            let html = pageCache[url] || await (await fetch(url, { cache: "force-cache" })).text();
-            pageCache[url] = html;
-            contentDiv.innerHTML = html;
-            highlightActiveLink(url);
-            if (addToHistory) history.pushState({ url }, null, "#" + url);
-            contentDiv.classList.remove("fade-out");
-            isTransitioning = false;
-          } catch { isTransitioning = false; }
-        }, 100);
-      } catch { isTransitioning = false; }
-    }
-
-    function highlightActiveLink(url) {
-      navLinks.forEach(link => link.classList.toggle("active", link.getAttribute("href") === "#" + url));
-    }
-
-    function initSPA() {
-      pageList.forEach(async (page) => {
-        try { pageCache[page] = await (await fetch(page, { cache: "force-cache" })).text(); } catch {}
-      });
-      let currentPage = location.hash.replace("#", "") || "";
-      if (!pageList.includes(currentPage)) currentPage = "";
-      loadPage(currentPage, false);
-      history.replaceState({ url: currentPage }, null, "#" + currentPage);
-      document.addEventListener("click", (e) => {
-        const link = e.target.closest("a[data-link]");
-        if (link) {
-          e.preventDefault();
-          const url = link.getAttribute("href").replace("#", "");
-          if (pageList.includes(url)) loadPage(url, true);
+        let html;
+        if (pageCache[url]) {
+          html = pageCache[url];
+        } else {
+          const response = await fetch(url, { cache: "force-cache" });
+          html = await response.text();
+          pageCache[url] = html;
         }
-      });
-      window.addEventListener("popstate", (e) => {
-        if (e.state?.url) loadPage(e.state.url, false);
-      });
+
+        contentDiv.innerHTML = html;
+
+        if (typeof initSliders === "function") {
+          initSliders();
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        highlightActiveLink(url);
+
+        if (addToHistory) {
+          history.pushState({ url }, null, "#" + url);
+        }
+
+        contentDiv.classList.remove("fade-out");
+        contentDiv.classList.add("fade-in");
+
+        setTimeout(() => {
+          contentDiv.classList.remove("fade-in");
+          isTransitioning = false;
+        }, 150);
+      } catch (error) {
+        contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
+        isTransitioning = false;
+      }
+    }, 100);
+  } catch (error) {
+    console.error("❌ Load error:", error);
+    isTransitioning = false;
+  }
+}
+
+function highlightActiveLink(url) {
+  navLinks.forEach(link => {
+    link.classList.toggle("active", link.getAttribute("href") === "#" + url);
+  });
+}
+
+function initSPA() {
+  // Preload all pages
+  pageList.forEach(async (page) => {
+    try {
+      const res = await fetch(page, { cache: "force-cache" });
+      pageCache[page] = await res.text();
+    } catch {}
+  });
+
+  let currentPage = location.hash.replace("#", "") || "start.html";
+  if (!pageList.includes(currentPage)) currentPage = "start.html";
+
+  loadPage(currentPage, false);
+  history.replaceState({ url: currentPage }, null, "#" + currentPage);
+
+  // Handle clicks
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[data-link]");
+    if (link) {
+      e.preventDefault();
+      const url = link.getAttribute("href").replace("#", "");
+      const current = location.hash.replace("#", "") || "start.html";
+
+      if (url === current) return;
+      if (pageList.includes(url)) {
+        loadPage(url, true);
+      }
     }
+  });
 
-    document.getElementById("save-profile").addEventListener("click", saveProfile);
-    document.getElementById("submit-post").addEventListener("click", submitPost);
+  // Handle back/forward
+  window.addEventListener("popstate", (e) => {
+    if (e.state && e.state.url) {
+      loadPage(e.state.url, false);
+    }
+  });
+}
 
-    checkAuth();
-  </script>
+// --- Start ---
+checkAuth();
+</script>
+
+
+
+
+
+</head>
+
+<body>
+  <!-- Splash Screen <div class="loader"></div> -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="logo"><img src="logo.png" style="height: 50px;"></div>
+   
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
+<a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content" style="display:none;">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main" id="contentize">
+
+</main>
+
+<div class="modal-backdrop hidden" id="uploadModal">
+  <div class="modal" role="document" style="width: 400px;">
+        <h3>What to tease for today?</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+  </div>
+</div>
+
+ 
+<div class="space"></div>
+</section>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#start.html" data-link><i class="ri-stack-fill"></i></a>
+  <a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-map-pin-line"></i></a>
+  <a href="#statehome.html" data-link><i class="ri-compass-2-line"></i></a>
+  <a href="#mall.html" data-link><i class="ri-user-4-line"></i></a>
+</nav>
+
+<script src="app.js"></script>
+
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
+
+</script>
+
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("content").classList.add("fade-in");
+    }, 2800);
+  });
+</script>
+
+
 </body>
 </html>
