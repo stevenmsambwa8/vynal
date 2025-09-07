@@ -42,14 +42,14 @@ body {
 
 /* Auth card */
 .auth-wrapper {
-  background: #121212;
+  background: #121212c9;
   border-radius: var(--radius);
   padding: 2rem 1.5rem;
   width: 100%;
   max-width: 380px;
   text-align: center;
   position: relative;
-  z-index: 1;
+  z-index: 1;backdrop-filter: blur(4px);
 }
 
 /* Logo */
@@ -71,7 +71,7 @@ p.subtext { color: var(--muted); margin-bottom: 1.5rem; }
   justify-content: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: 15px;
+  border-radius: 10px;
   border: 1px solid #3333336c;
   background: #222;
   color: var(--muted);
@@ -131,7 +131,7 @@ async function handleLogin(button, provider) {
     const { error } = await sb.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: "https://vynal.it.com/dashboard.html",
+        redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html",
       },
     });
     if (error) alert("❌ " + error.message);
@@ -186,4 +186,3 @@ window.addEventListener("DOMContentLoaded", () => {
 </div>
 </body>
 </html>
-
