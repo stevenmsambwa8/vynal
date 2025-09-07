@@ -258,10 +258,22 @@
         const content = commentInput?.value.trim();
         
         if (content && currentPostId) {
-            await postComment(currentPostId, content);
-            commentInput.value = '';
-            // Refresh comments after posting
-            await fetchAndRenderComments(currentPostId);
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Posting...';
+            submitBtn.disabled = true;
+            
+            try {
+                await postComment(currentPostId, content);
+                commentInput.value = '';
+                // Refresh comments after posting
+                await fetchAndRenderComments(currentPostId);
+            } catch (error) {
+                console.error('Error posting comment:', error);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         }
     }
 
@@ -306,10 +318,10 @@
                 console.warn('Could not fetch comments:', commentsError);
             }
 
-            // Get like counts
+            // Get like counts - using correct column names
             const { data: likes, error: likesError } = await sb
                 .from('likes')
-                .select('post_id')
+                .select('post_id, user_id')
                 .in('post_id', postIds);
 
             if (likesError) {
@@ -321,12 +333,14 @@
                 const profile = profiles?.find(p => p.id === post.user_id);
                 const commentCount = comments?.filter(c => c.post_id === post.id).length || 0;
                 const likeCount = likes?.filter(l => l.post_id === post.id).length || 0;
+                const isLiked = likes?.some(l => l.post_id === post.id && l.user_id === window.currentUser?.id) || false;
                 
                 return {
                     ...post,
                     profile,
                     commentCount,
-                    likeCount
+                    likeCount,
+                    isLiked
                 };
             });
 
@@ -369,8 +383,8 @@
             </div>
             ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
             <div class="post-actions">
-                <button class="action-btn like-btn" data-post-id="${post.id}">
-                    <i class="ri-heart-line"></i>
+                <button class="action-btn like-btn ${post.isLiked ? 'liked' : ''}" data-post-id="${post.id}">
+                    <i class="ri-heart-${post.isLiked ? 'fill' : 'line'}"></i>
                     <span class="like-count">${post.likeCount}</span>
                 </button>
                 <button class="action-btn comment-btn" data-post-id="${post.id}">
@@ -390,15 +404,16 @@
         try {
             const userId = window.currentUser.id;
             
-            // Check if user already liked this post
+            // Check if user already liked this post - using correct column names
             const { data: existingLike, error: checkError } = await sb
                 .from('likes')
-                .select('id')
+                .select('*')
                 .eq('user_id', userId)
                 .eq('post_id', postId)
-                .single();
+                .maybeSingle();
 
-            if (checkError && checkError.code !== 'PGRST116') {
+            if (checkError) {
+                console.error('Error checking existing like:', checkError);
                 throw checkError;
             }
 
@@ -422,8 +437,8 @@
                 console.log('Post liked successfully!');
             }
 
-            // Update like count in UI immediately
-            await updateLikeCount(postId);
+            // Update like count and button state in UI immediately
+            await updateLikeButton(postId);
             
         } catch (error) {
             console.error('Error toggling like:', error);
@@ -431,25 +446,35 @@
         }
     }
 
-    async function updateLikeCount(postId) {
+    async function updateLikeButton(postId) {
         try {
             const { data: likes, error } = await sb
                 .from('likes')
-                .select('id')
+                .select('user_id')
                 .eq('post_id', postId);
 
             if (error) throw error;
 
             const likeCount = likes?.length || 0;
+            const isLiked = likes?.some(like => like.user_id === window.currentUser?.id) || false;
+            
             const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
             if (likeBtn) {
                 const countSpan = likeBtn.querySelector('.like-count');
+                const icon = likeBtn.querySelector('i');
+                
                 if (countSpan) {
                     countSpan.textContent = likeCount;
                 }
+                
+                if (icon) {
+                    icon.className = `ri-heart-${isLiked ? 'fill' : 'line'}`;
+                }
+                
+                likeBtn.classList.toggle('liked', isLiked);
             }
         } catch (error) {
-            console.error('Error updating like count:', error);
+            console.error('Error updating like button:', error);
         }
     }
 
@@ -468,7 +493,7 @@
             
         } catch (error) {
             console.error('Error posting comment:', error);
-            alert('Failed to post comment: ' + error.message);
+            throw error;
         }
     }
 
@@ -476,7 +501,7 @@
         try {
             const { data: comments, error } = await sb
                 .from('comments')
-                .select('id')
+                .select('*')
                 .eq('post_id', postId);
 
             if (error) throw error;
@@ -500,50 +525,47 @@
             return;
         }
         
-        // Find or create comments container
-        let commentsContainer = commentModal.querySelector('.comments');
-        if (!commentsContainer) {
-            // If comments container doesn't exist, create the entire modal content
-            commentModal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>Comments</h3>
-                        <button id="commentClose" class="close-btn">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="comments"></div>
-                        <form class="comment-form" id="commentForm">
-                            <div class="comment-input-container">
-                                <img src="${window.currentUser?.user_metadata?.avatar_url || 'default-avatar.png'}" alt="Your avatar" class="comment-avatar">
-                                <textarea name="commentText" placeholder="Write a comment..." required></textarea>
-                            </div>
-                            <div class="comment-actions">
-                                <button type="submit" class="btn-primary">Post Comment</button>
-                            </div>
-                        </form>
-                    </div>
+        // Always recreate the modal content to ensure it's properly structured
+        commentModal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Comments</h3>
+                    <button id="commentClose" class="close-btn">&times;</button>
                 </div>
-            `;
-            
-            // Re-setup event listeners for the new elements
-            const newCommentForm = commentModal.querySelector('#commentForm');
-            const newCloseBtn = commentModal.querySelector('#commentClose');
-            
-            if (newCommentForm) {
-                newCommentForm.addEventListener('submit', handleCommentSubmit);
-            }
-            
-            if (newCloseBtn) {
-                newCloseBtn.addEventListener('click', () => {
-                    commentModal.classList.add('hidden');
-                });
-            }
-            
-            commentsContainer = commentModal.querySelector('.comments');
+                <div class="modal-body">
+                    <div class="comments">
+                        <div style="text-align:center; padding: 20px;">Loading comments...</div>
+                    </div>
+                    <form class="comment-form" id="commentForm">
+                        <div class="comment-input-container">
+                            <img src="${window.currentUser?.user_metadata?.avatar_url || 'default-avatar.png'}" alt="Your avatar" class="comment-avatar">
+                            <textarea name="commentText" placeholder="Write a comment..." required rows="3"></textarea>
+                        </div>
+                        <div class="comment-actions">
+                            <button type="submit" class="btn-primary">Post Comment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Setup event listeners for the new elements
+        const newCommentForm = commentModal.querySelector('#commentForm');
+        const newCloseBtn = commentModal.querySelector('#commentClose');
+        
+        if (newCommentForm) {
+            newCommentForm.addEventListener('submit', handleCommentSubmit);
         }
         
+        if (newCloseBtn) {
+            newCloseBtn.addEventListener('click', () => {
+                commentModal.classList.add('hidden');
+            });
+        }
+        
+        const commentsContainer = commentModal.querySelector('.comments');
+        
         console.log('Fetching comments for post:', postId);
-        commentsContainer.innerHTML = '<div style="text-align:center; padding: 20px;">Loading comments...</div>';
         
         try {
             // Get comments first
@@ -623,15 +645,19 @@
         // Handle like button clicks
         const likeBtn = e.target.closest('.like-btn');
         if (likeBtn) {
+            e.preventDefault();
             const postId = likeBtn.dataset.postId;
-            await likePost(postId);
+            if (postId) {
+                await likePost(postId);
+            }
         }
 
         // Handle comment button clicks
         const commentBtn = e.target.closest('.comment-btn');
         if (commentBtn) {
+            e.preventDefault();
             currentPostId = commentBtn.dataset.postId;
-            if (commentModal) {
+            if (commentModal && currentPostId) {
                 commentModal.classList.remove('hidden');
                 await fetchAndRenderComments(currentPostId);
             }
