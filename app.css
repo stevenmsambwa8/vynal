@@ -1166,7 +1166,6 @@
   border-radius:50%;
   border:2px solid var(--brand);
   flex-shrink:0;
-  box-shadow: 0 0 6px rgba(196,7,139,.6);
 }
 
 .post-header-info {
