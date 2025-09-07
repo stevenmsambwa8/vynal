@@ -721,9 +721,9 @@ function updateCommentCount(postId, increment) {
 // --- Optimized Post Functions ---
 async function fetchAndRenderPosts(reset = false) {
     if (!postFeedContainer || isLoading) return;
-
+    
     isLoading = true;
-
+    
     if (reset) {
         currentPage = 0;
         hasMorePosts = true;
@@ -731,6 +731,7 @@ async function fetchAndRenderPosts(reset = false) {
     }
 
     try {
+        // Fixed query - get posts with proper counts
         const { data: postsData, error: postsError } = await sb
             .from('posts')
             .select(`
@@ -739,10 +740,6 @@ async function fetchAndRenderPosts(reset = false) {
                     id,
                     full_name,
                     avatar_url
-                ),
-                comments:comments!post_id (count),
-                likes:likes!post_id (
-                    user_id
                 )
             `)
             .order('created_at', { ascending: false })
@@ -763,14 +760,46 @@ async function fetchAndRenderPosts(reset = false) {
             hasMorePosts = false;
         }
 
+        // Get counts separately for better accuracy
+        const postIds = postsData.map(post => post.id);
+        
+        // Get comment counts
+        const { data: commentCounts } = await sb
+            .from('comments')
+            .select('post_id')
+            .in('post_id', postIds);
+
+        // Get like counts and user's likes
+        const { data: likesData } = await sb
+            .from('likes')
+            .select('post_id, user_id')
+            .in('post_id', postIds);
+
+        // Process counts
+        const commentCountMap = {};
+        const likeCountMap = {};
+        const userLikesMap = {};
+
+        // Count comments
+        commentCounts?.forEach(comment => {
+            commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
+        });
+
+        // Count likes and track user's likes
+        likesData?.forEach(like => {
+            likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+            if (like.user_id === window.currentUser?.id) {
+                userLikesMap[like.post_id] = true;
+            }
+        });
+
         const postsWithData = postsData.map(post => {
             const profile = post.profiles || getCachedProfile(post.user_id);
             if (profile) setCachedProfile(post.user_id, profile);
 
-            const commentCount = post.comments?.[0]?.count || 0;
-            const likes = post.likes || [];
-            const likeCount = likes.length;
-            const isLiked = likes.some(like => like.user_id === window.currentUser?.id);
+            const commentCount = commentCountMap[post.id] || 0;
+            const likeCount = likeCountMap[post.id] || 0;
+            const isLiked = userLikesMap[post.id] || false;
 
             const processedPost = {
                 ...post,
@@ -779,7 +808,7 @@ async function fetchAndRenderPosts(reset = false) {
                 likeCount,
                 isLiked
             };
-            
+
             postsCache.set(post.id, processedPost);
             return processedPost;
         });
@@ -793,8 +822,8 @@ async function fetchAndRenderPosts(reset = false) {
             const postElement = createPostElement(post);
             fragment.appendChild(postElement);
         });
-        postFeedContainer.appendChild(fragment);
 
+        postFeedContainer.appendChild(fragment);
         currentPage++;
         lastFetchTime = Date.now();
 
@@ -807,6 +836,7 @@ async function fetchAndRenderPosts(reset = false) {
         isLoading = false;
     }
 }
+
 
 function createPostElement(post) {
     const postElement = document.createElement('div');
@@ -849,12 +879,12 @@ function createPostElement(post) {
     return postElement;
 }
 
-// --- Improved Like Function ---
+// --- Improved Like Function with Better Error Handling ---
 async function likePost(postId) {
     if (likingInProgress.has(postId) || !window.currentUser) {
         return;
     }
-    
+
     const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
     if (!likeBtn) return;
 
@@ -864,12 +894,22 @@ async function likePost(postId) {
     const icon = likeBtn.querySelector('i');
     const isCurrentlyLiked = likeBtn.classList.contains('liked');
     const currentCount = parseInt(countSpan.textContent) || 0;
-    
+
+    // Store original state for rollback
+    const originalState = {
+        liked: isCurrentlyLiked,
+        count: currentCount,
+        iconClass: icon.className
+    };
+
     // Optimistic UI update
-    likeBtn.classList.toggle('liked');
-    icon.className = `ri-heart-${!isCurrentlyLiked ? 'fill' : 'line'}`;
-    countSpan.textContent = currentCount + (!isCurrentlyLiked ? 1 : -1);
+    const newLiked = !isCurrentlyLiked;
+    const newCount = currentCount + (newLiked ? 1 : -1);
     
+    likeBtn.classList.toggle('liked', newLiked);
+    icon.className = `ri-heart-${newLiked ? 'fill' : 'line'}`;
+    countSpan.textContent = Math.max(0, newCount); // Prevent negative counts
+
     // Add visual feedback
     likeBtn.style.transform = 'scale(1.1)';
     setTimeout(() => {
@@ -880,38 +920,62 @@ async function likePost(postId) {
         const userId = window.currentUser.id;
 
         if (isCurrentlyLiked) {
+            // Unlike
             const { error } = await sb
                 .from('likes')
                 .delete()
                 .eq('user_id', userId)
                 .eq('post_id', postId);
-            
+
             if (error) throw error;
         } else {
+            // Like - use upsert to handle duplicates
             const { error } = await sb
                 .from('likes')
-                .insert({ user_id: userId, post_id: postId });
-            
-            if (error && error.code !== '23505') { // Ignore duplicate key errors
-                throw error;
-            }
+                .upsert(
+                    { user_id: userId, post_id: postId },
+                    { onConflict: 'user_id,post_id' }
+                );
+
+            if (error) throw error;
         }
 
         // Update cache
         if (postsCache.has(postId)) {
             const cachedPost = postsCache.get(postId);
-            cachedPost.isLiked = !isCurrentlyLiked;
-            cachedPost.likeCount = parseInt(countSpan.textContent);
+            cachedPost.isLiked = newLiked;
+            cachedPost.likeCount = Math.max(0, newCount);
             postsCache.set(postId, cachedPost);
         }
+
+        // Verify count after a short delay
+        setTimeout(async () => {
+            try {
+                const { count } = await sb
+                    .from('likes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('post_id', postId);
+                
+                if (count !== null && count !== parseInt(countSpan.textContent)) {
+                    countSpan.textContent = count;
+                    if (postsCache.has(postId)) {
+                        const cachedPost = postsCache.get(postId);
+                        cachedPost.likeCount = count;
+                        postsCache.set(postId, cachedPost);
+                    }
+                }
+            } catch (verifyError) {
+                console.warn('Could not verify like count:', verifyError);
+            }
+        }, 1000);
 
     } catch (error) {
         console.error('Error toggling like:', error);
         
-        // Revert optimistic update on error
-        likeBtn.classList.toggle('liked');
-        icon.className = `ri-heart-${isCurrentlyLiked ? 'fill' : 'line'}`;
-        countSpan.textContent = currentCount;
+        // Revert optimistic update
+        likeBtn.classList.toggle('liked', originalState.liked);
+        icon.className = originalState.iconClass;
+        countSpan.textContent = originalState.count;
         
         showErrorToast('Failed to update like. Please try again.');
     } finally {
@@ -1084,40 +1148,82 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// --- Optimized Real-time Listeners ---
+// --- Improved Real-time Listeners with Debouncing ---
 function setupRealtimeListeners() {
     let updateTimeout;
+    let isUpdating = false;
 
     const debouncedUpdate = () => {
+        if (isUpdating) return;
+        
         clearTimeout(updateTimeout);
-        updateTimeout = setTimeout(() => {
-            if (postFeedContainer && !isLoading) {
-                postsCache.clear();
-                currentPage = 0;
-                hasMorePosts = true;
-                fetchAndRenderPosts(true);
+        updateTimeout = setTimeout(async () => {
+            if (postFeedContainer && !isLoading && !likingInProgress.size) {
+                isUpdating = true;
+                try {
+                    // Only refresh if no user interactions are in progress
+                    postsCache.clear();
+                    currentPage = 0;
+                    hasMorePosts = true;
+                    await fetchAndRenderPosts(true);
+                } finally {
+                    isUpdating = false;
+                }
             }
-        }, 2000); // Increased debounce time
+        }, 3000); // Longer debounce to prevent interference
     };
 
+    // Posts updates
     sb.channel('public:posts')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, debouncedUpdate)
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'posts' 
+        }, debouncedUpdate)
         .subscribe();
 
-    // Don't refresh comments modal on real-time updates to prevent interruption
-    sb.channel('public:comments')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-            // Only update main feed comment counts, not the modal
-            debouncedUpdate();
-        })
-        .subscribe();
-
+    // Likes updates - more conservative approach
     sb.channel('public:likes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
-            // Minimal update for likes to prevent interference
-            setTimeout(debouncedUpdate, 1000);
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'likes' 
+        }, (payload) => {
+            // Only update if it's not the current user's action
+            if (payload.new?.user_id !== window.currentUser?.id) {
+                setTimeout(debouncedUpdate, 2000);
+            }
         })
         .subscribe();
+
+    // Comments updates
+    sb.channel('public:comments')
+        .on('postgres_changes', { 
+            event: '*', 
+            schema: 'public', 
+            table: 'comments' 
+        }, debouncedUpdate)
+        .subscribe();
+}
+
+// --- Add this function to handle comment count updates ---
+async function updateCommentCount(postId, increment) {
+    const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
+    if (commentBtn) {
+        const countSpan = commentBtn.querySelector('.comment-count');
+        if (countSpan) {
+            const currentCount = parseInt(countSpan.textContent) || 0;
+            const newCount = Math.max(0, currentCount + increment);
+            countSpan.textContent = newCount;
+            
+            // Update cache
+            if (postsCache.has(postId)) {
+                const cachedPost = postsCache.get(postId);
+                cachedPost.commentCount = newCount;
+                postsCache.set(postId, cachedPost);
+            }
+        }
+    }
 }
 
 // --- App Initialization ---
@@ -1132,6 +1238,15 @@ async function initApp() {
 
 // --- Start the App ---
 document.addEventListener('DOMContentLoaded', initApp);
+// --- Initialize everything when DOM is ready ---
+document.addEventListener('DOMContentLoaded', async () => {
+    updateDOMReferences();
+    
+    if (await checkAuth()) {
+        await initPage();
+        setupRealtimeListeners();
+    }
+});
 
 // Add CSS for animations and improvements
 const style = document.createElement('style');
