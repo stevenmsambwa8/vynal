@@ -7,14 +7,16 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
-   
 <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
     // --- Supabase Config ---
     const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+</script>   
+<script type="module">
 
     // --- Global Variables ---
     let isTransitioning = false;
@@ -415,7 +417,7 @@
                     </div>
                     <div class="comment-body">
                         <div class="comment-header">
-                            <span class="comment-author">@User</span>
+                            <span class="comment-author"></span>
                             <div class="comment-like">
                                 <i class="ri-heart-line"></i> <span>0</span>
                             </div>
@@ -703,4 +705,3 @@ aria-label="Global search" />
 
 </body>
 </html>
-
