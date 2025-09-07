@@ -434,10 +434,10 @@ function updateDOMReferences() {
     commentForm = getElement('commentForm');
     commentInput = getElement('commentText');
     uploadModal = getElement('uploadModal');
-    uploadBtn = getElement('.upload-btn');
+    uploadBtn = getElement('.upload-btn') || getElement('upload-btn');
     uploadCloseBtn = getElement('uploadClose');
     uploadForm = getElement('uploadForm');
-    commentModal = getElement('CommentModal');
+    commentModal = getElement('CommentModal') || getElement('commentModal');
     commentCloseBtn = getElement('commentClose');
     commentsContainer = commentModal?.querySelector('.comments');
 }
@@ -457,13 +457,19 @@ function setCachedProfile(userId, profile) {
 
 // --- Auth Functions ---
 async function checkAuth() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
+    try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+            window.location.href = "https://vynal.it.com/register.html";
+            return false;
+        }
+        window.currentUser = session.user;
+        return true;
+    } catch (error) {
+        console.error('Auth error:', error);
         window.location.href = "https://vynal.it.com/register.html";
         return false;
     }
-    window.currentUser = session.user;
-    return true;
 }
 
 function displayUserInfo(user) {
@@ -472,11 +478,14 @@ function displayUserInfo(user) {
     if (userPicEl) {
         userPicEl.src = user.user_metadata?.avatar_url || "default-avatar.png";
         userPicEl.alt = user.user_metadata?.full_name || "User Avatar";
+        userPicEl.onerror = () => {
+            userPicEl.src = "default-avatar.png";
+        };
     }
 }
 
-// --- Page Initialization ---
-async function initPage() {
+// --- Initialize App (Fixed function name) ---
+async function initApp() {
     if (window.currentUser) {
         displayUserInfo(window.currentUser);
     }
@@ -487,6 +496,12 @@ async function initPage() {
 
 // --- Infinite Scroll ---
 function setupInfiniteScroll() {
+    // Remove existing sentinel if it exists
+    const existingSentinel = document.getElementById('scroll-sentinel');
+    if (existingSentinel) {
+        existingSentinel.remove();
+    }
+
     const observer = new IntersectionObserver(
         (entries) => {
             if (entries[0].isIntersecting && !isLoading && hasMorePosts) {
@@ -500,8 +515,11 @@ function setupInfiniteScroll() {
     const sentinel = document.createElement('div');
     sentinel.id = 'scroll-sentinel';
     sentinel.style.height = '20px';
-    postFeedContainer?.parentNode?.appendChild(sentinel);
-    observer.observe(sentinel);
+    
+    if (postFeedContainer?.parentNode) {
+        postFeedContainer.parentNode.appendChild(sentinel);
+        observer.observe(sentinel);
+    }
 }
 
 // --- Event Listeners Setup ---
@@ -509,8 +527,14 @@ function setupEventListeners() {
     if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
         logoutBtn.setAttribute('data-listener', 'true');
         logoutBtn.addEventListener("click", async () => {
-            await sb.auth.signOut();
-            window.location.href = "https://vynal.it.com/register.html";
+            try {
+                await sb.auth.signOut();
+                window.location.href = "https://vynal.it.com/register.html";
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect even if logout fails
+                window.location.href = "https://vynal.it.com/register.html";
+            }
         });
     }
 
@@ -539,6 +563,16 @@ function setupEventListeners() {
             if (commentModal) commentModal.classList.add('hidden');
         });
     }
+
+    // Close modals when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === uploadModal) {
+            uploadModal.classList.add('hidden');
+        }
+        if (e.target === commentModal) {
+            commentModal.classList.add('hidden');
+        }
+    });
 }
 
 // --- Upload Handler ---
@@ -547,26 +581,31 @@ async function handleUploadSubmit(e) {
     const title = getElement('uTitle')?.value;
     const description = getElement('uDesc')?.value;
     const genre = getElement('uGenre')?.value;
-    const tags = getElement('uTags')?.value.split(',').map(tag => tag.trim());
+    const tags = getElement('uTags')?.value?.split(',').map(tag => tag.trim()).filter(tag => tag);
     const coverFile = getElement('uCover')?.files[0];
-    const userId = window.currentUser.id;
+    const userId = window.currentUser?.id;
 
-    if (!title || !coverFile) {
+    if (!title || !coverFile || !userId) {
         alert('Title and cover image are required.');
         return;
     }
 
+    const submitBtn = uploadForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn?.textContent || 'Upload';
+    
     try {
         // Show loading state
-        const submitBtn = uploadForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Uploading...';
-        submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.textContent = 'Uploading...';
+            submitBtn.disabled = true;
+        }
 
-        const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
-        const { error: storageError } = await sb.storage
+        // Upload file with error handling
+        const filePath = `${userId}/${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const { data: uploadData, error: storageError } = await sb.storage
             .from('post-covers')
             .upload(filePath, coverFile);
+        
         if (storageError) throw storageError;
 
         const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
@@ -577,11 +616,12 @@ async function handleUploadSubmit(e) {
             .insert({
                 user_id: userId,
                 title: title,
-                description: description,
+                description: description || null,
                 media_url: mediaUrl,
-                genre: genre,
-                tags: tags,
+                genre: genre || null,
+                tags: tags.length > 0 ? tags : null,
             });
+        
         if (insertError) throw insertError;
 
         alert('Post uploaded successfully!');
@@ -594,11 +634,14 @@ async function handleUploadSubmit(e) {
         hasMorePosts = true;
         await fetchAndRenderPosts(true);
 
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
     } catch (error) {
         console.error('Error uploading post:', error);
         alert('Failed to upload post: ' + error.message);
+    } finally {
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
     }
 }
 
@@ -608,14 +651,22 @@ async function handleCommentSubmit(e) {
     const commentInput = e.target.querySelector('textarea[name="commentText"]');
     const content = commentInput?.value.trim();
 
-    if (!content || !currentPostId) return;
+    if (!content || !currentPostId || !window.currentUser) {
+        if (!window.currentUser) {
+            showErrorToast('Please log in to comment');
+        }
+        return;
+    }
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Posting...';
-    submitBtn.disabled = true;
-
+    const originalText = submitBtn?.textContent || 'Post Comment';
+    
     try {
+        if (submitBtn) {
+            submitBtn.textContent = 'Posting...';
+            submitBtn.disabled = true;
+        }
+
         // Post comment to database
         const userId = window.currentUser.id;
         const { data: newComment, error } = await sb
@@ -650,8 +701,10 @@ async function handleCommentSubmit(e) {
         console.error('Error posting comment:', error);
         showErrorToast('Failed to post comment. Please try again.');
     } finally {
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
     }
 }
 
@@ -662,7 +715,7 @@ function addCommentToUI(comment) {
 
     // Remove "no comments" message if it exists
     const noCommentsMsg = commentsContainer.querySelector('.muted');
-    if (noCommentsMsg) {
+    if (noCommentsMsg && noCommentsMsg.textContent.includes('No comments yet')) {
         noCommentsMsg.remove();
     }
 
@@ -671,7 +724,7 @@ function addCommentToUI(comment) {
     commentDiv.className = 'comment new-comment';
     commentDiv.innerHTML = `
         <div class="comment-avatar">
-            <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User" loading="lazy">
+            <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User" loading="lazy" onerror="this.src='default-avatar.png'">
         </div>
         <div class="comment-body">
             <div class="comment-header">
@@ -680,7 +733,7 @@ function addCommentToUI(comment) {
                     <i class="ri-heart-line"></i> <span>0</span>
                 </div>
             </div>
-            <div class="comment-text">${comment.content || 'No content'}</div>
+            <div class="comment-text">${escapeHtml(comment.content || 'No content')}</div>
             <div class="comment-footer">
                 <span>Reply</span>
                 <span>Report</span>
@@ -689,7 +742,7 @@ function addCommentToUI(comment) {
         </div>
     `;
 
-    // Add animation class
+    // Add animation
     commentDiv.style.opacity = '0';
     commentDiv.style.transform = 'translateY(20px)';
     
@@ -713,7 +766,15 @@ function updateCommentCount(postId, increment) {
         const countSpan = commentBtn.querySelector('.comment-count');
         if (countSpan) {
             const currentCount = parseInt(countSpan.textContent) || 0;
-            countSpan.textContent = currentCount + increment;
+            const newCount = Math.max(0, currentCount + increment);
+            countSpan.textContent = newCount;
+            
+            // Update cache
+            if (postsCache.has(postId)) {
+                const cachedPost = postsCache.get(postId);
+                cachedPost.commentCount = newCount;
+                postsCache.set(postId, cachedPost);
+            }
         }
     }
 }
@@ -727,11 +788,10 @@ async function fetchAndRenderPosts(reset = false) {
     if (reset) {
         currentPage = 0;
         hasMorePosts = true;
-        postFeedContainer.innerHTML = '<div style="text-align:center;">Loading posts...</div>';
+        postFeedContainer.innerHTML = '<div style="text-align:center; padding: 20px;">Loading posts...</div>';
     }
 
     try {
-        // Fixed query - get posts with proper counts
         const { data: postsData, error: postsError } = await sb
             .from('posts')
             .select(`
@@ -749,7 +809,7 @@ async function fetchAndRenderPosts(reset = false) {
 
         if (!postsData || postsData.length === 0) {
             if (reset) {
-                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center; padding: 40px;">No posts found. Be the first to share! 🚀</p>';
             }
             hasMorePosts = false;
             isLoading = false;
@@ -830,27 +890,44 @@ async function fetchAndRenderPosts(reset = false) {
     } catch (error) {
         console.error('Error fetching posts:', error);
         if (reset) {
-            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+            postFeedContainer.innerHTML = '<p class="error" style="text-align: center; padding: 40px;">⚠️ Could not load posts. Please try refreshing the page.</p>';
+        } else {
+            showErrorToast('Failed to load more posts');
         }
     } finally {
         isLoading = false;
     }
 }
 
-
+// --- Create Post Element ---
 function createPostElement(post) {
     const postElement = document.createElement('div');
     postElement.className = 'span-4 post-card';
     postElement.dataset.postId = post.id;
-    postElement.dataset.animate = true;
+
+    const formatDate = (dateString) => {
+        try {
+            return new Date(dateString).toLocaleString();
+        } catch (e) {
+            return 'Unknown date';
+        }
+    };
+
+    const formatTags = (tags) => {
+        if (!tags || !Array.isArray(tags) || tags.length === 0) return '';
+        return `<br><span class="hashtag">#${tags.join(' #')}</span>`;
+    };
 
     postElement.innerHTML = `
         <div class="post-header">
             <div class="post-header-left">
-                <img src="${post.profile?.avatar_url || 'default-avatar.png'}" alt="avatar" loading="lazy">
+                <img src="${post.profile?.avatar_url || 'default-avatar.png'}" 
+                     alt="avatar" 
+                     loading="lazy" 
+                     onerror="this.src='default-avatar.png'">
                 <div class="post-header-info">
-                    <strong>${post.profile?.full_name || 'Anonymous'}</strong>
-                    <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+                    <strong>${escapeHtml(post.profile?.full_name || 'Anonymous')}</strong>
+                    <div class="muted">${formatDate(post.created_at)}</div>
                 </div>
             </div>
             <div class="post-header-right">
@@ -858,11 +935,13 @@ function createPostElement(post) {
             </div>
         </div>
         <div class="post-body">
-            ${post.title || ''}
-            ${post.description ? `<br>${post.description}` : ''}
-            ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+            ${escapeHtml(post.title || '')}
+            ${post.description ? `<br>${escapeHtml(post.description)}` : ''}
+            ${formatTags(post.tags)}
         </div>
-        ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media" loading="lazy"></div>` : ''}
+        ${post.media_url ? `<div class="post-media">
+            <img src="${post.media_url}" alt="Post media" loading="lazy" onerror="this.style.display='none'">
+        </div>` : ''}
         <div class="post-actions">
             <button class="action-btn like-btn ${post.isLiked ? 'liked' : ''}" data-post-id="${post.id}">
                 <i class="ri-heart-${post.isLiked ? 'fill' : 'line'}"></i>
@@ -877,6 +956,14 @@ function createPostElement(post) {
         </div>
     `;
     return postElement;
+}
+
+// --- HTML Escape Function ---
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // --- Improved Like Function with Better Error Handling ---
@@ -908,7 +995,7 @@ async function likePost(postId) {
     
     likeBtn.classList.toggle('liked', newLiked);
     icon.className = `ri-heart-${newLiked ? 'fill' : 'line'}`;
-    countSpan.textContent = Math.max(0, newCount); // Prevent negative counts
+    countSpan.textContent = Math.max(0, newCount);
 
     // Add visual feedback
     likeBtn.style.transform = 'scale(1.1)';
@@ -948,27 +1035,6 @@ async function likePost(postId) {
             postsCache.set(postId, cachedPost);
         }
 
-        // Verify count after a short delay
-        setTimeout(async () => {
-            try {
-                const { count } = await sb
-                    .from('likes')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('post_id', postId);
-                
-                if (count !== null && count !== parseInt(countSpan.textContent)) {
-                    countSpan.textContent = count;
-                    if (postsCache.has(postId)) {
-                        const cachedPost = postsCache.get(postId);
-                        cachedPost.likeCount = count;
-                        postsCache.set(postId, cachedPost);
-                    }
-                }
-            } catch (verifyError) {
-                console.warn('Could not verify like count:', verifyError);
-            }
-        }, 1000);
-
     } catch (error) {
         console.error('Error toggling like:', error);
         
@@ -1004,6 +1070,8 @@ function showErrorToast(message) {
         font-size: 14px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         animation: slideIn 0.3s ease-out;
+        max-width: 300px;
+        word-wrap: break-word;
     `;
     document.body.appendChild(errorMsg);
     
@@ -1013,7 +1081,7 @@ function showErrorToast(message) {
     }, 3000);
 }
 
-// --- Improved Comments Modal (No Full Refresh) ---
+// --- Improved Comments Modal ---
 async function fetchAndRenderComments(postId) {
     if (!commentModal) return;
 
@@ -1032,7 +1100,10 @@ async function fetchAndRenderComments(postId) {
                     </div>
                     <form class="comment-form" id="commentForm">
                         <div class="comment-input-container">
-                            <img src="${window.currentUser?.user_metadata?.avatar_url || 'default-avatar.png'}" alt="Your avatar" class="comment-avatar">
+                            <img src="${window.currentUser?.user_metadata?.avatar_url || 'default-avatar.png'}" 
+                                 alt="Your avatar" 
+                                 class="comment-avatar"
+                                 onerror="this.src='default-avatar.png'">
                             <textarea name="commentText" placeholder="Write a comment..." required rows="3"></textarea>
                         </div>
                         <div class="comment-actions">
@@ -1090,16 +1161,19 @@ async function fetchAndRenderComments(postId) {
             commentDiv.className = 'comment';
             commentDiv.innerHTML = `
                 <div class="comment-avatar">
-                    <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User" loading="lazy">
+                    <img src="${profile?.avatar_url || 'default-avatar.png'}" 
+                         alt="User" 
+                         loading="lazy"
+                         onerror="this.src='default-avatar.png'">
                 </div>
                 <div class="comment-body">
                     <div class="comment-header">
-                        <span class="comment-author">${profile?.full_name || 'Anonymous'}</span>
+                        <span class="comment-author">${escapeHtml(profile?.full_name || 'Anonymous')}</span>
                         <div class="comment-like">
                             <i class="ri-heart-line"></i> <span>0</span>
                         </div>
                     </div>
-                    <div class="comment-text">${comment.content || 'No content'}</div>
+                    <div class="comment-text">${escapeHtml(comment.content || 'No content')}</div>
                     <div class="comment-footer">
                         <span>Reply</span>
                         <span>Report</span>
@@ -1112,7 +1186,7 @@ async function fetchAndRenderComments(postId) {
         commentsContainer.appendChild(fragment);
     } catch (error) {
         console.error('Error fetching comments:', error);
-        commentsContainer.innerHTML = `<div class="error" style="text-align:center; padding: 20px;">⚠️ Error: ${error.message}</div>`;
+        commentsContainer.innerHTML = `<div class="error" style="text-align:center; padding: 20px;">⚠️ Error loading comments: ${error.message}</div>`;
     }
 }
 
@@ -1158,7 +1232,7 @@ function setupRealtimeListeners() {
         
         clearTimeout(updateTimeout);
         updateTimeout = setTimeout(async () => {
-            if (postFeedContainer && !isLoading && !likingInProgress.size) {
+            if (postFeedContainer && !isLoading && likingInProgress.size === 0) {
                 isUpdating = true;
                 try {
                     // Only refresh if no user interactions are in progress
@@ -1166,6 +1240,8 @@ function setupRealtimeListeners() {
                     currentPage = 0;
                     hasMorePosts = true;
                     await fetchAndRenderPosts(true);
+                } catch (error) {
+                    console.error('Error in realtime update:', error);
                 } finally {
                     isUpdating = false;
                 }
@@ -1180,7 +1256,11 @@ function setupRealtimeListeners() {
             schema: 'public', 
             table: 'posts' 
         }, debouncedUpdate)
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Subscribed to posts channel');
+            }
+        });
 
     // Likes updates - more conservative approach
     sb.channel('public:likes')
@@ -1194,7 +1274,11 @@ function setupRealtimeListeners() {
                 setTimeout(debouncedUpdate, 2000);
             }
         })
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Subscribed to likes channel');
+            }
+        });
 
     // Comments updates
     sb.channel('public:comments')
@@ -1203,40 +1287,71 @@ function setupRealtimeListeners() {
             schema: 'public', 
             table: 'comments' 
         }, debouncedUpdate)
-        .subscribe();
-}
-
-// --- Add this function to handle comment count updates ---
-async function updateCommentCount(postId, increment) {
-    const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
-    if (commentBtn) {
-        const countSpan = commentBtn.querySelector('.comment-count');
-        if (countSpan) {
-            const currentCount = parseInt(countSpan.textContent) || 0;
-            const newCount = Math.max(0, currentCount + increment);
-            countSpan.textContent = newCount;
-            
-            // Update cache
-            if (postsCache.has(postId)) {
-                const cachedPost = postsCache.get(postId);
-                cachedPost.commentCount = newCount;
-                postsCache.set(postId, cachedPost);
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Subscribed to comments channel');
             }
-        }
-    }
+        });
 }
 
-
-
+// --- Handle Authentication State Changes ---
+sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || !session) {
+        window.location.href = "https://vynal.it.com/register.html";
+    } else if (event === 'SIGNED_IN' && session) {
+        window.currentUser = session.user;
+        displayUserInfo(session.user);
+    }
+});
 
 // --- Initialize everything when DOM is ready ---
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM loaded, initializing app...');
+    
     updateDOMReferences();
     
-    if (await checkAuth()) {
-        await initApp();
-        setupRealtimeListeners();
+    try {
+        if (await checkAuth()) {
+            await initApp();
+            setupRealtimeListeners();
+            console.log('App initialized successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        showErrorToast('Failed to initialize app. Please refresh the page.');
     }
+});
+
+// --- Handle page visibility changes to refresh data ---
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && window.currentUser && postFeedContainer) {
+        // Refresh posts when page becomes visible again
+        setTimeout(() => {
+            if (!isCacheValid()) {
+                postsCache.clear();
+                currentPage = 0;
+                hasMorePosts = true;
+                fetchAndRenderPosts(true);
+            }
+        }, 1000);
+    }
+});
+
+// --- Handle network reconnection ---
+window.addEventListener('online', () => {
+    if (window.currentUser && postFeedContainer) {
+        showErrorToast('Connection restored');
+        setTimeout(() => {
+            postsCache.clear();
+            currentPage = 0;
+            hasMorePosts = true;
+            fetchAndRenderPosts(true);
+        }, 1000);
+    }
+});
+
+window.addEventListener('offline', () => {
+    showErrorToast('Connection lost. Some features may not work.');
 });
 
 // Add CSS for animations and improvements
@@ -1261,6 +1376,53 @@ style.textContent = `
     .new-comment {
         border-left: 3px solid #007bff;
         background: rgba(0, 123, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .post-card {
+        transition: all 0.2s ease;
+    }
+
+    .post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    .loading-comments {
+        opacity: 0.7;
+    }
+
+    .comment-form textarea {
+        resize: vertical;
+        min-height: 60px;
+        max-height: 200px;
+    }
+
+    .comment-form textarea:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .action-btn {
+        transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    .error {
+        color: #ff4444;
+        background: rgba(255, 68, 68, 0.1);
+        padding: 10px;
+        border-radius: 4px;
+        border-left: 3px solid #ff4444;
     }
 
     @keyframes slideIn {
@@ -1284,8 +1446,70 @@ style.textContent = `
             opacity: 0;
         }
     }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    /* Loading states */
+    .post-card.loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .error-toast {
+            left: 10px;
+            right: 10px;
+            max-width: none;
+        }
+        
+        .modal-content {
+            margin: 10px;
+            max-height: calc(100vh - 20px);
+        }
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Focus styles for accessibility */
+    button:focus {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
+    }
+
+    button:focus:not(:focus-visible) {
+        outline: none;
+    }
 `;
-document.head.appendChild(style);
+
+// Ensure style is added only once
+if (!document.querySelector('#social-app-styles')) {
+    style.id = 'social-app-styles';
+    document.head.appendChild(style);
+}
+
+// Export functions for testing (if needed)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        checkAuth,
+        fetchAndRenderPosts,
+        likePost,
+        handleCommentSubmit,
+        showErrorToast
+    };
+}
 </script>
 
 
