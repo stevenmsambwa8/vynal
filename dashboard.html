@@ -527,11 +527,13 @@
         
         // Always recreate the modal content to ensure it's properly structured
         commentModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Comments</h3>
-                    <button id="commentClose" class="close-btn">&times;</button>
-                </div>
+          <div class="modal-backdrop hidden">
+  <div class="modal" style="width: 90%;max-width: 500px;">
+  
+<div class="comments-header">
+  <strong>Comments</strong>
+  <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
+</div>
                 <div class="modal-body">
                     <div class="comments">
                         <div style="text-align:center; padding: 20px;">Loading comments...</div>
@@ -542,10 +544,11 @@
                             <textarea name="commentText" placeholder="Write a comment..." required rows="3"></textarea>
                         </div>
                         <div class="comment-actions">
-                            <button type="submit" class="btn-primary">Post Comment</button>
+                            <button type="submit" class="btn">Post Comment</button>
                         </div>
                     </form>
                 </div>
+            </div>
             </div>
         `;
         
