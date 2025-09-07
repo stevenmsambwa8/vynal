@@ -1226,24 +1226,15 @@ async function updateCommentCount(postId, increment) {
     }
 }
 
-// --- App Initialization ---
-async function initApp() {
-    const isAuthenticated = await checkAuth();
-    if (!isAuthenticated) return;
 
-    updateDOMReferences();
-    await initPage();
-    setupRealtimeListeners();
-}
 
-// --- Start the App ---
-document.addEventListener('DOMContentLoaded', initApp);
+
 // --- Initialize everything when DOM is ready ---
 document.addEventListener('DOMContentLoaded', async () => {
     updateDOMReferences();
     
     if (await checkAuth()) {
-        await initPage();
+        await initApp();
         setupRealtimeListeners();
     }
 });
