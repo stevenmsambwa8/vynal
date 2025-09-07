@@ -128,14 +128,12 @@ async function handleLogin(button, provider) {
   }
 
   try {
-    await sb.auth.signInWithOAuth({
-  provider: "spotify",
-  options: {
-    redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html", // This is YOUR app’s post-login page
-  },
-});
-
-    
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: "https://stevenmsambwa8.github.io/vynal/dashboard.html",
+      },
+    });
     if (error) alert("❌ " + error.message);
   } catch (err) {
     console.error(err);
@@ -155,8 +153,8 @@ window.addEventListener("DOMContentLoaded", () => {
       handleLogin(e.currentTarget, "facebook")
     );
   document
-    .getElementById("spotify-btn")
-    .addEventListener("click", (e) => handleLogin(e.currentTarget, "spotify"));
+    .getElementById("apple-btn")
+    .addEventListener("click", (e) => handleLogin(e.currentTarget, "apple"));
 });
 </script>
 
@@ -176,8 +174,8 @@ window.addEventListener("DOMContentLoaded", () => {
     <button type="button" class="social-btn" id="facebook-btn">
       <i class="ri-facebook-circle-line"></i> Facebook
     </button>
-    <button type="button" class="social-btn" id="spotify-btn">
-      <i class="ri-spotify-fill"></i> Spotify
+    <button type="button" class="social-btn" id="apple-btn">
+      <i class="ri-apple-fill"></i> Apple
     </button>
   </div>
 </div>
