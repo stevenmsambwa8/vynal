@@ -59,7 +59,7 @@
     async function checkAuth() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
-            window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+            window.location.href = "https://vynal.it.com/register.html";
             return false;
         }
         window.currentUser = session.user;
@@ -179,7 +179,7 @@
             logoutBtn.setAttribute('data-listener', 'true');
             logoutBtn.addEventListener("click", async () => {
                 await sb.auth.signOut();
-                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+                window.location.href = "https://vynal.it.com/register.html";
             });
         }
 
@@ -703,3 +703,4 @@ aria-label="Global search" />
 
 </body>
 </html>
+
