@@ -274,29 +274,72 @@
         postFeedContainer.innerHTML = '<div style="text-align:center;">Loading posts...</div>';
         
         try {
-            const { data: posts, error } = await sb
+            // First, get posts with basic info
+            const { data: posts, error: postsError } = await sb
                 .from('posts')
-                .select(`
-                    *,
-                    profiles!posts_user_id_fkey(full_name, avatar_url),
-                    comments(id),
-                    likes(id)
-                `)
+                .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            
-            postFeedContainer.innerHTML = '';
+            if (postsError) throw postsError;
             
             if (!posts || posts.length === 0) {
                 postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
                 return;
             }
 
-            posts.forEach(post => {
+            // Get user profiles separately
+            const userIds = [...new Set(posts.map(post => post.user_id))];
+            const { data: profiles, error: profilesError } = await sb
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', userIds);
+
+            if (profilesError) {
+                console.warn('Could not fetch profiles:', profilesError);
+            }
+
+            // Get comment counts
+            const postIds = posts.map(post => post.id);
+            const { data: comments, error: commentsError } = await sb
+                .from('comments')
+                .select('post_id')
+                .in('post_id', postIds);
+
+            if (commentsError) {
+                console.warn('Could not fetch comments:', commentsError);
+            }
+
+            // Get like counts
+            const { data: likes, error: likesError } = await sb
+                .from('likes')
+                .select('post_id')
+                .in('post_id', postIds);
+
+            if (likesError) {
+                console.warn('Could not fetch likes:', likesError);
+            }
+
+            // Combine data
+            const postsWithData = posts.map(post => {
+                const profile = profiles?.find(p => p.id === post.user_id);
+                const commentCount = comments?.filter(c => c.post_id === post.id).length || 0;
+                const likeCount = likes?.filter(l => l.post_id === post.id).length || 0;
+                
+                return {
+                    ...post,
+                    profile,
+                    commentCount,
+                    likeCount
+                };
+            });
+
+            postFeedContainer.innerHTML = '';
+            
+            postsWithData.forEach(post => {
                 const postElement = createPostElement(post);
                 postFeedContainer.appendChild(postElement);
             });
+
         } catch (error) {
             console.error('Error fetching posts:', error);
             postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
@@ -309,15 +352,12 @@
         postElement.dataset.postId = post.id;
         postElement.dataset.animate = true;
 
-        const commentCount = post.comments?.length || 0;
-        const likeCount = post.likes?.length || 0;
-
         const postHtml = `
             <div class="post-header">
                 <div class="post-header-left">
-                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <img src="${post.profile?.avatar_url || 'default-avatar.png'}" alt="avatar">
                     <div class="post-header-info">
-                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
+                        <strong>${post.profile?.full_name || 'Anonymous'}</strong>
                         <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
                     </div>
                 </div>
@@ -334,11 +374,11 @@
             <div class="post-actions">
                 <button class="action-btn like-btn" data-post-id="${post.id}">
                     <i class="ri-heart-line"></i>
-                    <span class="like-count">${likeCount}</span>
+                    <span class="like-count">${post.likeCount}</span>
                 </button>
                 <button class="action-btn comment-btn" data-post-id="${post.id}">
                     <i class="ri-chat-3-line"></i>
-                    <span class="comment-count">${commentCount}</span>
+                    <span class="comment-count">${post.commentCount}</span>
                 </button>
                 <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
                 <button class="action-btn"><i class="ri-bookmark-line"></i></button>
@@ -467,18 +507,14 @@
         commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
         
         try {
-            const { data: comments, error } = await sb
+            // Get comments first
+            const { data: comments, error: commentsError } = await sb
                 .from('comments')
-                .select(`
-                    *,
-                    profiles!comments_user_id_fkey(full_name, avatar_url)
-                `)
+                .select('*')
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true });
 
-            console.log('Comments query result:', { comments, error });
-
-            if (error) throw error;
+            if (commentsError) throw commentsError;
             
             commentsContainer.innerHTML = '';
             
@@ -487,16 +523,28 @@
                 return;
             }
 
+            // Get user profiles for comments
+            const userIds = [...new Set(comments.map(comment => comment.user_id))];
+            const { data: profiles, error: profilesError } = await sb
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', userIds);
+
+            if (profilesError) {
+                console.warn('Could not fetch comment profiles:', profilesError);
+            }
+
             comments.forEach(comment => {
+                const profile = profiles?.find(p => p.id === comment.user_id);
                 console.log('Rendering comment:', comment);
                 const commentHtml = `
                     <div class="comment">
                         <div class="comment-avatar">
-                            <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="User">
+                            <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User">
                         </div>
                         <div class="comment-body">
                             <div class="comment-header">
-                                <span class="comment-author">${comment.profiles?.full_name || 'Anonymous'}</span>
+                                <span class="comment-author">${profile?.full_name || 'Anonymous'}</span>
                                 <div class="comment-like">
                                     <i class="ri-heart-line"></i> <span>0</span>
                                 </div>
