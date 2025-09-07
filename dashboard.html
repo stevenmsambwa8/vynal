@@ -394,9 +394,17 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Global State
+    // Global State & Cache
     window.currentUser = null;
     let currentPostId = null;
+    let postsCache = new Map();
+    let profilesCache = new Map();
+    let lastFetchTime = 0;
+    const CACHE_DURATION = 30000; // 30 seconds
+    const POSTS_PER_PAGE = 10;
+    let currentPage = 0;
+    let isLoading = false;
+    let hasMorePosts = true;
 
     // --- DOM Elements ---
     let navLinks, userNameEl, userEmailEl, userPicEl, logoutBtn;
@@ -427,6 +435,19 @@
         commentsContainer = commentModal?.querySelector('.comments');
     }
 
+    // --- Cache Management ---
+    function isCacheValid() {
+        return Date.now() - lastFetchTime < CACHE_DURATION;
+    }
+
+    function getCachedProfile(userId) {
+        return profilesCache.get(userId);
+    }
+
+    function setCachedProfile(userId, profile) {
+        profilesCache.set(userId, profile);
+    }
+
     // --- Auth Functions ---
     async function checkAuth() {
         const { data: { session } } = await sb.auth.getSession();
@@ -453,7 +474,27 @@
             displayUserInfo(window.currentUser);
         }
         setupEventListeners();
-        await fetchAndRenderPosts();
+        await fetchAndRenderPosts(true);
+        setupInfiniteScroll();
+    }
+
+    // --- Infinite Scroll ---
+    function setupInfiniteScroll() {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isLoading && hasMorePosts) {
+                    fetchAndRenderPosts(false);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        // Create a sentinel element
+        const sentinel = document.createElement('div');
+        sentinel.id = 'scroll-sentinel';
+        sentinel.style.height = '20px';
+        postFeedContainer?.parentNode?.appendChild(sentinel);
+        observer.observe(sentinel);
     }
 
     // --- Event Listeners Setup ---
@@ -509,6 +550,12 @@
         }
 
         try {
+            // Show loading state
+            const submitBtn = uploadForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Uploading...';
+            submitBtn.disabled = true;
+
             const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
             const { error: storageError } = await sb.storage
                 .from('post-covers')
@@ -534,8 +581,14 @@
             if (uploadForm) uploadForm.reset();
             if (uploadModal) uploadModal.classList.add('hidden');
             
-            // Refresh posts after successful upload
-            await fetchAndRenderPosts();
+            // Clear cache and refresh
+            postsCache.clear();
+            currentPage = 0;
+            hasMorePosts = true;
+            await fetchAndRenderPosts(true);
+            
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         } catch (error) {
             console.error('Error uploading post:', error);
             alert('Failed to upload post: ' + error.message);
@@ -557,7 +610,7 @@
             try {
                 await postComment(currentPostId, content);
                 commentInput.value = '';
-                // Refresh comments after posting
+                // Optimistically update UI
                 await fetchAndRenderComments(currentPostId);
             } catch (error) {
                 console.error('Error posting comment:', error);
@@ -568,63 +621,60 @@
         }
     }
 
-    // --- Post Functions ---
-    async function fetchAndRenderPosts() {
-        if (!postFeedContainer) return;
-        postFeedContainer.innerHTML = '<div style="text-align:center;">Loading posts...</div>';
+    // --- Optimized Post Functions ---
+    async function fetchAndRenderPosts(reset = false) {
+        if (!postFeedContainer || isLoading) return;
         
+        isLoading = true;
+        
+        if (reset) {
+            currentPage = 0;
+            hasMorePosts = true;
+            postFeedContainer.innerHTML = '<div style="text-align:center;">Loading posts...</div>';
+        }
+
         try {
-            // First, get posts with basic info
-            const { data: posts, error: postsError } = await sb
+            // Use single optimized query with joins
+            const { data: postsData, error: postsError } = await sb
                 .from('posts')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .select(`
+                    *,
+                    profiles:user_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    ),
+                    comments:comments!post_id (count),
+                    likes:likes!post_id (
+                        user_id
+                    )
+                `)
+                .order('created_at', { ascending: false })
+                .range(currentPage * POSTS_PER_PAGE, (currentPage + 1) * POSTS_PER_PAGE - 1);
 
             if (postsError) throw postsError;
             
-            if (!posts || posts.length === 0) {
-                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+            if (!postsData || postsData.length === 0) {
+                if (reset) {
+                    postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+                }
+                hasMorePosts = false;
+                isLoading = false;
                 return;
             }
 
-            // Get user profiles separately
-            const userIds = [...new Set(posts.map(post => post.user_id))];
-            const { data: profiles, error: profilesError } = await sb
-                .from('profiles')
-                .select('id, full_name, avatar_url')
-                .in('id', userIds);
-
-            if (profilesError) {
-                console.warn('Could not fetch profiles:', profilesError);
+            if (postsData.length < POSTS_PER_PAGE) {
+                hasMorePosts = false;
             }
 
-            // Get comment counts
-            const postIds = posts.map(post => post.id);
-            const { data: comments, error: commentsError } = await sb
-                .from('comments')
-                .select('post_id')
-                .in('post_id', postIds);
-
-            if (commentsError) {
-                console.warn('Could not fetch comments:', commentsError);
-            }
-
-            // Get like counts - using correct column names
-            const { data: likes, error: likesError } = await sb
-                .from('likes')
-                .select('post_id, user_id')
-                .in('post_id', postIds);
-
-            if (likesError) {
-                console.warn('Could not fetch likes:', likesError);
-            }
-
-            // Combine data
-            const postsWithData = posts.map(post => {
-                const profile = profiles?.find(p => p.id === post.user_id);
-                const commentCount = comments?.filter(c => c.post_id === post.id).length || 0;
-                const likeCount = likes?.filter(l => l.post_id === post.id).length || 0;
-                const isLiked = likes?.some(l => l.post_id === post.id && l.user_id === window.currentUser?.id) || false;
+            // Process posts with cached data
+            const postsWithData = postsData.map(post => {
+                const profile = post.profiles || getCachedProfile(post.user_id);
+                if (profile) setCachedProfile(post.user_id, profile);
+                
+                const commentCount = post.comments?.[0]?.count || 0;
+                const likeCount = post.likes?.length || 0;
+                const isLiked = post.likes?.some(l => l.user_id === window.currentUser?.id) || false;
                 
                 return {
                     ...post,
@@ -635,16 +685,28 @@
                 };
             });
 
-            postFeedContainer.innerHTML = '';
-            
+            if (reset) {
+                postFeedContainer.innerHTML = '';
+            }
+
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
             postsWithData.forEach(post => {
                 const postElement = createPostElement(post);
-                postFeedContainer.appendChild(postElement);
+                fragment.appendChild(postElement);
             });
+            postFeedContainer.appendChild(fragment);
+
+            currentPage++;
+            lastFetchTime = Date.now();
 
         } catch (error) {
             console.error('Error fetching posts:', error);
-            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+            if (reset) {
+                postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+            }
+        } finally {
+            isLoading = false;
         }
     }
 
@@ -654,10 +716,11 @@
         postElement.dataset.postId = post.id;
         postElement.dataset.animate = true;
 
-        const postHtml = `
+        // Use template literals with better performance
+        postElement.innerHTML = `
             <div class="post-header">
                 <div class="post-header-left">
-                    <img src="${post.profile?.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <img src="${post.profile?.avatar_url || 'default-avatar.png'}" alt="avatar" loading="lazy">
                     <div class="post-header-info">
                         <strong>${post.profile?.full_name || 'Anonymous'}</strong>
                         <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
@@ -672,7 +735,7 @@
                 ${post.description ? `<br>${post.description}` : ''}
                 ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
             </div>
-            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media" loading="lazy"></div>` : ''}
             <div class="post-actions">
                 <button class="action-btn like-btn ${post.isLiked ? 'liked' : ''}" data-post-id="${post.id}">
                     <i class="ri-heart-${post.isLiked ? 'fill' : 'line'}"></i>
@@ -686,86 +749,41 @@
                 <button class="action-btn"><i class="ri-bookmark-line"></i></button>
             </div>
         `;
-        postElement.innerHTML = postHtml;
         return postElement;
     }
 
-    // --- Interaction Functions ---
+    // --- Optimized Interaction Functions ---
     async function likePost(postId) {
+        const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
+        if (!likeBtn) return;
+
+        // Optimistic UI update
+        const countSpan = likeBtn.querySelector('.like-count');
+        const icon = likeBtn.querySelector('i');
+        const isCurrentlyLiked = likeBtn.classList.contains('liked');
+        
+        // Update UI immediately
+        likeBtn.classList.toggle('liked');
+        icon.className = `ri-heart-${!isCurrentlyLiked ? 'fill' : 'line'}`;
+        countSpan.textContent = parseInt(countSpan.textContent) + (!isCurrentlyLiked ? 1 : -1);
+
         try {
             const userId = window.currentUser.id;
             
-            // Check if user already liked this post - using correct column names
-            const { data: existingLike, error: checkError } = await sb
-                .from('likes')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('post_id', postId)
-                .maybeSingle();
-
-            if (checkError) {
-                console.error('Error checking existing like:', checkError);
-                throw checkError;
-            }
-
-            if (existingLike) {
+            if (isCurrentlyLiked) {
                 // Unlike the post
-                const { error: deleteError } = await sb
-                    .from('likes')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('post_id', postId);
-                
-                if (deleteError) throw deleteError;
-                console.log('Post unliked successfully!');
+                await sb.from('likes').delete().eq('user_id', userId).eq('post_id', postId);
             } else {
                 // Like the post
-                const { error: insertError } = await sb
-                    .from('likes')
-                    .insert({ user_id: userId, post_id: postId });
-
-                if (insertError) throw insertError;
-                console.log('Post liked successfully!');
+                await sb.from('likes').insert({ user_id: userId, post_id: postId });
             }
-
-            // Update like count and button state in UI immediately
-            await updateLikeButton(postId);
             
         } catch (error) {
+            // Revert UI on error
+            likeBtn.classList.toggle('liked');
+            icon.className = `ri-heart-${isCurrentlyLiked ? 'fill' : 'line'}`;
+            countSpan.textContent = parseInt(countSpan.textContent) + (isCurrentlyLiked ? 1 : -1);
             console.error('Error toggling like:', error);
-            alert('Failed to update like: ' + error.message);
-        }
-    }
-
-    async function updateLikeButton(postId) {
-        try {
-            const { data: likes, error } = await sb
-                .from('likes')
-                .select('user_id')
-                .eq('post_id', postId);
-
-            if (error) throw error;
-
-            const likeCount = likes?.length || 0;
-            const isLiked = likes?.some(like => like.user_id === window.currentUser?.id) || false;
-            
-            const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
-            if (likeBtn) {
-                const countSpan = likeBtn.querySelector('.like-count');
-                const icon = likeBtn.querySelector('i');
-                
-                if (countSpan) {
-                    countSpan.textContent = likeCount;
-                }
-                
-                if (icon) {
-                    icon.className = `ri-heart-${isLiked ? 'fill' : 'line'}`;
-                }
-                
-                likeBtn.classList.toggle('liked', isLiked);
-            }
-        } catch (error) {
-            console.error('Error updating like button:', error);
         }
     }
 
@@ -777,10 +795,15 @@
                 .insert({ user_id: userId, post_id: postId, content: content });
 
             if (error) throw error;
-            console.log('Comment posted successfully!');
             
-            // Update comment count in UI
-            await updateCommentCount(postId);
+            // Optimistically update comment count
+            const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
+            if (commentBtn) {
+                const countSpan = commentBtn.querySelector('.comment-count');
+                if (countSpan) {
+                    countSpan.textContent = parseInt(countSpan.textContent) + 1;
+                }
+            }
             
         } catch (error) {
             console.error('Error posting comment:', error);
@@ -788,35 +811,10 @@
         }
     }
 
-    async function updateCommentCount(postId) {
-        try {
-            const { data: comments, error } = await sb
-                .from('comments')
-                .select('*')
-                .eq('post_id', postId);
-
-            if (error) throw error;
-
-            const commentCount = comments?.length || 0;
-            const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
-            if (commentBtn) {
-                const countSpan = commentBtn.querySelector('.comment-count');
-                if (countSpan) {
-                    countSpan.textContent = commentCount;
-                }
-            }
-        } catch (error) {
-            console.error('Error updating comment count:', error);
-        }
-    }
-
     async function fetchAndRenderComments(postId) {
-        if (!commentModal) {
-            console.error('Comment modal not found');
-            return;
-        }
+        if (!commentModal) return;
         
-        // Always recreate the modal content to ensure it's properly structured
+        // Create modal content with loading state
         commentModal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
@@ -840,7 +838,7 @@
             </div>
         `;
         
-        // Setup event listeners for the new elements
+        // Setup event listeners
         const newCommentForm = commentModal.querySelector('#commentForm');
         const newCloseBtn = commentModal.querySelector('#commentClose');
         
@@ -856,13 +854,18 @@
         
         const commentsContainer = commentModal.querySelector('.comments');
         
-        console.log('Fetching comments for post:', postId);
-        
         try {
-            // Get comments first
+            // Optimized query with join
             const { data: comments, error: commentsError } = await sb
                 .from('comments')
-                .select('*')
+                .select(`
+                    *,
+                    profiles:user_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true });
 
@@ -875,43 +878,33 @@
                 return;
             }
 
-            // Get user profiles for comments
-            const userIds = [...new Set(comments.map(comment => comment.user_id))];
-            const { data: profiles, error: profilesError } = await sb
-                .from('profiles')
-                .select('id, full_name, avatar_url')
-                .in('id', userIds);
-
-            if (profilesError) {
-                console.warn('Could not fetch comment profiles:', profilesError);
-            }
-
+            const fragment = document.createDocumentFragment();
             comments.forEach(comment => {
-                const profile = profiles?.find(p => p.id === comment.user_id);
-                console.log('Rendering comment:', comment);
-                const commentHtml = `
-                    <div class="comment">
-                        <div class="comment-avatar">
-                            <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User">
+                const profile = comment.profiles;
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment';
+                commentDiv.innerHTML = `
+                    <div class="comment-avatar">
+                        <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User" loading="lazy">
+                    </div>
+                    <div class="comment-body">
+                        <div class="comment-header">
+                            <span class="comment-author">${profile?.full_name || 'Anonymous'}</span>
+                            <div class="comment-like">
+                                <i class="ri-heart-line"></i> <span>0</span>
+                            </div>
                         </div>
-                        <div class="comment-body">
-                            <div class="comment-header">
-                                <span class="comment-author">${profile?.full_name || 'Anonymous'}</span>
-                                <div class="comment-like">
-                                    <i class="ri-heart-line"></i> <span>0</span>
-                                </div>
-                            </div>
-                            <div class="comment-text">${comment.content || 'No content'}</div>
-                            <div class="comment-footer">
-                                <span>Reply</span>
-                                <span>Report</span>
-                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-                            </div>
+                        <div class="comment-text">${comment.content || 'No content'}</div>
+                        <div class="comment-footer">
+                            <span>Reply</span>
+                            <span>Report</span>
+                            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
                         </div>
                     </div>
                 `;
-                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+                fragment.appendChild(commentDiv);
             });
+            commentsContainer.appendChild(fragment);
         } catch (error) {
             console.error('Error fetching comments:', error);
             commentsContainer.innerHTML = `<div class="error" style="text-align:center; padding: 20px;">⚠️ Error: ${error.message}</div>`;
@@ -942,36 +935,38 @@
         }
     });
 
-    // --- Real-time Listeners ---
+    // --- Optimized Real-time Listeners ---
     function setupRealtimeListeners() {
-        sb.channel('public:posts')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
-                console.log('Posts change received!', payload);
-                if (postFeedContainer) {
-                    fetchAndRenderPosts();
+        // Debounce real-time updates to prevent excessive re-renders
+        let updateTimeout;
+        
+        const debouncedUpdate = () => {
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(() => {
+                if (postFeedContainer && !isLoading) {
+                    postsCache.clear();
+                    currentPage = 0;
+                    hasMorePosts = true;
+                    fetchAndRenderPosts(true);
                 }
-            })
+            }, 1000);
+        };
+
+        sb.channel('public:posts')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, debouncedUpdate)
             .subscribe();
 
         sb.channel('public:comments')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
-                console.log('Comments change received!', payload);
                 if (payload.new?.post_id === currentPostId && commentModal && !commentModal.classList.contains('hidden')) {
                     fetchAndRenderComments(currentPostId);
                 }
-                if (postFeedContainer) {
-                    fetchAndRenderPosts();
-                }
+                debouncedUpdate();
             })
             .subscribe();
 
         sb.channel('public:likes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
-                console.log('Likes change received!', payload);
-                if (postFeedContainer) {
-                    fetchAndRenderPosts();
-                }
-            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, debouncedUpdate)
             .subscribe();
     }
 
@@ -988,6 +983,7 @@
     // --- Start the App ---
     document.addEventListener('DOMContentLoaded', initApp);
 </script>
+
 
 
 
