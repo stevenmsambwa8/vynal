@@ -145,7 +145,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 1px;
 }
 
 .comment-author {
@@ -217,6 +217,7 @@
     flex-shrink: 0;
     height: 40px;
     border-radius: 50%;
+    border: 1px solid var(--border-color, #444);
 }
 
 .comment-form textarea {
@@ -265,6 +266,7 @@
 
 .comment-actions .btn-primary:hover:not(:disabled) {
     background: var(--muted);
+    opacity: .7;
     transform: translateY(-1px);
 }
 
