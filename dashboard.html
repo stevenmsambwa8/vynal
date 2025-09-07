@@ -966,89 +966,349 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// --- Improved Like Function with Better Error Handling ---
-async function likePost(postId) {
-    if (likingInProgress.has(postId) || !window.currentUser) {
-        return;
-    }
-
-    const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
-    if (!likeBtn) return;
-
-    likingInProgress.add(postId);
-    
-    const countSpan = likeBtn.querySelector('.like-count');
-    const icon = likeBtn.querySelector('i');
-    const isCurrentlyLiked = likeBtn.classList.contains('liked');
-    const currentCount = parseInt(countSpan.textContent) || 0;
-
-    // Store original state for rollback
-    const originalState = {
-        liked: isCurrentlyLiked,
-        count: currentCount,
-        iconClass: icon.className
-    };
-
-    // Optimistic UI update
-    const newLiked = !isCurrentlyLiked;
-    const newCount = currentCount + (newLiked ? 1 : -1);
-    
-    likeBtn.classList.toggle('liked', newLiked);
-    icon.className = `ri-heart-${newLiked ? 'fill' : 'line'}`;
-    countSpan.textContent = Math.max(0, newCount);
-
-    // Add visual feedback
-    likeBtn.style.transform = 'scale(1.1)';
-    setTimeout(() => {
-        likeBtn.style.transform = 'scale(1)';
-    }, 150);
-
-    try {
-        const userId = window.currentUser.id;
-
-        if (isCurrentlyLiked) {
-            // Unlike
-            const { error } = await sb
-                .from('likes')
-                .delete()
-                .eq('user_id', userId)
-                .eq('post_id', postId);
-
-            if (error) throw error;
-        } else {
-            // Like - use upsert to handle duplicates
-            const { error } = await sb
-                .from('likes')
-                .upsert(
-                    { user_id: userId, post_id: postId },
-                    { onConflict: 'user_id,post_id' }
-                );
-
-            if (error) throw error;
+// --- FIXED Like Function ---
+    async function likePost(postId) {
+        // Prevent concurrent likes on same post
+        if (likingInProgress.has(postId)) {
+            console.log('Like already in progress for post:', postId);
+            return;
         }
 
-        // Update cache
-        if (postsCache.has(postId)) {
-            const cachedPost = postsCache.get(postId);
-            cachedPost.isLiked = newLiked;
-            cachedPost.likeCount = Math.max(0, newCount);
-            postsCache.set(postId, cachedPost);
+        // Check if user is logged in
+        if (!window.currentUser) {
+            showErrorToast('Please log in to like posts');
+            return;
         }
 
-    } catch (error) {
-        console.error('Error toggling like:', error);
-        
-        // Revert optimistic update
-        likeBtn.classList.toggle('liked', originalState.liked);
-        icon.className = originalState.iconClass;
-        countSpan.textContent = originalState.count;
-        
-        showErrorToast('Failed to update like. Please try again.');
-    } finally {
-        likingInProgress.delete(postId);
-    }
-}
+        // Find the like button
+        const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
+        if (!likeBtn) {
+            console.error('Like button not found for post:', postId);
+            return;
+        }
 
+        // Mark as in progress
+        likingInProgress.add(postId);
+        
+        // Get current state
+        const countSpan = likeBtn.querySelector('.like-count');
+        const icon = likeBtn.querySelector('i');
+        const isCurrentlyLiked = likeBtn.classList.contains('liked');
+        const currentCount = parseInt(countSpan?.textContent) || 0;
+
+        // Store original state for rollback
+        const originalState = {
+            liked: isCurrentlyLiked,
+            count: currentCount,
+            iconClass: icon?.className || 'ri-heart-line'
+        };
+
+        // Calculate new state
+        const newLiked = !isCurrentlyLiked;
+        const newCount = Math.max(0, currentCount + (newLiked ? 1 : -1));
+        
+        // Optimistic UI update
+        likeBtn.classList.toggle('liked', newLiked);
+        if (icon) {
+            icon.className = `ri-heart-${newLiked ? 'fill' : 'line'}`;
+        }
+        if (countSpan) {
+            countSpan.textContent = newCount;
+        }
+
+        // Add visual feedback
+        likeBtn.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            likeBtn.style.transform = 'scale(1)';
+        }, 150);
+
+        try {
+            const userId = window.currentUser.id;
+
+            if (isCurrentlyLiked) {
+                // Unlike - Remove the like
+                console.log('Unliking post:', postId);
+                
+                const { error } = await sb
+                    .from('likes')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('post_id', postId);
+
+                if (error) {
+                    // If error is "no rows deleted", it means like doesn't exist
+                    if (error.message?.includes('no rows') || error.code === 'PGRST116') {
+                        console.log('Like already removed');
+                    } else {
+                        throw error;
+                    }
+                }
+            } else {
+                // Like - Add new like (use upsert to handle duplicates)
+                console.log('Liking post:', postId);
+                
+                const { error } = await sb
+                    .from('likes')
+                    .upsert(
+                        { 
+                            user_id: userId, 
+                            post_id: postId,
+                            created_at: new Date().toISOString()
+                        },
+                        { 
+                            onConflict: 'user_id,post_id',
+                            ignoreDuplicates: false 
+                        }
+                    );
+
+                if (error) {
+                    throw error;
+                }
+            }
+
+            // Update cache
+            if (postsCache.has(postId)) {
+                const cachedPost = postsCache.get(postId);
+                cachedPost.isLiked = newLiked;
+                cachedPost.likeCount = newCount;
+                postsCache.set(postId, cachedPost);
+            }
+
+            console.log(`Successfully ${newLiked ? 'liked' : 'unliked'} post:`, postId);
+
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            
+            // Revert optimistic update on error
+            likeBtn.classList.toggle('liked', originalState.liked);
+            if (icon) {
+                icon.className = originalState.iconClass;
+            }
+            if (countSpan) {
+                countSpan.textContent = originalState.count;
+            }
+            
+            // Show user-friendly error message
+            if (error.message?.includes('violates foreign key constraint')) {
+                showErrorToast('Post no longer exists');
+            } else if (error.message?.includes('duplicate key')) {
+                // This shouldn't happen with upsert, but handle it anyway
+                console.log('Like already exists, syncing UI state');
+                // Keep the liked state
+                likeBtn.classList.add('liked');
+                if (icon) icon.className = 'ri-heart-fill';
+            } else {
+                showErrorToast('Failed to update like. Please try again.');
+            }
+        } finally {
+            // Always remove from in-progress set
+            likingInProgress.delete(postId);
+        }
+    }
+
+    // --- Enhanced Event Listener for Like Buttons ---
+    document.addEventListener('click', async (e) => {
+        // Check if clicked element or its parent is a like button
+        const likeBtn = e.target.closest('.like-btn');
+        
+        if (likeBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const postId = likeBtn.dataset.postId;
+            
+            if (!postId) {
+                console.error('No post ID found on like button');
+                return;
+            }
+            
+            // Disable button temporarily to prevent double clicks
+            likeBtn.style.pointerEvents = 'none';
+            
+            await likePost(postId);
+            
+            // Re-enable button after a short delay
+            setTimeout(() => {
+                likeBtn.style.pointerEvents = 'auto';
+            }, 500);
+            
+            return;
+        }
+    });
+
+    // --- Fetch initial like state for posts ---
+    async function fetchUserLikes(postIds) {
+        if (!window.currentUser || !postIds || postIds.length === 0) {
+            return new Set();
+        }
+
+        try {
+            const { data, error } = await sb
+                .from('likes')
+                .select('post_id')
+                .eq('user_id', window.currentUser.id)
+                .in('post_id', postIds);
+
+            if (error) throw error;
+
+            return new Set(data?.map(like => like.post_id) || []);
+        } catch (error) {
+            console.error('Error fetching user likes:', error);
+            return new Set();
+        }
+    }
+
+    // --- Improved fetchAndRenderPosts with proper like state ---
+    async function fetchAndRenderPosts(reset = false) {
+        // ... (keep existing code until we get to the likes part)
+        
+        try {
+            // Fetch posts
+            const { data: postsData, error: postsError } = await sb
+                .from('posts')
+                .select(`
+                    *,
+                    profiles:user_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .order('created_at', { ascending: false });
+
+            if (postsError) throw postsError;
+
+            const postIds = postsData.map(post => post.id);
+            
+            // Fetch all likes for these posts
+            const { data: allLikes, error: likesError } = await sb
+                .from('likes')
+                .select('post_id, user_id')
+                .in('post_id', postIds);
+
+            if (likesError) {
+                console.error('Error fetching likes:', likesError);
+            }
+
+            // Process likes data
+            const likeCountMap = {};
+            const userLikesSet = new Set();
+
+            allLikes?.forEach(like => {
+                // Count total likes per post
+                likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
+                
+                // Track current user's likes
+                if (window.currentUser && like.user_id === window.currentUser.id) {
+                    userLikesSet.add(like.post_id);
+                }
+            });
+
+            // Process posts with like data
+            const processedPosts = postsData.map(post => {
+                return {
+                    ...post,
+                    likeCount: likeCountMap[post.id] || 0,
+                    isLiked: userLikesSet.has(post.id)
+                };
+            });
+
+            // Render posts with correct like state
+            renderPosts(processedPosts);
+
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            showErrorToast('Failed to load posts');
+        }
+    }
+
+    // --- Helper function to show error messages ---
+    function showErrorToast(message) {
+        const existingToasts = document.querySelectorAll('.error-toast');
+        existingToasts.forEach(toast => toast.remove());
+
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error-toast';
+        errorMsg.textContent = message;
+        errorMsg.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4444;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        `;
+        document.body.appendChild(errorMsg);
+        
+        setTimeout(() => {
+            errorMsg.style.animation = 'slideOut 0.3s ease-in forwards';
+            setTimeout(() => errorMsg.remove(), 300);
+        }, 3000);
+    }
+
+    // --- Add necessary styles ---
+    const style = document.createElement('style');
+    style.textContent = `
+        .like-btn {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .like-btn.liked {
+            color: #ff4757 !important;
+        }
+
+        .like-btn.liked i {
+            color: #ff4757 !important;
+        }
+
+        .like-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .like-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Prevent text selection on double click */
+        .like-btn * {
+            pointer-events: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Export for use in main app
+    window.likePost = likePost;
+    window.fetchUserLikes = fetchUserLikes;
 // --- Error Toast Function ---
 function showErrorToast(message) {
     // Remove existing toasts
@@ -1378,16 +1638,6 @@ style.textContent = `
         background: rgba(0, 123, 255, 0.05);
         transition: all 0.3s ease;
     }
-
-    .post-card {
-        transition: all 0.2s ease;
-    }
-
-    .post-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
     .modal-content {
         animation: modalSlideIn 0.3s ease-out;
     }
