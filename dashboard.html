@@ -95,8 +95,8 @@
 
                     if (contentDiv) {
                         contentDiv.innerHTML = html;
-                        updateDOMReferences(); // Update DOM references after content change
-                        await initPage(); // Initialize page-specific functionality
+                        updateDOMReferences();
+                        await initPage();
                     }
 
                     if (typeof initSliders === "function") {
@@ -145,35 +145,28 @@
 
     // --- Page Initialization ---
     async function initPage() {
-        // Check auth and display user info
         if (window.currentUser) {
             displayUserInfo(window.currentUser);
         }
 
-        // Setup event listeners
         setupEventListeners();
 
-        // Initialize page-specific content
         const pageName = location.hash.replace("#", "") || "start.html";
         switch (pageName) {
             case "start.html":
                 await fetchAndRenderPosts();
                 break;
             case "profile.html":
-                // Profile page logic
                 break;
             case "upload.html":
-                // Upload page logic
                 break;
             case "statehome.html":
-                // State home logic
                 break;
         }
     }
 
     // --- Event Listeners Setup ---
     function setupEventListeners() {
-        // Logout button
         if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
             logoutBtn.setAttribute('data-listener', 'true');
             logoutBtn.addEventListener("click", async () => {
@@ -182,7 +175,6 @@
             });
         }
 
-        // Upload modal
         if (uploadBtn && !uploadBtn.hasAttribute('data-listener')) {
             uploadBtn.setAttribute('data-listener', 'true');
             uploadBtn.addEventListener('click', () => {
@@ -197,19 +189,16 @@
             });
         }
 
-        // Upload form
         if (uploadForm && !uploadForm.hasAttribute('data-listener')) {
             uploadForm.setAttribute('data-listener', 'true');
             uploadForm.addEventListener('submit', handleUploadSubmit);
         }
 
-        // Comment form
         if (commentForm && !commentForm.hasAttribute('data-listener')) {
             commentForm.setAttribute('data-listener', 'true');
             commentForm.addEventListener('submit', handleCommentSubmit);
         }
 
-        // Comment modal close
         if (commentCloseBtn && !commentCloseBtn.hasAttribute('data-listener')) {
             commentCloseBtn.setAttribute('data-listener', 'true');
             commentCloseBtn.addEventListener('click', () => {
@@ -258,6 +247,9 @@
             alert('Post uploaded successfully!');
             if (uploadForm) uploadForm.reset();
             if (uploadModal) uploadModal.classList.add('hidden');
+            
+            // Refresh posts after successful upload
+            await fetchAndRenderPosts();
         } catch (error) {
             console.error('Error uploading post:', error);
             alert('Failed to upload post: ' + error.message);
@@ -271,21 +263,31 @@
         if (content && currentPostId) {
             await postComment(currentPostId, content);
             if (commentInput) commentInput.value = '';
+            // Refresh comments after posting
+            await fetchAndRenderComments(currentPostId);
         }
     }
 
     // --- Post Functions ---
     async function fetchAndRenderPosts() {
         if (!postFeedContainer) return;
-        postFeedContainer.innerHTML = '';
+        postFeedContainer.innerHTML = '<div style="text-align:center;">Loading posts...</div>';
         
         try {
             const { data: posts, error } = await sb
                 .from('posts')
-                .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
+                .select(`
+                    *,
+                    profiles!posts_user_id_fkey(full_name, avatar_url),
+                    comments(id),
+                    likes(id)
+                `)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+            
+            postFeedContainer.innerHTML = '';
+            
             if (!posts || posts.length === 0) {
                 postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
                 return;
@@ -330,8 +332,14 @@
             </div>
             ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
             <div class="post-actions">
-                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
-                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+                <button class="action-btn like-btn" data-post-id="${post.id}">
+                    <i class="ri-heart-line"></i>
+                    <span class="like-count">${likeCount}</span>
+                </button>
+                <button class="action-btn comment-btn" data-post-id="${post.id}">
+                    <i class="ri-chat-3-line"></i>
+                    <span class="comment-count">${commentCount}</span>
+                </button>
                 <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
                 <button class="action-btn"><i class="ri-bookmark-line"></i></button>
             </div>
@@ -344,22 +352,67 @@
     async function likePost(postId) {
         try {
             const userId = window.currentUser.id;
-            const { error } = await sb
+            
+            // Check if user already liked this post
+            const { data: existingLike, error: checkError } = await sb
                 .from('likes')
-                .insert({ user_id: userId, post_id: postId });
+                .select('id')
+                .eq('user_id', userId)
+                .eq('post_id', postId)
+                .single();
 
-            if (error) {
-                if (error.code === '23505') {
-                    alert('You have already liked this post.');
-                } else {
-                    throw error;
-                }
+            if (checkError && checkError.code !== 'PGRST116') {
+                throw checkError;
+            }
+
+            if (existingLike) {
+                // Unlike the post
+                const { error: deleteError } = await sb
+                    .from('likes')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('post_id', postId);
+                
+                if (deleteError) throw deleteError;
+                console.log('Post unliked successfully!');
             } else {
+                // Like the post
+                const { error: insertError } = await sb
+                    .from('likes')
+                    .insert({ user_id: userId, post_id: postId });
+
+                if (insertError) throw insertError;
                 console.log('Post liked successfully!');
             }
+
+            // Update like count in UI immediately
+            await updateLikeCount(postId);
+            
         } catch (error) {
-            console.error('Error liking post:', error);
-            alert('Failed to like post: ' + error.message);
+            console.error('Error toggling like:', error);
+            alert('Failed to update like: ' + error.message);
+        }
+    }
+
+    async function updateLikeCount(postId) {
+        try {
+            const { data: likes, error } = await sb
+                .from('likes')
+                .select('id')
+                .eq('post_id', postId);
+
+            if (error) throw error;
+
+            const likeCount = likes?.length || 0;
+            const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
+            if (likeBtn) {
+                const countSpan = likeBtn.querySelector('.like-count');
+                if (countSpan) {
+                    countSpan.textContent = likeCount;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating like count:', error);
         }
     }
 
@@ -372,71 +425,98 @@
 
             if (error) throw error;
             console.log('Comment posted successfully!');
+            
+            // Update comment count in UI
+            await updateCommentCount(postId);
+            
         } catch (error) {
             console.error('Error posting comment:', error);
             alert('Failed to post comment: ' + error.message);
         }
     }
 
-  async function fetchAndRenderComments(postId) {
-    if (!commentsContainer) {
-        console.error('Comments container not found');
-        return;
+    async function updateCommentCount(postId) {
+        try {
+            const { data: comments, error } = await sb
+                .from('comments')
+                .select('id')
+                .eq('post_id', postId);
+
+            if (error) throw error;
+
+            const commentCount = comments?.length || 0;
+            const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
+            if (commentBtn) {
+                const countSpan = commentBtn.querySelector('.comment-count');
+                if (countSpan) {
+                    countSpan.textContent = commentCount;
+                }
+            }
+        } catch (error) {
+            console.error('Error updating comment count:', error);
+        }
     }
-    
-    console.log('Fetching comments for post:', postId);
-    commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
-    
-    try {
-        const { data: comments, error } = await sb
-            .from('comments')
-            .select('*')
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
 
-        console.log('Comments query result:', { comments, error });
-
-        if (error) throw error;
-        
-        commentsContainer.innerHTML = '';
-        
-        if (!comments || comments.length === 0) {
-            commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
+    async function fetchAndRenderComments(postId) {
+        if (!commentsContainer) {
+            console.error('Comments container not found');
             return;
         }
+        
+        console.log('Fetching comments for post:', postId);
+        commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+        
+        try {
+            const { data: comments, error } = await sb
+                .from('comments')
+                .select(`
+                    *,
+                    profiles!comments_user_id_fkey(full_name, avatar_url)
+                `)
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true });
 
-        comments.forEach(comment => {
-            console.log('Rendering comment:', comment);
-            const commentHtml = `
-                <div class="comment">
-                    <div class="comment-avatar">
-                        <img src="default-avatar.png" alt="User">
-                    </div>
-                    <div class="comment-body">
-                        <div class="comment-header">
-                            <span class="comment-author"></span>
-                            <div class="comment-like">
-                                <i class="ri-heart-line"></i> <span>0</span>
+            console.log('Comments query result:', { comments, error });
+
+            if (error) throw error;
+            
+            commentsContainer.innerHTML = '';
+            
+            if (!comments || comments.length === 0) {
+                commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet. Be the first to comment!</div>';
+                return;
+            }
+
+            comments.forEach(comment => {
+                console.log('Rendering comment:', comment);
+                const commentHtml = `
+                    <div class="comment">
+                        <div class="comment-avatar">
+                            <img src="${comment.profiles?.avatar_url || 'default-avatar.png'}" alt="User">
+                        </div>
+                        <div class="comment-body">
+                            <div class="comment-header">
+                                <span class="comment-author">${comment.profiles?.full_name || 'Anonymous'}</span>
+                                <div class="comment-like">
+                                    <i class="ri-heart-line"></i> <span>0</span>
+                                </div>
+                            </div>
+                            <div class="comment-text">${comment.content || 'No content'}</div>
+                            <div class="comment-footer">
+                                <span>Reply</span>
+                                <span>Report</span>
+                                <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
                             </div>
                         </div>
-                        <div class="comment-text">${comment.content || 'No content'}</div>
-                        <div class="comment-footer">
-                            <span>Reply</span>
-                            <span>Report</span>
-                            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
-                        </div>
                     </div>
-                </div>
-            `;
-            commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
-        });
-    } catch (error) {
-        console.error('Error fetching comments:', error);
-        commentsContainer.innerHTML = `<div class="error" style="text-align:center;">⚠️ Error: ${error.message}</div>`;
+                `;
+                commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+            });
+        } catch (error) {
+            console.error('Error fetching comments:', error);
+            commentsContainer.innerHTML = `<div class="error" style="text-align:center;">⚠️ Error: ${error.message}</div>`;
+        }
     }
-}
-
-
 
     // --- Global Event Listeners ---
     document.addEventListener('click', async (e) => {
@@ -474,22 +554,30 @@
         sb.channel('public:posts')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
                 console.log('Posts change received!', payload);
-                fetchAndRenderPosts();
+                if (postFeedContainer) {
+                    fetchAndRenderPosts();
+                }
             })
             .subscribe();
 
         sb.channel('public:comments')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
-                if (payload.new?.post_id === currentPostId) {
+                console.log('Comments change received!', payload);
+                if (payload.new?.post_id === currentPostId && commentsContainer) {
                     fetchAndRenderComments(currentPostId);
                 }
-                fetchAndRenderPosts();
+                if (postFeedContainer) {
+                    fetchAndRenderPosts();
+                }
             })
             .subscribe();
 
         sb.channel('public:likes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
-                fetchAndRenderPosts();
+                console.log('Likes change received!', payload);
+                if (postFeedContainer) {
+                    fetchAndRenderPosts();
+                }
             })
             .subscribe();
     }
@@ -534,6 +622,7 @@
     // --- Start the App ---
     initApp();
 </script>
+
 
 
 
