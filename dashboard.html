@@ -398,15 +398,15 @@
     window.currentUser = null;
     let currentPostId = null;
 
-    // --- DOM Elements (will be dynamically found) ---
-    let userNameEl, userEmailEl, userPicEl, logoutBtn;
+    // --- DOM Elements ---
+    let navLinks, userNameEl, userEmailEl, userPicEl, logoutBtn;
     let postFeedContainer, commentForm, commentInput;
     let uploadModal, uploadBtn, uploadCloseBtn, uploadForm;
     let commentModal, commentCloseBtn, commentsContainer;
 
     // --- Utility Functions ---
     function getElement(selector) {
-        return contentDiv?.querySelector(selector) || document.getElementById(selector) || document.querySelector(selector);
+        return document.getElementById(selector) || document.querySelector(selector);
     }
 
     function updateDOMReferences() {
@@ -447,22 +447,14 @@
         }
     }
 
-    function highlightActiveLink(url) {
-        if (navLinks) {
-            navLinks.forEach(link => {
-                link.classList.toggle("active", link.getAttribute("href") === "#" + url);
-            });
-        }
-    }
-
     // --- Page Initialization ---
     async function initPage() {
         if (window.currentUser) {
             displayUserInfo(window.currentUser);
         }
-    }
         setupEventListeners();
-
+        await fetchAndRenderPosts();
+    }
 
     // --- Event Listeners Setup ---
     function setupEventListeners() {
@@ -928,19 +920,6 @@
 
     // --- Global Event Listeners ---
     document.addEventListener('click', async (e) => {
-        // Handle navigation links
-        const link = e.target.closest("a[data-link]");
-        if (link) {
-            e.preventDefault();
-            const url = link.getAttribute("href").replace("#", "");
-            const current = location.hash.replace("#", "") || "start.html";
-
-            if (url === current) return;
-            if (pageList.includes(url)) {
-                loadPage(url, true);
-            }
-        }
-
         // Handle like button clicks
         const likeBtn = e.target.closest('.like-btn');
         if (likeBtn) {
@@ -1001,13 +980,15 @@
         const isAuthenticated = await checkAuth();
         if (!isAuthenticated) return;
 
-        initSPA();
+        updateDOMReferences();
+        await initPage();
         setupRealtimeListeners();
     }
 
     // --- Start the App ---
-    initApp();
+    document.addEventListener('DOMContentLoaded', initApp);
 </script>
+
 
 
 
@@ -1658,159 +1639,8 @@ aria-label="Global search" />
 </div>
 </section>
 
-  <!-- Collapsible Comments -->
-   <div class="modal-backdrop hidden" id="CommentModal">
-  <div class="modal" style="width: 90%;max-width: 500px;">
-  
-<div class="comments-header">
-  <strong>Comments</strong>
-  <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
-</div>
-
-<div class="comments">
-  <!-- Comment 1 (with nested replies) -->
-  <div class="comment">
-    <div class="comment-avatar">
-      <img src="user1.jpg" alt="@fan1">
-    </div>
-    <div class="comment-body">
-      <div class="comment-header">
-        <span class="comment-author">@fan1</span>
-        <div class="comment-like">
-          <i class="ri-heart-line"></i> <span>12</span>
-        </div>
-      </div>
-      <div class="comment-text">Love this! 🔥</div>
-      <div class="comment-footer">
-        <span>Reply</span>
-        <span>Report</span>
-        <span class="comment-time">2m ago</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Replies toggle -->
-  <div class="view-replies" onclick="toggleReplies(this)">View 3 replies</div>
-
-  <!-- Replies -->
-  <div class="replies">
-    <div class="comment">
-      <div class="comment-avatar">
-        <img src="user2.jpg" alt="@djmix">
-      </div>
-      <div class="comment-body">
-        <div class="comment-header">
-          <span class="comment-author">@djmix</span>
-          <div class="comment-like">
-            <i class="ri-heart-line liked"></i> <span>4</span>
-          </div>
-        </div>
-        <div class="comment-text">Same here 🙌</div>
-        <div class="comment-footer">
-          <span>Reply</span>
-          <span>Report</span>
-          <span class="comment-time">1m ago</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Nested replies -->
-    <div class="view-replies" onclick="toggleReplies(this)">View 2 replies</div>
-    <div class="replies">
-      <div class="comment">
-        <div class="comment-avatar">
-          <img src="user3.jpg" alt="@clubvibes">
-        </div>
-        <div class="comment-body">
-          <div class="comment-header">
-            <span class="comment-author">@clubvibes</span>
-            <div class="comment-like">
-              <i class="ri-heart-line"></i> <span>2</span>
-            </div>
-          </div>
-          <div class="comment-text">🔥🔥 playlist material!</div>
-          <div class="comment-footer">
-            <span>Reply</span>
-            <span>Report</span>
-            <span class="comment-time">just now</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="comment">
-        <div class="comment-avatar">
-          <img src="user4.jpg" alt="@partylover">
-        </div>
-        <div class="comment-body">
-          <div class="comment-header">
-            <span class="comment-author">@partylover</span>
-            <div class="comment-like">
-              <i class="ri-heart-line"></i> <span>1</span>
-            </div>
-          </div>
-          <div class="comment-text">Can’t wait for more drops 🎶 Can’t wait for more drops 🎶</div>
-          <div class="comment-footer">
-            <span>Reply</span>
-            <span>Report</span>
-            <span class="comment-time">just now</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Comment 2 (no replies) -->
-  <div class="comment">
-    <div class="comment-avatar">
-      <img src="user5.jpg" alt="@mixqueen">
-    </div>
-    <div class="comment-body">
-      <div class="comment-header">
-        <span class="comment-author">@mixqueen</span>
-        <div class="comment-like">
-          <i class="ri-heart-line"></i> <span>7</span>
-        </div>
-      </div>
-      <div class="comment-text">This vibe is unreal 🔥</div>
-      <div class="comment-footer">
-        <span>Reply</span>
-        <span>Report</span>
-        <span class="comment-time">10m ago</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Comment 3 (no replies) -->
-  <div class="comment">
-    <div class="comment-avatar">
-      <img src="user6.jpg" alt="@nightbeat">
-    </div>
-    <div class="comment-body">
-      <div class="comment-header">
-        <span class="comment-author">@nightbeat</span>
-        <div class="comment-like">
-          <i class="ri-heart-line"></i> <span>3</span>
-        </div>
-      </div>
-      <div class="comment-text">Got this on repeat 🎧</div>
-      <div class="comment-footer">
-        <span>Reply</span>
-        <span>Report</span>
-        <span class="comment-time">15m ago</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add Comment Inline -->
-  <div class="add-comment-wrapper">
-    <textarea class="add-comment" rows="1" placeholder="Add a comment…"></textarea>
-    <button class="post-comment">Post</button>
-  </div>
-</div>
 
 
-</div>
-</div>
 
 <!-- Share Modal -->
 <div class="modal-backdrop hidden" id="shareModal">
