@@ -7,1761 +7,534 @@
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
-<style>
-
-#CommentModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 1;
-    visibility: visible;
-    transition: all 0.3s ease;
-}
-
-#CommentModal.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-#CommentModal .modal-content {
-    background: var(--bg-color, #1a1a1a);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-color, #333);
-    overflow: hidden;
-    animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-    from {
-        transform: translateY(-20px) scale(0.95);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-/* Modal Header */
-#CommentModal .modal-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color, #333);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg-secondary, #222);
-}
-
-#CommentModal .modal-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary, #fff);
-}
-
-#CommentModal .close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-secondary, #888);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-#CommentModal .close-btn:hover {
-    background: var(--hover-bg, #333);
-    color: var(--text-primary, #fff);
-}
-
-/* Modal Body */
-#CommentModal .modal-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-}
-
-/* Comments Container */
-#CommentModal .comments {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 24px;
-    max-height: 400px;
-}
-
-/* Individual Comment Styles */
-.comment {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-light, #2a2a2a);
-}
-
-.comment:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.comment-avatar {
-    flex-shrink: 0;
-}
-
-.comment-avatar img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border-color, #333);
-}
-
-.comment-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.comment-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1px;
-}
-
-.comment-author {
-    font-weight: 600;
-    color: var(--text-primary, #fff);
-    font-size: 0.9rem;
-}
-
-.comment-like {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--text-secondary, #888);
-    font-size: 0.85rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 12px;
-    transition: all 0.2s ease;
-}
-
-.comment-like:hover {
-    background: var(--hover-bg, #333);
-    color: var(--accent-color, #007bff);
-}
-
-.comment-text {
-    color: var(--text-primary, #fff);
-    line-height: 1.5;
-    margin-bottom: 8px;
-    word-wrap: break-word;
-}
-
-.comment-footer {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 0.8rem;
-    color: var(--text-secondary, #888);
-}
-
-.comment-footer span {
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.comment-footer span:hover:not(.comment-time) {
-    color: var(--accent-color, #007bff);
-}
-
-.comment-time {
-    margin-left: auto;
-    cursor: default !important;
-}
-
-/* Comment Form Styles */
-.comment-form {
-    border-top: 1px solid var(--border-color, #333);
-    padding: 10px 14px;
-    background: var(--bg-secondary, #222);
-}
-
-.comment-input-container {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.comment-avatar {
-    flex-shrink: 0;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid var(--border-color, #444);
-}
-
-.comment-form textarea {
-    flex: 1;
-    background: var(--input-bg, #333);
-    border: 1px solid var(--border-color, #444);
-    border-radius: 12px;
-    padding: 12px 16px;
-    color: var(--text-primary, #fff);
-    font-family: inherit;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    resize: vertical;
-    min-height: 40px;
-    max-height: 80px;
-    transition: all 0.2s ease;
-}
-
-.comment-form textarea:focus {
-    outline: none;
-    border-color: var(--accent-color, #007bff);
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.comment-form textarea::placeholder {
-    color: var(--text-secondary, #888);
-}
-
-.comment-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.comment-actions .btn-primary {
-    background: #dd1ab3;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-}
-
-.comment-actions .btn-primary:hover:not(:disabled) {
-    background: var(--muted);
-    opacity: .7;
-    transform: translateY(-1px);
-}
-
-.comment-actions .btn-primary:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Empty State */
-.comments .muted {
-    text-align: center;
-    color: var(--text-secondary, #888);
-    font-style: italic;
-    padding: 40px 20px;
-}
-
-/* Loading State */
-.comments .loading {
-    text-align: center;
-    color: var(--text-secondary, #888);
-    padding: 40px 20px;
-}
-
-/* Error State */
-.comments .error {
-    text-align: center;
-    color: var(--error-color, #ff4757);
-    padding: 40px 20px;
-    background: rgba(255, 71, 87, 0.1);
-    border-radius: 8px;
-    margin: 20px 0;
-}
-
-/* Scrollbar Styling */
-#CommentModal .comments::-webkit-scrollbar {
-    width: 6px;
-}
-
-#CommentModal .comments::-webkit-scrollbar-track {
-    background: var(--bg-color, #1a1a1a);
-}
-
-#CommentModal .comments::-webkit-scrollbar-thumb {
-    background: var(--border-color, #333);
-    border-radius: 3px;
-}
-
-#CommentModal .comments::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary, #555);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    #CommentModal .modal-content {
-        width: 95%;
-        max-height: 90vh;
-        margin: 20px;
-    }
-    
-    #CommentModal .modal-header {
-        padding: 16px 20px;
-    }
-    
-    #CommentModal .comments {
-        padding: 12px 20px;
-    }
-    
-    #CommentModal .comment-form {
-        padding: 16px 20px;
-    }
-    
-    .comment-input-container {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .comment-avatar {
-        align-self: flex-start;
-    }
-    
-    .comment-actions {
-        justify-content: stretch;
-    }
-    
-    .comment-actions .btn-primary {
-        flex: 1;
-        padding: 12px;
-    }
-}
-
-/* Dark/Light Theme Variables */
-:root {
-    --bg-color: #1a1a1a;
-    --bg-secondary: #222;
-    --text-primary: #fff;
-    --text-secondary: #888;
-    --border-color: #333;
-    --border-light: #2a2a2a;
-    --input-bg: #333;
-    --hover-bg: #333;
-    --accent-color: #007bff;
-    --accent-hover: #0056b3;
-    --error-color: #ff4757;
-}
-
-/* Light theme (if you have one) */
-[data-theme="light"] {
-    --bg-color: #ffffff;
-    --bg-secondary: #f8f9fa;
-    --text-primary: #212529;
-    --text-secondary: #6c757d;
-    --border-color: #dee2e6;
-    --border-light: #e9ecef;
-    --input-bg: #ffffff;
-    --hover-bg: #f8f9fa;
-}
-
-</style>
-
-
-
-
-
+   
 <script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// --- Supabase Config ---
-const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // --- Supabase Config ---
+    const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Global State & Cache
-window.currentUser = null;
-let currentPostId = null;
-let postsCache = new Map();
-let profilesCache = new Map();
-let lastFetchTime = 0;
-const CACHE_DURATION = 30000; // 30 seconds
-const POSTS_PER_PAGE = 10;
-let currentPage = 0;
-let isLoading = false;
-let hasMorePosts = true;
-let likingInProgress = new Set(); // Track posts currently being liked/unliked
+    // --- Global Variables ---
+    let isTransitioning = false;
+    const pageCache = {};
+    const pageList = ["mall.html", "start.html", "states.html", "statehome.html", "profile.html", "upload.html"];
+    
+    // Global State
+    window.currentUser = null;
+    let currentPostId = null;
 
-// --- DOM Elements ---
-let navLinks, userNameEl, userEmailEl, userPicEl, logoutBtn;
-let postFeedContainer, commentForm, commentInput;
-let uploadModal, uploadBtn, uploadCloseBtn, uploadForm;
-let commentModal, commentCloseBtn, commentsContainer;
+    // --- DOM Elements (will be dynamically found) ---
+    let contentDiv, navLinks, userNameEl, userEmailEl, userPicEl, logoutBtn;
+    let postFeedContainer, commentForm, commentInput;
+    let uploadModal, uploadBtn, uploadCloseBtn, uploadForm;
+    let commentModal, commentCloseBtn, commentsContainer;
 
-// --- Utility Functions ---
-function getElement(selector) {
-    return document.getElementById(selector) || document.querySelector(selector);
-}
+    // --- Utility Functions ---
+    function getElement(selector) {
+        return contentDiv?.querySelector(selector) || document.getElementById(selector) || document.querySelector(selector);
+    }
 
-function updateDOMReferences() {
-    navLinks = document.querySelectorAll("nav a");
-    userNameEl = getElement("user-name");
-    userEmailEl = getElement("user-email");
-    userPicEl = getElement("user-pic");
-    logoutBtn = getElement("logout-btn");
-    postFeedContainer = getElement('post-feed-container');
-    commentForm = getElement('commentForm');
-    commentInput = getElement('commentText');
-    uploadModal = getElement('uploadModal');
-    uploadBtn = getElement('.upload-btn') || getElement('upload-btn');
-    uploadCloseBtn = getElement('uploadClose');
-    uploadForm = getElement('uploadForm');
-    commentModal = getElement('CommentModal') || getElement('commentModal');
-    commentCloseBtn = getElement('commentClose');
-    commentsContainer = commentModal?.querySelector('.comments');
-}
+    function updateDOMReferences() {
+        contentDiv = document.getElementById("contentize");
+        navLinks = document.querySelectorAll("nav a");
+        userNameEl = getElement("user-name");
+        userEmailEl = getElement("user-email");
+        userPicEl = getElement("user-pic");
+        logoutBtn = getElement("logout-btn");
+        postFeedContainer = getElement('post-feed-container');
+        commentForm = getElement('commentForm');
+        commentInput = getElement('commentText');
+        uploadModal = getElement('uploadModal');
+        uploadBtn = getElement('.upload-btn');
+        uploadCloseBtn = getElement('uploadClose');
+        uploadForm = getElement('uploadForm');
+        commentModal = getElement('CommentModal');
+        commentCloseBtn = getElement('commentClose');
+        commentsContainer = commentModal?.querySelector('.comments');
+    }
 
-// --- Cache Management ---
-function isCacheValid() {
-    return Date.now() - lastFetchTime < CACHE_DURATION;
-}
-
-function getCachedProfile(userId) {
-    return profilesCache.get(userId);
-}
-
-function setCachedProfile(userId, profile) {
-    profilesCache.set(userId, profile);
-}
-
-// --- Auth Functions ---
-async function checkAuth() {
-    try {
+    // --- Auth Functions ---
+    async function checkAuth() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) {
-            window.location.href = "https://vynal.it.com/register.html";
+            window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
             return false;
         }
         window.currentUser = session.user;
         return true;
-    } catch (error) {
-        console.error('Auth error:', error);
-        window.location.href = "https://vynal.it.com/register.html";
-        return false;
-    }
-}
-
-function displayUserInfo(user) {
-    if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || "No Name";
-    if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
-    if (userPicEl) {
-        userPicEl.src = user.user_metadata?.avatar_url || "default-avatar.png";
-        userPicEl.alt = user.user_metadata?.full_name || "User Avatar";
-        userPicEl.onerror = () => {
-            userPicEl.src = "default-avatar.png";
-        };
-    }
-}
-
-// --- Initialize App (Fixed function name) ---
-async function initApp() {
-    if (window.currentUser) {
-        displayUserInfo(window.currentUser);
-    }
-    setupEventListeners();
-    await fetchAndRenderPosts(true);
-    setupInfiniteScroll();
-}
-
-// --- Infinite Scroll ---
-function setupInfiniteScroll() {
-    // Remove existing sentinel if it exists
-    const existingSentinel = document.getElementById('scroll-sentinel');
-    if (existingSentinel) {
-        existingSentinel.remove();
     }
 
-    const observer = new IntersectionObserver(
-        (entries) => {
-            if (entries[0].isIntersecting && !isLoading && hasMorePosts) {
-                fetchAndRenderPosts(false);
-            }
-        },
-        { threshold: 0.1 }
-    );
-
-    // Create a sentinel element
-    const sentinel = document.createElement('div');
-    sentinel.id = 'scroll-sentinel';
-    sentinel.style.height = '20px';
-    
-    if (postFeedContainer?.parentNode) {
-        postFeedContainer.parentNode.appendChild(sentinel);
-        observer.observe(sentinel);
-    }
-}
-
-// --- Event Listeners Setup ---
-function setupEventListeners() {
-    if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
-        logoutBtn.setAttribute('data-listener', 'true');
-        logoutBtn.addEventListener("click", async () => {
-            try {
-                await sb.auth.signOut();
-                window.location.href = "https://vynal.it.com/register.html";
-            } catch (error) {
-                console.error('Logout error:', error);
-                // Force redirect even if logout fails
-                window.location.href = "https://vynal.it.com/register.html";
-            }
-        });
-    }
-
-    if (uploadBtn && !uploadBtn.hasAttribute('data-listener')) {
-        uploadBtn.setAttribute('data-listener', 'true');
-        uploadBtn.addEventListener('click', () => {
-            if (uploadModal) uploadModal.classList.remove('hidden');
-        });
-    }
-
-    if (uploadCloseBtn && !uploadCloseBtn.hasAttribute('data-listener')) {
-        uploadCloseBtn.setAttribute('data-listener', 'true');
-        uploadCloseBtn.addEventListener('click', () => {
-            if (uploadModal) uploadModal.classList.add('hidden');
-        });
-    }
-
-    if (uploadForm && !uploadForm.hasAttribute('data-listener')) {
-        uploadForm.setAttribute('data-listener', 'true');
-        uploadForm.addEventListener('submit', handleUploadSubmit);
-    }
-
-    if (commentCloseBtn && !commentCloseBtn.hasAttribute('data-listener')) {
-        commentCloseBtn.setAttribute('data-listener', 'true');
-        commentCloseBtn.addEventListener('click', () => {
-            if (commentModal) commentModal.classList.add('hidden');
-        });
-    }
-
-    // Close modals when clicking outside
-    window.addEventListener('click', (e) => {
-        if (e.target === uploadModal) {
-            uploadModal.classList.add('hidden');
-        }
-        if (e.target === commentModal) {
-            commentModal.classList.add('hidden');
-        }
-    });
-}
-
-// --- Upload Handler ---
-async function handleUploadSubmit(e) {
-    e.preventDefault();
-    const title = getElement('uTitle')?.value;
-    const description = getElement('uDesc')?.value;
-    const genre = getElement('uGenre')?.value;
-    const tags = getElement('uTags')?.value?.split(',').map(tag => tag.trim()).filter(tag => tag);
-    const coverFile = getElement('uCover')?.files[0];
-    const userId = window.currentUser?.id;
-
-    if (!title || !coverFile || !userId) {
-        alert('Title and cover image are required.');
-        return;
-    }
-
-    const submitBtn = uploadForm.querySelector('button[type="submit"]');
-    const originalText = submitBtn?.textContent || 'Upload';
-    
-    try {
-        // Show loading state
-        if (submitBtn) {
-            submitBtn.textContent = 'Uploading...';
-            submitBtn.disabled = true;
-        }
-
-        // Upload file with error handling
-        const filePath = `${userId}/${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const { data: uploadData, error: storageError } = await sb.storage
-            .from('post-covers')
-            .upload(filePath, coverFile);
-        
-        if (storageError) throw storageError;
-
-        const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
-        const mediaUrl = publicUrlData.publicUrl;
-
-        const { error: insertError } = await sb
-            .from('posts')
-            .insert({
-                user_id: userId,
-                title: title,
-                description: description || null,
-                media_url: mediaUrl,
-                genre: genre || null,
-                tags: tags.length > 0 ? tags : null,
-            });
-        
-        if (insertError) throw insertError;
-
-        alert('Post uploaded successfully!');
-        if (uploadForm) uploadForm.reset();
-        if (uploadModal) uploadModal.classList.add('hidden');
-
-        // Clear cache and refresh
-        postsCache.clear();
-        currentPage = 0;
-        hasMorePosts = true;
-        await fetchAndRenderPosts(true);
-
-    } catch (error) {
-        console.error('Error uploading post:', error);
-        alert('Failed to upload post: ' + error.message);
-    } finally {
-        if (submitBtn) {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
+    function displayUserInfo(user) {
+        if (userNameEl) userNameEl.textContent = user.user_metadata?.full_name || "No Name";
+        if (userEmailEl) userEmailEl.textContent = user.email || "No Email";
+        if (userPicEl) {
+            userPicEl.src = user.user_metadata?.avatar_url || "default-avatar.png";
+            userPicEl.alt = user.user_metadata?.full_name || "User Avatar";
         }
     }
-}
 
-// --- Improved Comment Handler (No Full Refresh) ---
-async function handleCommentSubmit(e) {
-    e.preventDefault();
-    const commentInput = e.target.querySelector('textarea[name="commentText"]');
-    const content = commentInput?.value.trim();
-
-    if (!content || !currentPostId || !window.currentUser) {
-        if (!window.currentUser) {
-            showErrorToast('Please log in to comment');
-        }
-        return;
-    }
-
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn?.textContent || 'Post Comment';
-    
-    try {
-        if (submitBtn) {
-            submitBtn.textContent = 'Posting...';
-            submitBtn.disabled = true;
-        }
-
-        // Post comment to database
-        const userId = window.currentUser.id;
-        const { data: newComment, error } = await sb
-            .from('comments')
-            .insert({ 
-                user_id: userId, 
-                post_id: currentPostId, 
-                content: content 
-            })
-            .select(`
-                *,
-                profiles:user_id (
-                    id,
-                    full_name,
-                    avatar_url
-                )
-            `)
-            .single();
-
-        if (error) throw error;
-
-        // Clear input
-        commentInput.value = '';
-
-        // Add new comment to UI without full refresh
-        addCommentToUI(newComment);
-
-        // Update comment count in main feed
-        updateCommentCount(currentPostId, 1);
-
-    } catch (error) {
-        console.error('Error posting comment:', error);
-        showErrorToast('Failed to post comment. Please try again.');
-    } finally {
-        if (submitBtn) {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-        }
-    }
-}
-
-// --- Add Comment to UI Function ---
-function addCommentToUI(comment) {
-    const commentsContainer = commentModal?.querySelector('.comments');
-    if (!commentsContainer) return;
-
-    // Remove "no comments" message if it exists
-    const noCommentsMsg = commentsContainer.querySelector('.muted');
-    if (noCommentsMsg && noCommentsMsg.textContent.includes('No comments yet')) {
-        noCommentsMsg.remove();
-    }
-
-    const profile = comment.profiles;
-    const commentDiv = document.createElement('div');
-    commentDiv.className = 'comment new-comment';
-    commentDiv.innerHTML = `
-        <div class="comment-avatar">
-            <img src="${profile?.avatar_url || 'default-avatar.png'}" alt="User" loading="lazy" onerror="this.src='default-avatar.png'">
-        </div>
-        <div class="comment-body">
-            <div class="comment-header">
-                <span class="comment-author">${profile?.full_name || 'Anonymous'}</span>
-                <div class="comment-like">
-                    <i class="ri-heart-line"></i> <span>0</span>
-                </div>
-            </div>
-            <div class="comment-text">${escapeHtml(comment.content || 'No content')}</div>
-            <div class="comment-footer">
-                <span>Reply</span>
-                <span>Report</span>
-                <span class="comment-time">Just now</span>
-            </div>
-        </div>
-    `;
-
-    // Add animation
-    commentDiv.style.opacity = '0';
-    commentDiv.style.transform = 'translateY(20px)';
-    
-    commentsContainer.appendChild(commentDiv);
-    
-    // Animate in
-    setTimeout(() => {
-        commentDiv.style.transition = 'all 0.3s ease';
-        commentDiv.style.opacity = '1';
-        commentDiv.style.transform = 'translateY(0)';
-    }, 10);
-
-    // Scroll to new comment
-    commentDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// --- Update Comment Count Function ---
-function updateCommentCount(postId, increment) {
-    const commentBtn = document.querySelector(`[data-post-id="${postId}"].comment-btn`);
-    if (commentBtn) {
-        const countSpan = commentBtn.querySelector('.comment-count');
-        if (countSpan) {
-            const currentCount = parseInt(countSpan.textContent) || 0;
-            const newCount = Math.max(0, currentCount + increment);
-            countSpan.textContent = newCount;
-            
-            // Update cache
-            if (postsCache.has(postId)) {
-                const cachedPost = postsCache.get(postId);
-                cachedPost.commentCount = newCount;
-                postsCache.set(postId, cachedPost);
-            }
-        }
-    }
-}
-
-// --- Optimized Post Functions ---
-async function fetchAndRenderPosts(reset = false) {
-    if (!postFeedContainer || isLoading) return;
-    
-    isLoading = true;
-    
-    if (reset) {
-        currentPage = 0;
-        hasMorePosts = true;
-        postFeedContainer.innerHTML = '<div style="text-align:center; padding: 20px;">Loading posts...</div>';
-    }
-
-    try {
-        const { data: postsData, error: postsError } = await sb
-            .from('posts')
-            .select(`
-                *,
-                profiles:user_id (
-                    id,
-                    full_name,
-                    avatar_url
-                )
-            `)
-            .order('created_at', { ascending: false })
-            .range(currentPage * POSTS_PER_PAGE, (currentPage + 1) * POSTS_PER_PAGE - 1);
-
-        if (postsError) throw postsError;
-
-        if (!postsData || postsData.length === 0) {
-            if (reset) {
-                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center; padding: 40px;">No posts found. Be the first to share! 🚀</p>';
-            }
-            hasMorePosts = false;
-            isLoading = false;
-            return;
-        }
-
-        if (postsData.length < POSTS_PER_PAGE) {
-            hasMorePosts = false;
-        }
-
-        // Get counts separately for better accuracy
-        const postIds = postsData.map(post => post.id);
-        
-        // Get comment counts
-        const { data: commentCounts } = await sb
-            .from('comments')
-            .select('post_id')
-            .in('post_id', postIds);
-
-        // Get like counts and user's likes
-        const { data: likesData } = await sb
-            .from('likes')
-            .select('post_id, user_id')
-            .in('post_id', postIds);
-
-        // Process counts
-        const commentCountMap = {};
-        const likeCountMap = {};
-        const userLikesMap = {};
-
-        // Count comments
-        commentCounts?.forEach(comment => {
-            commentCountMap[comment.post_id] = (commentCountMap[comment.post_id] || 0) + 1;
-        });
-
-        // Count likes and track user's likes
-        likesData?.forEach(like => {
-            likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
-            if (like.user_id === window.currentUser?.id) {
-                userLikesMap[like.post_id] = true;
-            }
-        });
-
-        const postsWithData = postsData.map(post => {
-            const profile = post.profiles || getCachedProfile(post.user_id);
-            if (profile) setCachedProfile(post.user_id, profile);
-
-            const commentCount = commentCountMap[post.id] || 0;
-            const likeCount = likeCountMap[post.id] || 0;
-            const isLiked = userLikesMap[post.id] || false;
-
-            const processedPost = {
-                ...post,
-                profile,
-                commentCount,
-                likeCount,
-                isLiked
-            };
-
-            postsCache.set(post.id, processedPost);
-            return processedPost;
-        });
-
-        if (reset) {
-            postFeedContainer.innerHTML = '';
-        }
-
-        const fragment = document.createDocumentFragment();
-        postsWithData.forEach(post => {
-            const postElement = createPostElement(post);
-            fragment.appendChild(postElement);
-        });
-
-        postFeedContainer.appendChild(fragment);
-        currentPage++;
-        lastFetchTime = Date.now();
-
-    } catch (error) {
-        console.error('Error fetching posts:', error);
-        if (reset) {
-            postFeedContainer.innerHTML = '<p class="error" style="text-align: center; padding: 40px;">⚠️ Could not load posts. Please try refreshing the page.</p>';
-        } else {
-            showErrorToast('Failed to load more posts');
-        }
-    } finally {
-        isLoading = false;
-    }
-}
-
-// --- Create Post Element ---
-function createPostElement(post) {
-    const postElement = document.createElement('div');
-    postElement.className = 'span-4 post-card';
-    postElement.dataset.postId = post.id;
-
-    const formatDate = (dateString) => {
-        try {
-            return new Date(dateString).toLocaleString();
-        } catch (e) {
-            return 'Unknown date';
-        }
-    };
-
-    const formatTags = (tags) => {
-        if (!tags || !Array.isArray(tags) || tags.length === 0) return '';
-        return `<br><span class="hashtag">#${tags.join(' #')}</span>`;
-    };
-
-    postElement.innerHTML = `
-        <div class="post-header">
-            <div class="post-header-left">
-                <img src="${post.profile?.avatar_url || 'default-avatar.png'}" 
-                     alt="avatar" 
-                     loading="lazy" 
-                     onerror="this.src='default-avatar.png'">
-                <div class="post-header-info">
-                    <strong>${escapeHtml(post.profile?.full_name || 'Anonymous')}</strong>
-                    <div class="muted">${formatDate(post.created_at)}</div>
-                </div>
-            </div>
-            <div class="post-header-right">
-                <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
-            </div>
-        </div>
-        <div class="post-body">
-            ${escapeHtml(post.title || '')}
-            ${post.description ? `<br>${escapeHtml(post.description)}` : ''}
-            ${formatTags(post.tags)}
-        </div>
-        ${post.media_url ? `<div class="post-media">
-            <img src="${post.media_url}" alt="Post media" loading="lazy" onerror="this.style.display='none'">
-        </div>` : ''}
-        <div class="post-actions">
-            <button class="action-btn like-btn ${post.isLiked ? 'liked' : ''}" data-post-id="${post.id}">
-                <i class="ri-heart-${post.isLiked ? 'fill' : 'line'}"></i>
-                <span class="like-count">${post.likeCount}</span>
-            </button>
-            <button class="action-btn comment-btn" data-post-id="${post.id}">
-                <i class="ri-chat-3-line"></i>
-                <span class="comment-count">${post.commentCount}</span>
-            </button>
-            <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
-            <button class="action-btn"><i class="ri-bookmark-line"></i></button>
-        </div>
-    `;
-    return postElement;
-}
-
-// --- HTML Escape Function ---
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// --- FIXED Like Function ---
-    async function likePost(postId) {
-        // Prevent concurrent likes on same post
-        if (likingInProgress.has(postId)) {
-            console.log('Like already in progress for post:', postId);
-            return;
-        }
-
-        // Check if user is logged in
-        if (!window.currentUser) {
-            showErrorToast('Please log in to like posts');
-            return;
-        }
-
-        // Find the like button
-        const likeBtn = document.querySelector(`[data-post-id="${postId}"].like-btn`);
-        if (!likeBtn) {
-            console.error('Like button not found for post:', postId);
-            return;
-        }
-
-        // Mark as in progress
-        likingInProgress.add(postId);
-        
-        // Get current state
-        const countSpan = likeBtn.querySelector('.like-count');
-        const icon = likeBtn.querySelector('i');
-        const isCurrentlyLiked = likeBtn.classList.contains('liked');
-        const currentCount = parseInt(countSpan?.textContent) || 0;
-
-        // Store original state for rollback
-        const originalState = {
-            liked: isCurrentlyLiked,
-            count: currentCount,
-            iconClass: icon?.className || 'ri-heart-line'
-        };
-
-        // Calculate new state
-        const newLiked = !isCurrentlyLiked;
-        const newCount = Math.max(0, currentCount + (newLiked ? 1 : -1));
-        
-        // Optimistic UI update
-        likeBtn.classList.toggle('liked', newLiked);
-        if (icon) {
-            icon.className = `ri-heart-${newLiked ? 'fill' : 'line'}`;
-        }
-        if (countSpan) {
-            countSpan.textContent = newCount;
-        }
-
-        // Add visual feedback
-        likeBtn.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            likeBtn.style.transform = 'scale(1)';
-        }, 150);
+    // --- SPA Navigation ---
+    async function loadPage(url, addToHistory = true) {
+        if (isTransitioning) return;
+        isTransitioning = true;
 
         try {
-            const userId = window.currentUser.id;
+            if (contentDiv) contentDiv.classList.add("fade-out");
 
-            if (isCurrentlyLiked) {
-                // Unlike - Remove the like
-                console.log('Unliking post:', postId);
-                
-                const { error } = await sb
-                    .from('likes')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('post_id', postId);
-
-                if (error) {
-                    // If error is "no rows deleted", it means like doesn't exist
-                    if (error.message?.includes('no rows') || error.code === 'PGRST116') {
-                        console.log('Like already removed');
+            setTimeout(async () => {
+                try {
+                    let html;
+                    if (pageCache[url]) {
+                        html = pageCache[url];
                     } else {
-                        throw error;
+                        const response = await fetch(url, { cache: "force-cache" });
+                        html = await response.text();
+                        pageCache[url] = html;
                     }
-                }
-            } else {
-                // Like - Add new like (use upsert to handle duplicates)
-                console.log('Liking post:', postId);
-                
-                const { error } = await sb
-                    .from('likes')
-                    .upsert(
-                        { 
-                            user_id: userId, 
-                            post_id: postId,
-                            created_at: new Date().toISOString()
-                        },
-                        { 
-                            onConflict: 'user_id,post_id',
-                            ignoreDuplicates: false 
+
+                    if (contentDiv) {
+                        contentDiv.innerHTML = html;
+                        updateDOMReferences(); // Update DOM references after content change
+                        await initPage(); // Initialize page-specific functionality
+                    }
+
+                    if (typeof initSliders === "function") {
+                        initSliders();
+                    }
+
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    highlightActiveLink(url);
+
+                    if (addToHistory) {
+                        history.pushState({ url }, null, "#" + url);
+                    }
+
+                    if (contentDiv) {
+                        contentDiv.classList.remove("fade-out");
+                        contentDiv.classList.add("fade-in");
+                    }
+
+                    setTimeout(() => {
+                        if (contentDiv) {
+                            contentDiv.classList.remove("fade-in");
                         }
-                    );
-
-                if (error) {
-                    throw error;
+                        isTransitioning = false;
+                    }, 150);
+                } catch (error) {
+                    console.error("Page load error:", error);
+                    if (contentDiv) {
+                        contentDiv.innerHTML = "<h2 class='error'>⚠️ Page not found</h2>";
+                    }
+                    isTransitioning = false;
                 }
-            }
-
-            // Update cache
-            if (postsCache.has(postId)) {
-                const cachedPost = postsCache.get(postId);
-                cachedPost.isLiked = newLiked;
-                cachedPost.likeCount = newCount;
-                postsCache.set(postId, cachedPost);
-            }
-
-            console.log(`Successfully ${newLiked ? 'liked' : 'unliked'} post:`, postId);
-
+            }, 100);
         } catch (error) {
-            console.error('Error toggling like:', error);
-            
-            // Revert optimistic update on error
-            likeBtn.classList.toggle('liked', originalState.liked);
-            if (icon) {
-                icon.className = originalState.iconClass;
-            }
-            if (countSpan) {
-                countSpan.textContent = originalState.count;
-            }
-            
-            // Show user-friendly error message
-            if (error.message?.includes('violates foreign key constraint')) {
-                showErrorToast('Post no longer exists');
-            } else if (error.message?.includes('duplicate key')) {
-                // This shouldn't happen with upsert, but handle it anyway
-                console.log('Like already exists, syncing UI state');
-                // Keep the liked state
-                likeBtn.classList.add('liked');
-                if (icon) icon.className = 'ri-heart-fill';
-            } else {
-                showErrorToast('Failed to update like. Please try again.');
-            }
-        } finally {
-            // Always remove from in-progress set
-            likingInProgress.delete(postId);
+            console.error("❌ Load error:", error);
+            isTransitioning = false;
         }
     }
 
-    // --- Enhanced Event Listener for Like Buttons ---
-    document.addEventListener('click', async (e) => {
-        // Check if clicked element or its parent is a like button
-        const likeBtn = e.target.closest('.like-btn');
-        
-        if (likeBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const postId = likeBtn.dataset.postId;
-            
-            if (!postId) {
-                console.error('No post ID found on like button');
-                return;
-            }
-            
-            // Disable button temporarily to prevent double clicks
-            likeBtn.style.pointerEvents = 'none';
-            
-            await likePost(postId);
-            
-            // Re-enable button after a short delay
-            setTimeout(() => {
-                likeBtn.style.pointerEvents = 'auto';
-            }, 500);
-            
-            return;
-        }
-    });
-
-    // --- Fetch initial like state for posts ---
-    async function fetchUserLikes(postIds) {
-        if (!window.currentUser || !postIds || postIds.length === 0) {
-            return new Set();
-        }
-
-        try {
-            const { data, error } = await sb
-                .from('likes')
-                .select('post_id')
-                .eq('user_id', window.currentUser.id)
-                .in('post_id', postIds);
-
-            if (error) throw error;
-
-            return new Set(data?.map(like => like.post_id) || []);
-        } catch (error) {
-            console.error('Error fetching user likes:', error);
-            return new Set();
-        }
-    }
-
-    // --- Improved fetchAndRenderPosts with proper like state ---
-    async function fetchAndRenderPosts(reset = false) {
-        // ... (keep existing code until we get to the likes part)
-        
-        try {
-            // Fetch posts
-            const { data: postsData, error: postsError } = await sb
-                .from('posts')
-                .select(`
-                    *,
-                    profiles:user_id (
-                        id,
-                        full_name,
-                        avatar_url
-                    )
-                `)
-                .order('created_at', { ascending: false });
-
-            if (postsError) throw postsError;
-
-            const postIds = postsData.map(post => post.id);
-            
-            // Fetch all likes for these posts
-            const { data: allLikes, error: likesError } = await sb
-                .from('likes')
-                .select('post_id, user_id')
-                .in('post_id', postIds);
-
-            if (likesError) {
-                console.error('Error fetching likes:', likesError);
-            }
-
-            // Process likes data
-            const likeCountMap = {};
-            const userLikesSet = new Set();
-
-            allLikes?.forEach(like => {
-                // Count total likes per post
-                likeCountMap[like.post_id] = (likeCountMap[like.post_id] || 0) + 1;
-                
-                // Track current user's likes
-                if (window.currentUser && like.user_id === window.currentUser.id) {
-                    userLikesSet.add(like.post_id);
-                }
+    function highlightActiveLink(url) {
+        if (navLinks) {
+            navLinks.forEach(link => {
+                link.classList.toggle("active", link.getAttribute("href") === "#" + url);
             });
-
-            // Process posts with like data
-            const processedPosts = postsData.map(post => {
-                return {
-                    ...post,
-                    likeCount: likeCountMap[post.id] || 0,
-                    isLiked: userLikesSet.has(post.id)
-                };
-            });
-
-            // Render posts with correct like state
-            renderPosts(processedPosts);
-
-        } catch (error) {
-            console.error('Error fetching posts:', error);
-            showErrorToast('Failed to load posts');
         }
     }
 
-    // --- Helper function to show error messages ---
-    function showErrorToast(message) {
-        const existingToasts = document.querySelectorAll('.error-toast');
-        existingToasts.forEach(toast => toast.remove());
-
-        const errorMsg = document.createElement('div');
-        errorMsg.className = 'error-toast';
-        errorMsg.textContent = message;
-        errorMsg.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #ff4444;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease-out;
-        `;
-        document.body.appendChild(errorMsg);
-        
-        setTimeout(() => {
-            errorMsg.style.animation = 'slideOut 0.3s ease-in forwards';
-            setTimeout(() => errorMsg.remove(), 300);
-        }, 3000);
-    }
-
-    // --- Add necessary styles ---
-    const style = document.createElement('style');
-    style.textContent = `
-        .like-btn {
-            transition: all 0.2s ease;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
+    // --- Page Initialization ---
+    async function initPage() {
+        // Check auth and display user info
+        if (window.currentUser) {
+            displayUserInfo(window.currentUser);
         }
-        
-        .like-btn.liked {
-            color: #ff4757 !important;
-        }
-
-        .like-btn.liked i {
-            color: #ff4757 !important;
-        }
-
-        .like-btn:hover {
-            transform: scale(1.05);
-        }
-
-        .like-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Prevent text selection on double click */
-        .like-btn * {
-            pointer-events: none;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Export for use in main app
-    window.likePost = likePost;
-    window.fetchUserLikes = fetchUserLikes;
-// --- Error Toast Function ---
-function showErrorToast(message) {
-    // Remove existing toasts
-    const existingToasts = document.querySelectorAll('.error-toast');
-    existingToasts.forEach(toast => toast.remove());
-
-    const errorMsg = document.createElement('div');
-    errorMsg.className = 'error-toast';
-    errorMsg.textContent = message;
-    errorMsg.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #ff4444;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-size: 14px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease-out;
-        max-width: 300px;
-        word-wrap: break-word;
-    `;
-    document.body.appendChild(errorMsg);
-    
-    setTimeout(() => {
-        errorMsg.style.animation = 'slideOut 0.3s ease-in forwards';
-        setTimeout(() => errorMsg.remove(), 300);
-    }, 3000);
-}
-
-// --- Improved Comments Modal ---
-async function fetchAndRenderComments(postId) {
-    if (!commentModal) return;
-
-    // Only create modal structure if it doesn't exist or is different post
-    if (!commentModal.querySelector('.modal-content') || commentModal.dataset.postId !== postId) {
-        commentModal.dataset.postId = postId;
-        commentModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Comments</h3>
-                    <button id="commentClose" class="close-btn">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="comments">
-                        <div class="loading-comments" style="text-align:center; padding: 20px;">Loading comments...</div>
-                    </div>
-                    <form class="comment-form" id="commentForm">
-                        <div class="comment-input-container">
-                            <img src="${window.currentUser?.user_metadata?.avatar_url || 'default-avatar.png'}" 
-                                 alt="Your avatar" 
-                                 class="comment-avatar"
-                                 onerror="this.src='default-avatar.png'">
-                            <textarea name="commentText" placeholder="Write a comment..." required rows="3"></textarea>
-                        </div>
-                        <div class="comment-actions">
-                            <button type="submit" class="btn-primary">Post Comment</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
 
         // Setup event listeners
-        const newCommentForm = commentModal.querySelector('#commentForm');
-        const newCloseBtn = commentModal.querySelector('#commentClose');
+        setupEventListeners();
 
-        if (newCommentForm) {
-            newCommentForm.addEventListener('submit', handleCommentSubmit);
+        // Initialize page-specific content
+        const pageName = location.hash.replace("#", "") || "start.html";
+        switch (pageName) {
+            case "start.html":
+                await fetchAndRenderPosts();
+                break;
+            case "profile.html":
+                // Profile page logic
+                break;
+            case "upload.html":
+                // Upload page logic
+                break;
+            case "statehome.html":
+                // State home logic
+                break;
+        }
+    }
+
+    // --- Event Listeners Setup ---
+    function setupEventListeners() {
+        // Logout button
+        if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
+            logoutBtn.setAttribute('data-listener', 'true');
+            logoutBtn.addEventListener("click", async () => {
+                await sb.auth.signOut();
+                window.location.href = "https://stevenmsambwa8.github.io/vynal/register.html";
+            });
         }
 
-        if (newCloseBtn) {
-            newCloseBtn.addEventListener('click', () => {
-                commentModal.classList.add('hidden');
+        // Upload modal
+        if (uploadBtn && !uploadBtn.hasAttribute('data-listener')) {
+            uploadBtn.setAttribute('data-listener', 'true');
+            uploadBtn.addEventListener('click', () => {
+                if (uploadModal) uploadModal.classList.remove('hidden');
+            });
+        }
+
+        if (uploadCloseBtn && !uploadCloseBtn.hasAttribute('data-listener')) {
+            uploadCloseBtn.setAttribute('data-listener', 'true');
+            uploadCloseBtn.addEventListener('click', () => {
+                if (uploadModal) uploadModal.classList.add('hidden');
+            });
+        }
+
+        // Upload form
+        if (uploadForm && !uploadForm.hasAttribute('data-listener')) {
+            uploadForm.setAttribute('data-listener', 'true');
+            uploadForm.addEventListener('submit', handleUploadSubmit);
+        }
+
+        // Comment form
+        if (commentForm && !commentForm.hasAttribute('data-listener')) {
+            commentForm.setAttribute('data-listener', 'true');
+            commentForm.addEventListener('submit', handleCommentSubmit);
+        }
+
+        // Comment modal close
+        if (commentCloseBtn && !commentCloseBtn.hasAttribute('data-listener')) {
+            commentCloseBtn.setAttribute('data-listener', 'true');
+            commentCloseBtn.addEventListener('click', () => {
+                if (commentModal) commentModal.classList.add('hidden');
             });
         }
     }
 
-    const commentsContainer = commentModal.querySelector('.comments');
+    // --- Upload Handler ---
+    async function handleUploadSubmit(e) {
+        e.preventDefault();
+        const title = getElement('uTitle')?.value;
+        const description = getElement('uDesc')?.value;
+        const genre = getElement('uGenre')?.value;
+        const tags = getElement('uTags')?.value.split(',').map(tag => tag.trim());
+        const coverFile = getElement('uCover')?.files[0];
+        const userId = window.currentUser.id;
 
+        if (!title || !coverFile) {
+            alert('Title and cover image are required.');
+            return;
+        }
+
+        try {
+            const filePath = `${userId}/${Date.now()}_${coverFile.name}`;
+            const { error: storageError } = await sb.storage
+                .from('post-covers')
+                .upload(filePath, coverFile);
+            if (storageError) throw storageError;
+
+            const { data: publicUrlData } = sb.storage.from('post-covers').getPublicUrl(filePath);
+            const mediaUrl = publicUrlData.publicUrl;
+
+            const { error: insertError } = await sb
+                .from('posts')
+                .insert({
+                    user_id: userId,
+                    title: title,
+                    description: description,
+                    media_url: mediaUrl,
+                    genre: genre,
+                    tags: tags,
+                });
+            if (insertError) throw insertError;
+
+            alert('Post uploaded successfully!');
+            if (uploadForm) uploadForm.reset();
+            if (uploadModal) uploadModal.classList.add('hidden');
+        } catch (error) {
+            console.error('Error uploading post:', error);
+            alert('Failed to upload post: ' + error.message);
+        }
+    }
+
+    // --- Comment Handler ---
+    async function handleCommentSubmit(e) {
+        e.preventDefault();
+        const content = commentInput?.value.trim();
+        if (content && currentPostId) {
+            await postComment(currentPostId, content);
+            if (commentInput) commentInput.value = '';
+        }
+    }
+
+    // --- Post Functions ---
+    async function fetchAndRenderPosts() {
+        if (!postFeedContainer) return;
+        postFeedContainer.innerHTML = '';
+        
+        try {
+            const { data: posts, error } = await sb
+                .from('posts')
+                .select('*, profiles!fk_user(full_name, avatar_url), comments(id), likes(post_id)')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (!posts || posts.length === 0) {
+                postFeedContainer.innerHTML = '<p class="muted" style="text-align: center;">No posts found. Be the first to share! 🚀</p>';
+                return;
+            }
+
+            posts.forEach(post => {
+                const postElement = createPostElement(post);
+                postFeedContainer.appendChild(postElement);
+            });
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+            postFeedContainer.innerHTML = '<p class="error">⚠️ Could not load posts.</p>';
+        }
+    }
+
+    function createPostElement(post) {
+        const postElement = document.createElement('div');
+        postElement.className = 'span-4 post-card';
+        postElement.dataset.postId = post.id;
+        postElement.dataset.animate = true;
+
+        const commentCount = post.comments?.length || 0;
+        const likeCount = post.likes?.length || 0;
+
+        const postHtml = `
+            <div class="post-header">
+                <div class="post-header-left">
+                    <img src="${post.profiles?.avatar_url || 'default-avatar.png'}" alt="avatar">
+                    <div class="post-header-info">
+                        <strong>${post.profiles?.full_name || 'Anonymous'}</strong>
+                        <div class="muted">${new Date(post.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="post-header-right">
+                    <button class="menu-btn"><i class="ri-more-2-fill"></i></button>
+                </div>
+            </div>
+            <div class="post-body">
+                ${post.title || ''}
+                ${post.description ? `<br>${post.description}` : ''}
+                ${(post.tags && post.tags.length > 0) ? `<br><span class="hashtag">#${post.tags.join(' #')}</span>` : ''}
+            </div>
+            ${post.media_url ? `<div class="post-media"><img src="${post.media_url}" alt="Post media"></div>` : ''}
+            <div class="post-actions">
+                <button class="action-btn like-btn" data-post-id="${post.id}"><i class="ri-heart-line"></i><span>${likeCount}</span></button>
+                <button class="action-btn comment-btn" data-post-id="${post.id}"><i class="ri-chat-3-line"></i><span>${commentCount}</span></button>
+                <button class="action-btn share-btn"><i class="ri-share-forward-line"></i></button>
+                <button class="action-btn"><i class="ri-bookmark-line"></i></button>
+            </div>
+        `;
+        postElement.innerHTML = postHtml;
+        return postElement;
+    }
+
+    // --- Interaction Functions ---
+    async function likePost(postId) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('likes')
+                .insert({ user_id: userId, post_id: postId });
+
+            if (error) {
+                if (error.code === '23505') {
+                    alert('You have already liked this post.');
+                } else {
+                    throw error;
+                }
+            } else {
+                console.log('Post liked successfully!');
+            }
+        } catch (error) {
+            console.error('Error liking post:', error);
+            alert('Failed to like post: ' + error.message);
+        }
+    }
+
+    async function postComment(postId, content) {
+        try {
+            const userId = window.currentUser.id;
+            const { error } = await sb
+                .from('comments')
+                .insert({ user_id: userId, post_id: postId, content: content });
+
+            if (error) throw error;
+            console.log('Comment posted successfully!');
+        } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Failed to post comment: ' + error.message);
+        }
+    }
+
+  async function fetchAndRenderComments(postId) {
+    if (!commentsContainer) {
+        console.error('Comments container not found');
+        return;
+    }
+    
+    console.log('Fetching comments for post:', postId);
+    commentsContainer.innerHTML = '<div style="text-align:center;">Loading comments...</div>';
+    
     try {
-        const { data: comments, error: commentsError } = await sb
+        const { data: comments, error } = await sb
             .from('comments')
-            .select(`
-                *,
-                profiles:user_id (
-                    id,
-                    full_name,
-                    avatar_url
-                )
-            `)
+            .select('*')
             .eq('post_id', postId)
             .order('created_at', { ascending: true });
 
-        if (commentsError) throw commentsError;
+        console.log('Comments query result:', { comments, error });
 
+        if (error) throw error;
+        
         commentsContainer.innerHTML = '';
-
+        
         if (!comments || comments.length === 0) {
-            commentsContainer.innerHTML = '<div class="muted" style="text-align: center; padding: 20px;">No comments yet. Be the first to comment!</div>';
+            commentsContainer.innerHTML = '<div class="muted" style="text-align: center;">No comments yet.</div>';
             return;
         }
 
-        const fragment = document.createDocumentFragment();
         comments.forEach(comment => {
-            const profile = comment.profiles;
-            const commentDiv = document.createElement('div');
-            commentDiv.className = 'comment';
-            commentDiv.innerHTML = `
-                <div class="comment-avatar">
-                    <img src="${profile?.avatar_url || 'default-avatar.png'}" 
-                         alt="User" 
-                         loading="lazy"
-                         onerror="this.src='default-avatar.png'">
-                </div>
-                <div class="comment-body">
-                    <div class="comment-header">
-                        <span class="comment-author">${escapeHtml(profile?.full_name || 'Anonymous')}</span>
-                        <div class="comment-like">
-                            <i class="ri-heart-line"></i> <span>0</span>
-                        </div>
+            console.log('Rendering comment:', comment);
+            const commentHtml = `
+                <div class="comment">
+                    <div class="comment-avatar">
+                        <img src="default-avatar.png" alt="User">
                     </div>
-                    <div class="comment-text">${escapeHtml(comment.content || 'No content')}</div>
-                    <div class="comment-footer">
-                        <span>Reply</span>
-                        <span>Report</span>
-                        <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+                    <div class="comment-body">
+                        <div class="comment-header">
+                            <span class="comment-author">@User</span>
+                            <div class="comment-like">
+                                <i class="ri-heart-line"></i> <span>0</span>
+                            </div>
+                        </div>
+                        <div class="comment-text">${comment.content || 'No content'}</div>
+                        <div class="comment-footer">
+                            <span>Reply</span>
+                            <span>Report</span>
+                            <span class="comment-time">${new Date(comment.created_at).toLocaleString()}</span>
+                        </div>
                     </div>
                 </div>
             `;
-            fragment.appendChild(commentDiv);
+            commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
         });
-        commentsContainer.appendChild(fragment);
     } catch (error) {
         console.error('Error fetching comments:', error);
-        commentsContainer.innerHTML = `<div class="error" style="text-align:center; padding: 20px;">⚠️ Error loading comments: ${error.message}</div>`;
+        commentsContainer.innerHTML = `<div class="error" style="text-align:center;">⚠️ Error: ${error.message}</div>`;
     }
 }
 
-// --- Global Event Listeners ---
-document.addEventListener('click', async (e) => {
-    // Handle like button clicks
-    const likeBtn = e.target.closest('.like-btn');
-    if (likeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const postId = likeBtn.dataset.postId;
-        if (postId && window.currentUser) {
-            await likePost(postId);
-        } else if (!window.currentUser) {
-            showErrorToast('Please log in to like posts');
-        }
-        return;
-    }
 
-    // Handle comment button clicks
-    const commentBtn = e.target.closest('.comment-btn');
-    if (commentBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        currentPostId = commentBtn.dataset.postId;
-        if (commentModal && currentPostId) {
-            commentModal.classList.remove('hidden');
+
+    // --- Global Event Listeners ---
+    document.addEventListener('click', async (e) => {
+        // Handle navigation links
+        const link = e.target.closest("a[data-link]");
+        if (link) {
+            e.preventDefault();
+            const url = link.getAttribute("href").replace("#", "");
+            const current = location.hash.replace("#", "") || "start.html";
+
+            if (url === current) return;
+            if (pageList.includes(url)) {
+                loadPage(url, true);
+            }
+        }
+
+        // Handle like button clicks
+        const likeBtn = e.target.closest('.like-btn');
+        if (likeBtn) {
+            const postId = likeBtn.dataset.postId;
+            await likePost(postId);
+        }
+
+        // Handle comment button clicks
+        const commentBtn = e.target.closest('.comment-btn');
+        if (commentBtn) {
+            currentPostId = commentBtn.dataset.postId;
+            if (commentModal) commentModal.classList.remove('hidden');
             await fetchAndRenderComments(currentPostId);
         }
-        return;
-    }
-});
+    });
 
-// --- Improved Real-time Listeners with Debouncing ---
-function setupRealtimeListeners() {
-    let updateTimeout;
-    let isUpdating = false;
+    // --- Real-time Listeners ---
+    function setupRealtimeListeners() {
+        sb.channel('public:posts')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+                console.log('Posts change received!', payload);
+                fetchAndRenderPosts();
+            })
+            .subscribe();
 
-    const debouncedUpdate = () => {
-        if (isUpdating) return;
-        
-        clearTimeout(updateTimeout);
-        updateTimeout = setTimeout(async () => {
-            if (postFeedContainer && !isLoading && likingInProgress.size === 0) {
-                isUpdating = true;
-                try {
-                    // Only refresh if no user interactions are in progress
-                    postsCache.clear();
-                    currentPage = 0;
-                    hasMorePosts = true;
-                    await fetchAndRenderPosts(true);
-                } catch (error) {
-                    console.error('Error in realtime update:', error);
-                } finally {
-                    isUpdating = false;
+        sb.channel('public:comments')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
+                if (payload.new?.post_id === currentPostId) {
+                    fetchAndRenderComments(currentPostId);
                 }
-            }
-        }, 3000); // Longer debounce to prevent interference
-    };
+                fetchAndRenderPosts();
+            })
+            .subscribe();
 
-    // Posts updates
-    sb.channel('public:posts')
-        .on('postgres_changes', { 
-            event: '*', 
-            schema: 'public', 
-            table: 'posts' 
-        }, debouncedUpdate)
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Subscribed to posts channel');
-            }
-        });
-
-    // Likes updates - more conservative approach
-    sb.channel('public:likes')
-        .on('postgres_changes', { 
-            event: '*', 
-            schema: 'public', 
-            table: 'likes' 
-        }, (payload) => {
-            // Only update if it's not the current user's action
-            if (payload.new?.user_id !== window.currentUser?.id) {
-                setTimeout(debouncedUpdate, 2000);
-            }
-        })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Subscribed to likes channel');
-            }
-        });
-
-    // Comments updates
-    sb.channel('public:comments')
-        .on('postgres_changes', { 
-            event: '*', 
-            schema: 'public', 
-            table: 'comments' 
-        }, debouncedUpdate)
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Subscribed to comments channel');
-            }
-        });
-}
-
-// --- Handle Authentication State Changes ---
-sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT' || !session) {
-        window.location.href = "https://vynal.it.com/register.html";
-    } else if (event === 'SIGNED_IN' && session) {
-        window.currentUser = session.user;
-        displayUserInfo(session.user);
-    }
-});
-
-// --- Initialize everything when DOM is ready ---
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM loaded, initializing app...');
-    
-    updateDOMReferences();
-    
-    try {
-        if (await checkAuth()) {
-            await initApp();
-            setupRealtimeListeners();
-            console.log('App initialized successfully');
-        }
-    } catch (error) {
-        console.error('Error initializing app:', error);
-        showErrorToast('Failed to initialize app. Please refresh the page.');
-    }
-});
-
-// --- Handle page visibility changes to refresh data ---
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && window.currentUser && postFeedContainer) {
-        // Refresh posts when page becomes visible again
-        setTimeout(() => {
-            if (!isCacheValid()) {
-                postsCache.clear();
-                currentPage = 0;
-                hasMorePosts = true;
-                fetchAndRenderPosts(true);
-            }
-        }, 1000);
-    }
-});
-
-// --- Handle network reconnection ---
-window.addEventListener('online', () => {
-    if (window.currentUser && postFeedContainer) {
-        showErrorToast('Connection restored');
-        setTimeout(() => {
-            postsCache.clear();
-            currentPage = 0;
-            hasMorePosts = true;
-            fetchAndRenderPosts(true);
-        }, 1000);
-    }
-});
-
-window.addEventListener('offline', () => {
-    showErrorToast('Connection lost. Some features may not work.');
-});
-
-// Add CSS for animations and improvements
-const style = document.createElement('style');
-style.textContent = `
-    .like-btn {
-        transition: all 0.2s ease;
-    }
-    
-    .like-btn.liked {
-        color: #ff4757 !important;
+        sb.channel('public:likes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+                fetchAndRenderPosts();
+            })
+            .subscribe();
     }
 
-    .like-btn:hover {
-        transform: scale(1.05);
-    }
-
-    .error-toast {
-        animation: slideIn 0.3s ease-out;
-    }
-
-    .new-comment {
-        border-left: 3px solid #007bff;
-        background: rgba(0, 123, 255, 0.05);
-        transition: all 0.3s ease;
-    }
-    .modal-content {
-        animation: modalSlideIn 0.3s ease-out;
-    }
-
-    .loading-comments {
-        opacity: 0.7;
-    }
-
-    .comment-form textarea {
-        resize: vertical;
-        min-height: 60px;
-        max-height: 200px;
-    }
-
-    .comment-form textarea:focus {
-        outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-    }
-
-    .action-btn {
-        transition: all 0.2s ease;
-    }
-
-    .action-btn:hover {
-        transform: scale(1.05);
-        opacity: 0.8;
-    }
-
-    .error {
-        color: #ff4444;
-        background: rgba(255, 68, 68, 0.1);
-        padding: 10px;
-        border-radius: 4px;
-        border-left: 3px solid #ff4444;
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9) translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-    }
-
-    /* Loading states */
-    .post-card.loading {
-        opacity: 0.7;
-        pointer-events: none;
-    }
-
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-        .error-toast {
-            left: 10px;
-            right: 10px;
-            max-width: none;
-        }
+    // --- SPA Initialization ---
+    function initSPA() {
+        updateDOMReferences();
         
-        .modal-content {
-            margin: 10px;
-            max-height: calc(100vh - 20px);
-        }
+        // Preload all pages
+        pageList.forEach(async (page) => {
+            try {
+                const res = await fetch(page, { cache: "force-cache" });
+                pageCache[page] = await res.text();
+            } catch (error) {
+                console.warn(`Failed to preload ${page}:`, error);
+            }
+        });
+
+        let currentPage = location.hash.replace("#", "") || "start.html";
+        if (!pageList.includes(currentPage)) currentPage = "start.html";
+
+        loadPage(currentPage, false);
+        history.replaceState({ url: currentPage }, null, "#" + currentPage);
+
+        // Handle back/forward
+        window.addEventListener("popstate", (e) => {
+            if (e.state && e.state.url) {
+                loadPage(e.state.url, false);
+            }
+        });
     }
 
-    /* Smooth scrolling */
-    html {
-        scroll-behavior: smooth;
+    // --- App Initialization ---
+    async function initApp() {
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) return;
+
+        initSPA();
+        setupRealtimeListeners();
     }
 
-    /* Focus styles for accessibility */
-    button:focus {
-        outline: 2px solid #007bff;
-        outline-offset: 2px;
-    }
-
-    button:focus:not(:focus-visible) {
-        outline: none;
-    }
-`;
-
-// Ensure style is added only once
-if (!document.querySelector('#social-app-styles')) {
-    style.id = 'social-app-styles';
-    document.head.appendChild(style);
-}
-
-// Export functions for testing (if needed)
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        checkAuth,
-        fetchAndRenderPosts,
-        likePost,
-        handleCommentSubmit,
-        showErrorToast
-    };
-}
+    // --- Start the App ---
+    initApp();
 </script>
-
 
 
 
@@ -1833,382 +606,7 @@ aria-label="Global search" />
 
 </header>
 <!-- ===== Main ===== -->
-<main class="main">
-
-<!-- Row: Metrics + Profile Quick Card -->
-<section class="grid-12" aria-label="Key metrics">
-<div class="card span-6" data-animate style="border:none;padding: 0; box-shadow: none;background:transparent;">
-  <div class="slider">
-    <div class="slides">
-            <div class="slide" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Introducing VYNAL States">Introducing VYNAL...</span></div>
-            <div class="muted">Own your state inside Vynal land, accept the requests from artists who wants to join your new state.!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-alert-line ri-l"></i> Go</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Administrator</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Posts</div>
-            <div>20,000</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-            <div class="slide" style=" background: linear-gradient(40deg, #121212, #07a521);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Coin system">Coin system</span></div>
-            <div class="muted" style="color: #ffffffa6;">Learn more about the official Vynal coin system, you can spend these below coins in the Mi-mall. Cart More - Spend Less!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">LA Coin</div>
-            <div class="nowrap">53.2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Durable Coin</div>
-            <div>2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Premium Coin</div>
-            <div><span class="badge">79.46% Profit</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#071e9c);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Audiophiler">Audiophiler</span></div>
-            <div class="muted" style="color: #ffffffa6;">Craft your next track & upload it to the globe. Show them your skills...Available at Upload land</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-add-line ri-l"></i> Upload</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#c50404);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Artistic Connections">Artistic...</span></div>
-            <div class="muted" style="color: #ffffffa6;">Start your career with connections to other artists. Find the best upcoming artists and get connections for a deal!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-         <!--  <div class="slide" style="border: 1px solid #fff3fc10; color:white; display:flex; align-items:center; justify-content:center;border-radius: 20px;">
-        <p style="font-size:14px;">Hi there, Check out some features of Vynal land</p>    
-      </div>-->
-
-    </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
-
-<div class="card span-6" data-animate style="padding: 0; box-shadow: none;background: rgba(255, 255, 255, 0.068);">
-  <div class="slider">
-    <div class="slides">
-      <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px; height:60px;">
-            <img src="logobefore.png" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Vale Artist</div>
-            <div class="muted">Indie</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-     <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Nabobeatz</div>
-            <div class="muted">Hasta la vista!!!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
-</section>
-<div class="grid-12" id="post-feed-container">
-    </div>
-
-
- <div class="divider"></div>
- <section class="grid-12">
-<div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div>  
-<div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div>  
- <div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div> 
-</section>
-<!-- === Post Example === -->
-<section class="grid-12">
-<div class="span-4" data-animate>
-<div class="post-card" data-animate>
-  <div class="post-header">
-  <div class="post-header-left">
-    <img src="cod.jpg" alt="avatar">
-    <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted">2 min ago</div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="menu-btn"><i class="ri-add-line"></i></button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
-  </div>
-
-  <div class="post-media">
-    <img src="logobefore.png" alt="Post media" width="100%">
-  </div>
-
-  <div class="post-actions">
-    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
-    <button class="action-btn comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
-    <button class="action-btn share-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
-    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
-  </div>
-</div>
-
-</div>
-<div class="span-4" data-animate>
-<div class="post-card" data-animate>
-  <div class="post-header">
-  <div class="post-header-left">
-    <img src="cod.jpg" alt="avatar">
-    <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted">2 minutes ago</div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="menu-btn"><i class="ri-add-line"></i></button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
-  </div>
-
-  <div class="post-media">
-    <img src="Capture.PNG" alt="Post media" width="100%">
-  </div>
-
-  <div class="post-actions">
-    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
-    <button class="action-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
-    <button class="action-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
-    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
-  </div>
-</div>
-
-</div>
-<div class="span-4" data-animate>
-<div class="post-card" data-animate>
-  <div class="post-header">
-  <div class="post-header-left">
-    <img src="cod.jpg" alt="avatar">
-    <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted">2 minutes ago</div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="menu-btn"><i class="ri-add-line"></i></button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
-  </div>
-
-  <div class="post-media">
-    <img src="Capture.PNG" alt="Post media" width="100%">
-  </div>
-
-  <div class="post-actions">
-    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
-    <button class="action-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
-    <button class="action-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
-    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
-  </div>
-</div>
-
-</div>
-</section>
-
-
-
-
-<!-- Share Modal -->
-<div class="modal-backdrop hidden" id="shareModal">
-  <div class="modal" role="document">
-    <div style="display:flex; align-items:center; justify-content:space-between;">
-      <strong>Share Post</strong>
-      <button class="btn-icon" id="shareClose"><i class="ri-close-line"></i></button>
-    </div>
-    <div class="divider"></div>
-    <div style="display:grid; gap:10px; margin-top:10px;">
-      <button class="btn ghost"><i class="ri-link"></i> Copy Link</button>
-      <button class="btn ghost"><i class="ri-twitter-line"></i> Share to Twitter</button>
-      <button class="btn ghost"><i class="ri-facebook-circle-line"></i> Share to Facebook</button>
-      <button class="btn ghost"><i class="ri-telegram-line"></i> Share to Telegram</button>
-    </div>
-  </div>
-</div>
+<main class="main" id="contentize">
 
 </main>
 
