@@ -475,7 +475,7 @@ async function checkAuth() {
   const { data: { user } } = await sb.auth.getUser();
   
   if (!user) {
-    window.location.href = 'login.html';
+    window.location.href = 'register.html';
     return;
   }
   
@@ -1184,3 +1184,4 @@ window.openPost = openPost;
 <script src="app.js"></script>
 </body>
 </html>
+
