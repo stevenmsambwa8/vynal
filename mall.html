@@ -1,0 +1,286 @@
+<!DOCTYPE html>  
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="mall.css">
+</head>
+
+<body>
+
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="#start.html" data-link><i class="ri-earth-line"></i><span>Feed</span></a>
+<a href="#upload.html" data-link><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="#mall.html" data-link><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="#states.html" data-link><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="#index.html" data-link><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search products & coins…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="btn-icon cart-btn" aria-label="Notifications"><i class="ri-shopping-cart-line"></i></button>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main">
+            <section class="grid-12" aria-label="Key metrics">
+            <div class="span-4" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:700; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Importing NEW Gift Packs</span></div>
+            <div class="muted">Get gift packages, special collected for awarding friends and increasing connections! - Grab starter pack only at <span style="color: var(--brand);">200.99 LAC </span> (T & C apply)</div>
+          </div>
+        </div>
+        
+      </div>
+
+      <div class="span-5" style="border: none;background: linear-gradient(90deg, white, #474747);padding: 16px;border-radius: 20px;color: black;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:700; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>30% Discount!!</span></div>
+            <div class="muted" style="color: rgba(0, 0, 0, 0.733);">Someone said discount!?<br> Try your lucky with an access<br> token to discount.</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost" style="color: #ffffff;"><i class="ri-external-link-line ri-l"></i>Get Token</button>
+          </div>
+        </div>
+        
+      </div>
+            </section>
+
+            <!-- === Activity Feed (product boxes) === -->
+            <section class="grid-121">
+                <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none;">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                <!-- Box 1 -->
+                <div class="post-card" style="background: #18181800;" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <strong>LimitedAccess Coin (LaC)</strong>
+                                <div class="muted"><span style="font-weight: 600;">System default coin in purchase.</span> </div> 
+                            </div>
+                    </div>
+                    <div class="post-actions" style="background: none">
+                        
+                        <button class="action-btn  add-to-cart" style="background-color: var(--brand);"><i class="ri-coin-line"></i><span
+                                class="count">Preorder Coin</span></button>
+                    </div>
+                </div>
+            </div>
+                 <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                 <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+            </section>
+
+
+
+            <!-- === Activity Feed (product boxes) === -->
+            <section class="grid-121">
+                  <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                 <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                <!-- Box 1 -->
+                <div class="post-card" style="background: #18181800;" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <strong>ScoutFile Token (Special)</strong>
+                                <div class="muted"><span style="font-weight: 600;">Grab your token and get started with us!<br>Available for special trained scouts.</span> </div> 
+                            </div>
+                    </div>
+                    <div class="post-actions" style="background: none">
+                        
+                        <button class="action-btn  add-to-cart" style="background-color: #0b679c;"><i class="ri-dashboard-3-line"></i><span
+                                class="count">Earn Token</span></button>
+                    </div>
+                </div>
+            </div>
+                 
+                 <!-- Box 1 -->
+                <div class="post-card" style="background: #18181800;" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <strong>Premium Coin (PuC)</strong>
+                                <div class="muted"><span style="font-weight: 600;">Grab your token and get started with us!<br>Available for special trained scouts.</span> </div> 
+                            </div>
+                    </div>
+                    <div class="post-actions" style="background: none">
+                        
+                        <button class="action-btn  add-to-cart" style="background-color: #dee2e433;"><i class="ri-time-line"></i><span
+                                class="count">Unavailable</span></button>
+                    </div>
+                </div>
+            </div>
+            </section>
+
+</main>
+
+<div class="modal-backdrop hidden" id="cartModal">
+  <div class="modal" role="document" style="width: 400px;">
+        <h3>What to tease for today?</h3>
+        
+  </div>
+</div>
+
+<div class="space"></div>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="dashboard.html"><i class="ri-stack-fill"></i> Dashboard</a>
+  <a href="upload.html"><i class="ri-upload-cloud-2-line"></i> Upload</a>
+  <a href="mall.html" class="active"><i class="ri-shopping-bag-line"></i></a>
+  <a href="statehome.html"><i class="ri-compass-2-line"></i>States</a>
+  <a href="mall.html"><i class="ri-user-4-line"></i>Account</a>
+</nav>
+
+<script src="app.js"></script>
+
+
+</body>
+</html>

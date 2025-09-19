@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPA with Navigation Support</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* Navigation Styles */
+        .navbar {
+            background: #2c3e50;
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            color: #ecf0f1;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background-color: #34495e;
+        }
+
+        /* Mobile Navigation */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: #ecf0f1;
+            margin: 3px 0;
+            transition: 0.3s;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
+        }
+
+        .page {
+            display: none;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Page Specific Styles */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+
+            .nav-menu {
+                position: fixed;
+                left: -100%;
+                top: 70px;
+                flex-direction: column;
+                background-color: #2c3e50;
+                width: 100%;
+                text-align: center;
+                transition: 0.3s;
+                padding: 2rem 0;
+            }
+
+            .nav-menu.active {
+                left: 0;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .page {
+                padding: 1rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#home" class="logo">MySPA</a>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#services" class="nav-link">Services</a></li>
+                <li><a href="#portfolio" class="nav-link">Portfolio</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Loading Animation -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="hero">
+                <h1>Welcome to MySPA</h1>
+                <p>Experience seamless navigation with our Single Page Application. Navigate through different sections while maintaining browser history and mobile compatibility.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>🚀 Fast Navigation</h2>
+                    <p>Lightning-fast page transitions without full page reloads. Experience smooth navigation that feels native on all devices.</p>
+                </div>
+                <div class="card">
+                    <h2>📱 Mobile Friendly</h2>
+                    <p>Fully responsive design that works perfectly on smartphones, tablets, and desktop computers with touch-friendly navigation.</p>
+                </div>
+                <div class="card">
+                    <h2>🔄 Browser Support</h2>
+                    <p>Full support for browser back/forward buttons and URL sharing. Each page has its own URL for bookmarking.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Page -->
+        <div id="about" class="page">
+            <div class="card">
+                <h1>About Us</h1>
+                <p>We are a modern web development company specializing in creating fast, responsive, and user-friendly web applications.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Our Mission</h2>
+                    <p>To deliver exceptional web experiences that combine cutting-edge technology with intuitive design, ensuring every user interaction is smooth and meaningful.</p>
+                </div>
+                <div class="card">
+                    <h2>Our Vision</h2>
+                    <p>To be the leading provider of innovative web solutions that help businesses thrive in the digital landscape while maintaining the highest standards of quality and performance.</p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Our Team</h2>
+                <p>Our diverse team of developers, designers, and strategists work together to create digital solutions that exceed expectations. With years of combined experience, we bring expertise in modern web technologies, user experience design, and digital strategy.</p>
+            </div>
+        </div>
+
+        <!-- Services Page -->
+        <div id="services" class="page">
+            <div class="card">
+                <h1>Our Services</h1>
+                <p>We offer comprehensive web development services tailored to your business needs.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>🌐 Web Development</h2>
+                    <p>Custom web applications built with modern technologies including React, Vue.js, Angular, and vanilla JavaScript. We create scalable, maintainable solutions.</p>
+                    <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                        <li>Single Page Applications (SPA)</li>
+                        <li>Progressive Web Apps (PWA)</li>
+                        <li>E-commerce Solutions</li>
+                        <li>Content Management Systems</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>📱 Mobile Development</h2>
+                    <p>Cross-platform mobile applications that provide native-like experiences on both iOS and Android devices using modern frameworks.</p>
+                    <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                        <li>React Native Apps</li>
+                        <li>Hybrid Applications</li>
+                        <li>Mobile-First Design</li>
+                        <li>App Store Optimization</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>🎨 UI/UX Design</h2>
+                    <p>User-centered design approach that focuses on creating intuitive and engaging digital experiences that convert visitors into customers.</p>
+                    <ul style="margin-top: 1rem; padding-left: 1.5rem;">
+                        <li>User Interface Design</li>
+                        <li>User Experience Research</li>
+                        <li>Prototyping & Wireframing</li>
+                        <li>Usability Testing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Page -->
+        <div id="portfolio" class="page">
+            <div class="card">
+                <h1>Our Portfolio</h1>
+                <p>Explore our recent projects and see how we've helped businesses achieve their digital goals.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>🏢 Corporate Website</h2>
+                    <p><strong>Client:</strong> TechCorp Solutions</p>
+                    <p><strong>Technology:</strong> React, Node.js, MongoDB</p>
+                    <p>A modern corporate website with dynamic content management, real-time analytics, and seamless user experience. Increased user engagement by 150%.</p>
+                    <p><strong>Features:</strong></p>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Responsive Design</li>
+                        <li>Content Management System</li>
+                        <li>SEO Optimization</li>
+                        <li>Performance Analytics</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>🛒 E-commerce Platform</h2>
+                    <p><strong>Client:</strong> Fashion Forward</p>
+                    <p><strong>Technology:</strong> Vue.js, Laravel, MySQL</p>
+                    <p>A comprehensive e-commerce solution with inventory management, payment processing, and customer analytics. Boosted online sales by 200%.</p>
+                    <p><strong>Features:</strong></p>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Shopping Cart & Checkout</li>
+                        <li>Payment Gateway Integration</li>
+                        <li>Inventory Management</li>
+                        <li>Customer Dashboard</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h2>📱 Mobile Banking App</h2>
+                    <p><strong>Client:</strong> SecureBank</p>
+                    <p><strong>Technology:</strong> React Native, Firebase</p>
+                    <p>A secure mobile banking application with biometric authentication, real-time transactions, and comprehensive financial management tools.</p>
+                    <p><strong>Features:</strong></p>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Biometric Security</li>
+                        <li>Real-time Transactions</li>
+                        <li>Budget Tracking</li>
+                        <li>Push Notifications</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Page -->
+        <div id="contact" class="page">
+            <div class="card">
+                <h1>Contact Us</h1>
+                <p>Get in touch with us to discuss your project requirements and how we can help bring your ideas to life.</p>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Send us a Message</h2>
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" name="subject" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn">Send Message</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h2>Contact Information</h2>
+                    <div style="margin-bottom: 1rem;">
+                        <h3>📍 Address</h3>
+                        <p>123 Web Development Street<br>
+                        Tech City, TC 12345<br>
+                        United States</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <h3>📞 Phone</h3>
+                        <p>+1 (555) 123-4567</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <h3>✉️ Email</h3>
+                        <p>info@myspa.com</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <h3>🕒 Business Hours</h3>
+                        <p>Monday - Friday: 9:00 AM - 6:00 PM<br>
+                        Saturday: 10:00 AM - 4:00 PM<br>
+                        Sunday: Closed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class SPA {
+            constructor() {
+                this.pages = document.querySelectorAll('.page');
+                this.navLinks = document.querySelectorAll('.nav-link');
+                this.loading = document.getElementById('loading');
+                this.hamburger = document.querySelector('.hamburger');
+                this.navMenu = document.querySelector('.nav-menu');
+                
+                this.init();
+            }
+
+            init() {
+                // Handle initial page load
+                this.handleInitialLoad();
+                
+                // Add event listeners
+                this.addEventListeners();
+                
+                // Handle browser back/forward buttons
+                window.addEventListener('popstate', (e) => {
+                    const page = e.state ? e.state.page : 'home';
+                    this.showPage(page, false);
+                });
+            }
+
+            handleInitialLoad() {
+                const hash = window.location.hash.substring(1) || 'home';
+                this.showPage(hash, false);
+            }
+
+            addEventListeners() {
+                // Navigation links
+                this.navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = link.getAttribute('href').substring(1);
+                        this.navigateToPage(page);
+                        this.closeMobileMenu();
+                    });
+                });
+
+                // Mobile hamburger menu
+                this.hamburger.addEventListener('click', () => {
+                    this.toggleMobileMenu();
+                });
+
+                // Close mobile menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.navbar')) {
+                        this.closeMobileMenu();
+                    }
+                });
+
+                // Handle form submission
+                const contactForm = document.getElementById('contactForm');
+                if (contactForm) {
+                    contactForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handleFormSubmission(e.target);
+                    });
+                }
+
+                // Handle logo click
+                document.querySelector('.logo').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.navigateToPage('home');
+                });
+            }
+
+            navigateToPage(page) {
+                // Show loading animation
+                this.showLoading();
+                
+                // Simulate loading delay (remove in production)
+                setTimeout(() => {
+                    this.showPage(page, true);
+                    this.hideLoading();
+                }, 300);
+            }
+
+            showPage(page, addToHistory = true) {
+                // Hide all pages
+                this.pages.forEach(p => p.classList.remove('active'));
+                
+                // Show target page
+                const targetPage = document.getElementById(page);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                    
+                    // Update navigation
+                    this.updateNavigation(page);
+                    
+                    // Update URL and history
+                    if (addToHistory) {
+                        const url = `#${page}`;
+                        history.pushState({ page }, '', url);
+                    }
+                    
+                    // Update page title
+                    this.updatePageTitle(page);
+                    
+                    // Scroll to top
+                    window.scrollTo(0, 0);
+                } else {
+                    // Page not found, redirect to home
+                    this.showPage('home', addToHistory);
+                }
+            }
+
+            updateNavigation(activePage) {
+                this.navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${activePage}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            updatePageTitle(page) {
+                const titles = {
+                    home: 'MySPA - Home',
+                    about: 'MySPA - About Us',
+                    services: 'MySPA - Our Services',
+                    portfolio: 'MySPA - Portfolio',
+                    contact: 'MySPA - Contact Us'
+                };
+                document.title = titles[page] || 'MySPA';
+            }
+
+            toggleMobileMenu() {
+                this.navMenu.classList.toggle('active');
+                this.hamburger.classList.toggle('active');
+            }
+
+            closeMobileMenu() {
+                this.navMenu.classList.remove('active');
+                this.hamburger.classList.remove('active');
+            }
+
+            showLoading() {
+                this.loading.style.display = 'block';
+            }
+
+            hideLoading() {
+                this.loading.style.display = 'none';
+            }
+
+            handleFormSubmission(form) {
+                // Show loading
+                this.showLoading();
+                
+                // Simulate form submission (replace with actual API call)
+                setTimeout(() => {
+                    alert('Thank you for your message! We will get back to you soon.');
+                    form.reset();
+                    this.hideLoading();
+                }, 1000);
+            }
+        }
+
+        // Initialize SPA when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new SPA();
+        });
+
+        // Handle page visibility change (for mobile apps)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                // Page became visible, you can refresh data here
+                console.log('Page is now visible');
+            }
+        });
+
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            console.log('App is online');
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('App is offline');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple SPA — Demo</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background:linear-gradient(180deg,var(--bg),#071025); color:#e6eef6; min-height:100vh}
+    header{backdrop-filter: blur(6px); background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); position:sticky; top:0; z-index:20}
+    .nav{max-width:960px;margin:0 auto;display:flex;gap:18px;align-items:center;padding:12px}
+    .brand{font-weight:700;letter-spacing:0.6px}
+    nav{margin-left:auto;display:flex;gap:8px}
+    a.navlink{padding:8px 12px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600}
+    a.navlink.active, a.navlink:hover{color:var(--accent);background:var(--glass)}
+
+    main{max-width:960px;margin:28px auto;padding:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px;border-radius:12px;box-shadow: 0 6px 18px rgba(2,6,23,0.6);}
+
+    h1{margin:0 0 8px 0;font-size:clamp(20px,3vw,28px)}
+    p.lead{color:var(--muted);margin:0 0 12px}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+    .service{padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));}
+
+    footer{max-width:960px;margin:28px auto;padding:12px;color:var(--muted);font-size:13px}
+
+    /* Simple fade-in for routes */
+    .route{animation:fadeIn .35s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    /* small form */
+    form .row{display:flex;gap:8px;flex-wrap:wrap}
+    input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+    button{padding:10px 14px;border-radius:8px;border:0;background:var(--accent);color:#032;cursor:pointer;font-weight:700}
+
+    /* responsive */
+    @media (max-width:560px){.nav{padding:10px}.brand{font-size:15px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand">My Simple SPA</div>
+      <nav>
+        <a href="#/" class="navlink" data-route="/">Home</a>
+        <a href="#/about" class="navlink" data-route="/about">About</a>
+        <a href="#/services" class="navlink" data-route="/services">Services</a>
+        <a href="#/contact" class="navlink" data-route="/contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Content will be injected here by the tiny router -->
+  </main>
+
+  <footer>
+    Built with a tiny vanilla router • No frameworks • Hash-based routing
+  </footer>
+
+  <script>
+    // -------------------------
+    // Tiny Hash Router & SPA
+    // -------------------------
+
+    // Route components: return HTML string or DOM nodes
+    const Home = () => `
+      <section class="card route">
+        <h1>Welcome</h1>
+        <p class="lead">This is a simple single-file SPA built with plain HTML, CSS and JavaScript. Use the links above to navigate.</p>
+        <div class="grid">
+          <div class="service"><strong>Fast</strong><p class="lead">No build step — single file to copy & paste.</p></div>
+          <div class="service"><strong>Small</strong><p class="lead">Tiny router, easy to extend.</p></div>
+          <div class="service"><strong>Vanilla JS</strong><p class="lead">No dependencies.</p></div>
+        </div>
+      </section>`;
+
+    const About = () => `
+      <section class="card route">
+        <h1>About this demo</h1>
+        <p class="lead">Designed to demonstrate simple client-side navigation and modular structure without frameworks.</p>
+        <p>Try bookmarking this URL or refreshing — the route is preserved using the URL hash (e.g. <code>#/about</code>).</p>
+      </section>`;
+
+    const Services = () => `
+      <section class="card route">
+        <h1>Services</h1>
+        <p class="lead">Possible features you can add to this SPA.</p>
+        <ul>
+          <li>Client-side forms and validation</li>
+          <li>LocalStorage for small persistence</li>
+          <li>Fetch data from APIs and render results</li>
+        </ul>
+      </section>`;
+
+    const Contact = () => `
+      <section class="card route">
+        <h1>Contact</h1>
+        <p class="lead">This form doesn't submit to a server. It demonstrates basic form handling.</p>
+        <form id="contactForm">
+          <div class="row">
+            <input name="name" placeholder="Your name" required />
+            <input name="email" placeholder="Email" required />
+          </div>
+          <div style="margin-top:8px">
+            <textarea name="message" rows="4" placeholder="Message" required></textarea>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button type="submit">Send</button>
+            <div id="status" style="color:var(--muted);font-size:13px"></div>
+          </div>
+        </form>
+      </section>`;
+
+    // Routes map
+    const routes = {
+      '/': Home,
+      '/about': About,
+      '/services': Services,
+      '/contact': Contact,
+    };
+
+    const app = document.getElementById('app');
+    const navlinks = document.querySelectorAll('.navlink');
+
+    function setActiveLink(path){
+      navlinks.forEach(a=>{
+        a.classList.toggle('active', a.dataset.route === path);
+      });
+    }
+
+    function render(){
+      const hash = location.hash.replace('#','') || '/';
+      const route = routes[hash] ? hash : '/';
+      // update active link
+      setActiveLink(route);
+      // render content
+      app.innerHTML = routes[route]();
+      // attach any route-specific listeners
+      if(route === '/contact') attachContactHandler();
+    }
+
+    function attachContactHandler(){
+      const form = document.getElementById('contactForm');
+      const status = document.getElementById('status');
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const data = new FormData(form);
+        // simple client-side save to localStorage (demo only)
+        const payload = {name:data.get('name'), email:data.get('email'), message:data.get('message'), date: new Date().toISOString()};
+        const archive = JSON.parse(localStorage.getItem('spa_messages') || '[]');
+        archive.push(payload);
+        localStorage.setItem('spa_messages', JSON.stringify(archive));
+        status.textContent = 'Message saved locally — try opening devtools > Application > Local Storage.';
+        form.reset();
+      }, {once:true});
+    }
+
+    // Listen to hash changes
+    window.addEventListener('hashchange', render);
+    // initial render
+    render();
+
+    // tiny enhancement: keyboard shortcut (g then h = go home)
+    let keyBuffer = '';
+    window.addEventListener('keydown',(e)=>{
+      keyBuffer += e.key.toLowerCase();
+      if(keyBuffer.endsWith('gh')) location.hash = '#/';
+      if(keyBuffer.length>5) keyBuffer = keyBuffer.slice(-3);
+    });
+
+  </script>
+</body>
+</html>

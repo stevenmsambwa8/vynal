@@ -1,0 +1,921 @@
+<!DOCTYPE html>  
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body>
+  <!-- Splash Screen <div class="loader"></div> -->
+<div id="splash">
+  <div class="splash-content">
+    <div class="logo"><img src="logo.png" style="height: 50px;"></div>
+   
+  </div>
+</div>
+
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
+
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="start.html" class="active"><i class="ri-stack-fill"></i><span>Feed</span></a>
+<a href="upload.html"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="mall.html"><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="states.html"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="index.html"><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content" style="display:none;">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="#mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main">
+<div id="feed">
+    <!-- Row: Metrics + Profile Quick Card -->
+<section class="grid-12" aria-label="Key metrics">
+<div class="card span-6" data-animate style="border:none;padding: 0; box-shadow: none;background:transparent;">
+  <div class="slider">
+    <div class="slides">
+            <div class="slide" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Introducing VYNAL states</span></div>
+            <div class="muted">Own your state inside Vynal land, accept the requests from artists who wants to join your new state.!</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-alert-line ri-l"></i> Go</button>
+          </div>
+        </div>
+        <div class="divider"></div> 
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">Administrator</div>
+            <div class="nowrap">Midnight</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Posts</div>
+            <div>20,000</div>
+          </div>
+          <div class="col-4">
+            <div class="muted"></div>
+            <div><span></span></div>
+          </div>
+        </div>
+      </div>
+            <div class="slide" style=" background: linear-gradient(40deg, #121212, #07a521);  border: none;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Coin system</span></div>
+            <div class="muted" style="color: #ffffffa6;">Learn more about the official Vynal coin system, you can spend these below coins in the Mi-mall. Cart More - Spend Less!</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">LA Coin</div>
+            <div class="nowrap">53.2% profit</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Durable Coin</div>
+            <div>2% profit</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Premium Coin</div>
+            <div><span class="badge">79.46% Profit</span></div>
+          </div>
+        </div>
+      </div>
+                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#071e9c);  border: none;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Audiophiler</span></div>
+            <div class="muted" style="color: #ffffffa6;">Craft your next track & upload it to the globe. Show them your skills...Available at Upload land</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-add-line ri-l"></i> Upload</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">My uploads</div>
+            <div class="nowrap">0 tracks</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Global</div>
+            <div>720 tracks</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Listeners</div>
+            <div><span class="badge">30%</span></div>
+          </div>
+        </div>
+      </div>
+                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#c50404);  border: none;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Artistic Connections">Artistic...</span></div>
+            <div class="muted" style="color: #ffffffa6;">Start your career with connections to other artists. Find the best upcoming artists and get connections for a deal!</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">My uploads</div>
+            <div class="nowrap">0 tracks</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Global</div>
+            <div>720 tracks</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Listeners</div>
+            <div><span class="badge">30%</span></div>
+          </div>
+        </div>
+      </div>
+         <!--  <div class="slide" style="border: 1px solid #fff3fc10; color:white; display:flex; align-items:center; justify-content:center;border-radius: 20px;">
+        <p style="font-size:14px;">Hi there, Check out some features of Vynal land</p>    
+      </div>-->
+
+    </div>
+    <button class="prev">‹</button>
+    <button class="next">›</button>
+  </div>
+</div>
+
+<div class="card span-6" data-animate style="padding: 0; box-shadow: none;background: rgba(255, 255, 255, 0.068);">
+  <div class="slider">
+    <div class="slides">
+      <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div class="cover" style="width:60px; height:60px;">
+            <img src="logobefore.png" style=" border-radius:50%;">
+          </div>
+          <div>
+            <div style="font-weight:800; font-size:18px;">Vale Artist</div>
+            <div class="muted">Indie</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
+            <button class="btn primary">Listen Now</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">Top Track</div>
+            <div class="nowrap">Midnight</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Likes</div>
+            <div>0</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Engagement</div>
+            <div><span class="badge">High</span></div>
+          </div>
+        </div>
+      </div>
+     <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div class="cover" style="width:60px;">
+            <img src="cod.jpg" style=" border-radius:50%;">
+          </div>
+          <div>
+            <div style="font-weight:800; font-size:18px;">Nabobeatz</div>
+            <div class="muted">Hasta la vista!!!</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
+            <button class="btn primary">Listen Now</button>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <div class="col-4">
+            <div class="muted">Top Track</div>
+            <div class="nowrap">Midnight</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Likes</div>
+            <div>0</div>
+          </div>
+          <div class="col-4">
+            <div class="muted">Engagement</div>
+            <div><span class="badge">High</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="prev">‹</button>
+    <button class="next">›</button>
+  </div>
+</div>
+</section>
+<!-- === Post Example === -->
+<section class="grid-12">
+<div class="span-4" data-animate>
+<div class="post-card" data-animate>
+
+
+  <div class="post-media">
+    <img src="38.jpg" alt="Post media" width="100%">
+  </div>
+  <div class="post-header">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar" style="border-radius: 10px;border: none;box-shadow: none;">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted"><a href="statehome.html" style="text-decoration: underline;">Nabobeatz</a> - <span style="font-weight: 600;"> 2 min ago</span></div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="btn ghost"><i class="ri-external-link-line"></i></button>
+    <button class="btn ghost"> View Post</button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single!<span class="hashtag">#wonderfull</span>
+  </div>
+  <div class="post-actions">
+    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="action-btn comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="action-btn share-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
+    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
+  </div>
+</div>
+</div>
+<div class="span-4" data-animate>
+<div class="post-card" data-animate>
+  <div class="post-header">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted">2 minutes ago</div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
+  </div>
+
+  <div class="post-media">
+    <img src="Capture.PNG" alt="Post media" width="100%">
+  </div>
+
+  <div class="post-actions">
+    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="action-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="action-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
+    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
+  </div>
+</div>
+
+</div>
+<div class="span-4" data-animate>
+<div class="post-card" data-animate>
+  <div class="post-header">
+  <div class="post-header-left">
+    <img src="cod.jpg" alt="avatar">
+    <div class="post-header-info">
+  <strong>
+    Nabobeatz Worldwide
+  </strong>
+  <div class="muted">2 minutes ago</div>
+</div>
+
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
+  </div>
+
+  <div class="post-media">
+    <img src="Capture.PNG" alt="Post media" width="100%">
+  </div>
+
+  <div class="post-actions">
+    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
+    <button class="action-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
+    <button class="action-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
+    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
+  </div>
+</div>
+
+</div>
+</section>
+</div>
+
+
+
+
+<div id="mall">
+            <section class="grid-12" aria-label="Key metrics">
+            <div class="span-4" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:700; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Importing NEW Gift Packs</span></div>
+            <div class="muted">Get gift packages, special collected for awarding friends and increasing connections! - Grab starter pack only at <span style="color: var(--brand);">200.99 LAC </span> (T & C apply)</div>
+          </div>
+        </div>
+        
+      </div>
+
+      <div class="span-5" style="border: none;background: linear-gradient(90deg, var(--brand), #01584a);padding: 16px;border-radius: 20px;color: black;">
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div>
+            <div style="font-weight:700; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>30% Discount!!</span></div>
+            <div class="muted" style="color: rgba(0, 0, 0, 0.733);">Someone said discount!?<br> Try your lucky with an access<br> token to discount.</div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn ghost" style="color: #ffffff;"><i class="ri-external-link-line ri-l"></i>Get Token</button>
+          </div>
+        </div>
+        
+      </div>
+            </section>
+
+            <!-- === Activity Feed (product boxes) === -->
+            <section class="grid-121">
+                <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none;">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                <!-- Box 1 -->
+                <div class="post-card" style="background: #18181800;" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <strong>LimitedAccess Coin (LaC)</strong>
+                                <div class="muted"><span style="font-weight: 600;">System default coin in purchase.</span> </div> 
+                            </div>
+                    </div>
+                    <div class="post-actions" style="background: none">
+                        
+                        <button class="action-btn  add-to-cart" style="background-color: var(--brand);"><i class="ri-coin-line"></i><span
+                                class="count">Preorder Coin</span></button>
+                    </div>
+                </div>
+            </div>
+                 <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+                 <!-- Box 1 -->
+                <div class="post-card-2" data-animate data-name="AmapianoKit Repack" data-price="2000">
+                    <div class="post-header" style="border: none;background-color: none;">
+                        <div class="post-header-left">
+                            
+                            <div class="post-header-info">
+                                <div class="muted">Dealer <span style="font-weight: 800;">Nabobeatz</span> </div> 
+                             <strong>AmapianoKit Repack</strong>
+                            </div>
+                        </div>
+                        <div class="post-header-right" style="margin-right: 7px;">
+                                            <span><i
+                                    class="ri-play-circle-line ri-xl"></i></span>
+                        </div>
+                    </div>
+                    <div class="post-actions" style="box-shadow: none;backdrop-filter: none;background: none">
+                        <button class="btn like-btun" style="background: none;border: none;"><i class="ri-heart-line"></i>
+                               <span class="count">12</span> </button>
+                        <button class="action-btn  add-to-cart"><i class="ri-shopping-cart-line"></i><span
+                                class="count">Add Cart</span></button>
+                    </div>
+                </div>
+            </section>
+</div>
+
+
+
+</main>
+  <!-- Collapsible Comments -->
+   <div class="modal-backdrop hidden" id="CommentModal">
+  <div class="modal" style="width: 90%;max-width: 500px;">
+  
+<div class="comments-header">
+  <strong>Comments</strong>
+  <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
+</div>
+
+<div class="comments">
+  <!-- Comment 1 (with nested replies) -->
+  <div class="comment">
+    <div class="comment-avatar">
+      <img src="user1.jpg" alt="@fan1">
+    </div>
+    <div class="comment-body">
+      <div class="comment-header">
+        <span class="comment-author">@fan1</span>
+        <div class="comment-like">
+          <i class="ri-heart-line"></i> <span>12</span>
+        </div>
+      </div>
+      <div class="comment-text">Love this! 🔥</div>
+      <div class="comment-footer">
+        <span>Reply</span>
+        <span>Report</span>
+        <span class="comment-time">2m ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replies toggle -->
+  <div class="view-replies" onclick="toggleReplies(this)">View 3 replies</div>
+
+  <!-- Replies -->
+  <div class="replies">
+    <div class="comment">
+      <div class="comment-avatar">
+        <img src="user2.jpg" alt="@djmix">
+      </div>
+      <div class="comment-body">
+        <div class="comment-header">
+          <span class="comment-author">@djmix</span>
+          <div class="comment-like">
+            <i class="ri-heart-line liked"></i> <span>4</span>
+          </div>
+        </div>
+        <div class="comment-text">Same here 🙌</div>
+        <div class="comment-footer">
+          <span>Reply</span>
+          <span>Report</span>
+          <span class="comment-time">1m ago</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nested replies -->
+    <div class="view-replies" onclick="toggleReplies(this)">View 2 replies</div>
+    <div class="replies">
+      <div class="comment">
+        <div class="comment-avatar">
+          <img src="user3.jpg" alt="@clubvibes">
+        </div>
+        <div class="comment-body">
+          <div class="comment-header">
+            <span class="comment-author">@clubvibes</span>
+            <div class="comment-like">
+              <i class="ri-heart-line"></i> <span>2</span>
+            </div>
+          </div>
+          <div class="comment-text">🔥🔥 playlist material!</div>
+          <div class="comment-footer">
+            <span>Reply</span>
+            <span>Report</span>
+            <span class="comment-time">just now</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comment">
+        <div class="comment-avatar">
+          <img src="user4.jpg" alt="@partylover">
+        </div>
+        <div class="comment-body">
+          <div class="comment-header">
+            <span class="comment-author">@partylover</span>
+            <div class="comment-like">
+              <i class="ri-heart-line"></i> <span>1</span>
+            </div>
+          </div>
+          <div class="comment-text">Can’t wait for more drops 🎶 Can’t wait for more drops 🎶</div>
+          <div class="comment-footer">
+            <span>Reply</span>
+            <span>Report</span>
+            <span class="comment-time">just now</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment 2 (no replies) -->
+  <div class="comment">
+    <div class="comment-avatar">
+      <img src="user5.jpg" alt="@mixqueen">
+    </div>
+    <div class="comment-body">
+      <div class="comment-header">
+        <span class="comment-author">@mixqueen</span>
+        <div class="comment-like">
+          <i class="ri-heart-line"></i> <span>7</span>
+        </div>
+      </div>
+      <div class="comment-text">This vibe is unreal 🔥</div>
+      <div class="comment-footer">
+        <span>Reply</span>
+        <span>Report</span>
+        <span class="comment-time">10m ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment 3 (no replies) -->
+  <div class="comment">
+    <div class="comment-avatar">
+      <img src="user6.jpg" alt="@nightbeat">
+    </div>
+    <div class="comment-body">
+      <div class="comment-header">
+        <span class="comment-author">@nightbeat</span>
+        <div class="comment-like">
+          <i class="ri-heart-line"></i> <span>3</span>
+        </div>
+      </div>
+      <div class="comment-text">Got this on repeat 🎧</div>
+      <div class="comment-footer">
+        <span>Reply</span>
+        <span>Report</span>
+        <span class="comment-time">15m ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Comment Inline -->
+  <div class="add-comment-wrapper">
+    <textarea class="add-comment" rows="1" placeholder="Add a comment…"></textarea>
+    <button class="post-comment">Post</button>
+  </div>
+</div>
+
+
+</div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-backdrop hidden" id="shareModal">
+  <div class="modal" role="document">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <strong>Share Post</strong>
+      <button class="btn-icon" id="shareClose"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="divider"></div>
+    <div style="display:grid; gap:10px; margin-top:10px;">
+      <button class="btn ghost"><i class="ri-link"></i> Copy Link</button>
+      <button class="btn ghost"><i class="ri-twitter-line"></i> Share to Twitter</button>
+      <button class="btn ghost"><i class="ri-facebook-circle-line"></i> Share to Facebook</button>
+      <button class="btn ghost"><i class="ri-telegram-line"></i> Share to Telegram</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="uploadModal">
+  <div class="modal" role="document" style="width: 400px;">
+        <h3>What to tease for today?</h3>
+        <form id="uploadForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
+            <div class="col-6">
+              <select id="uGenre" class="input" aria-label="Genre">
+                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
+            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
+          </div>
+          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
+            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
+          </div>
+          <div class="row">
+            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
+            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
+          </div>
+          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+  </div>
+</div>
+
+ 
+<div class="space"></div>
+</section>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="#feed" class="active nav-link"><i class="ri-stack-fill"></i> Dashboard</a>
+  <a href="#mall"  class="nav-link"><i class="ri-upload-cloud-2-line"></i> Upload</a>
+  <a href="#mall"><i class="ri-map-pin-2-line"></i>Mi-mall</a>
+  <a href="#statehome.html"><i class="ri-compass-2-line"></i>States</a>
+  <a href="#mall.html"><i class="ri-user-4-line"></i>Account</a>
+</nav>
+
+<script src="app.js"></script>
+
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
+
+</script>
+
+<script>
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("content").style.display = "block";
+      document.getElementById("content").classList.add("fade-in");
+    }, 2800);
+  });
+</script>
+    <script>
+        class SPA {
+            constructor() {
+                this.pages = document.querySelectorAll('.page');
+                this.navLinks = document.querySelectorAll('.nav-link');
+                this.loading = document.getElementById('loading');
+                this.hamburger = document.querySelector('.hamburger');
+                this.navMenu = document.querySelector('.nav-menu');
+                
+                this.init();
+            }
+
+            init() {
+                // Handle initial page load
+                this.handleInitialLoad();
+                
+                // Add event listeners
+                this.addEventListeners();
+                
+                // Handle browser back/forward buttons
+                window.addEventListener('popstate', (e) => {
+                    const page = e.state ? e.state.page : 'home';
+                    this.showPage(page, false);
+                });
+            }
+
+            handleInitialLoad() {
+                const hash = window.location.hash.substring(1) || 'home';
+                this.showPage(hash, false);
+            }
+
+            addEventListeners() {
+                // Navigation links
+                this.navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = link.getAttribute('href').substring(1);
+                        this.navigateToPage(page);
+                        this.closeMobileMenu();
+                    });
+                });
+
+                // Mobile hamburger menu
+                this.hamburger.addEventListener('click', () => {
+                    this.toggleMobileMenu();
+                });
+
+                // Close mobile menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.navbar')) {
+                        this.closeMobileMenu();
+                    }
+                });
+
+                // Handle form submission
+                const contactForm = document.getElementById('contactForm');
+                if (contactForm) {
+                    contactForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handleFormSubmission(e.target);
+                    });
+                }
+
+                // Handle logo click
+                document.querySelector('.logo').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.navigateToPage('home');
+                });
+            }
+
+            navigateToPage(page) {
+                // Show loading animation
+                this.showLoading();
+                
+                // Simulate loading delay (remove in production)
+                setTimeout(() => {
+                    this.showPage(page, true);
+                    this.hideLoading();
+                }, 300);
+            }
+
+            showPage(page, addToHistory = true) {
+                // Hide all pages
+                this.pages.forEach(p => p.classList.remove('active'));
+                
+                // Show target page
+                const targetPage = document.getElementById(page);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                    
+                    // Update navigation
+                    this.updateNavigation(page);
+                    
+                    // Update URL and history
+                    if (addToHistory) {
+                        const url = `#${page}`;
+                        history.pushState({ page }, '', url);
+                    }
+                    
+                    // Update page title
+                    this.updatePageTitle(page);
+                    
+                    // Scroll to top
+                    window.scrollTo(0, 0);
+                } else {
+                    // Page not found, redirect to home
+                    this.showPage('home', addToHistory);
+                }
+            }
+
+            updateNavigation(activePage) {
+                this.navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${activePage}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            updatePageTitle(page) {
+                const titles = {
+                    home: 'MySPA - feed',
+                    about: 'MySPA - mall',
+                    services: 'MySPA - Our Services',
+                    portfolio: 'MySPA - Portfolio',
+                    contact: 'MySPA - Contact Us'
+                };
+                document.title = titles[page] || 'MySPA';
+            }
+
+            toggleMobileMenu() {
+                this.navMenu.classList.toggle('active');
+                this.hamburger.classList.toggle('active');
+            }
+
+            closeMobileMenu() {
+                this.navMenu.classList.remove('active');
+                this.hamburger.classList.remove('active');
+            }
+
+            showLoading() {
+                this.loading.style.display = 'block';
+            }
+
+            hideLoading() {
+                this.loading.style.display = 'none';
+            }
+
+            handleFormSubmission(form) {
+                // Show loading
+                this.showLoading();
+                
+                // Simulate form submission (replace with actual API call)
+                setTimeout(() => {
+                    alert('Thank you for your message! We will get back to you soon.');
+                    form.reset();
+                    this.hideLoading();
+                }, 1000);
+            }
+        }
+
+        // Initialize SPA when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new SPA();
+        });
+
+        // Handle page visibility change (for mobile apps)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                // Page became visible, you can refresh data here
+                console.log('Page is now visible');
+            }
+        });
+
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            console.log('App is online');
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('App is offline');
+        });
+    </script>
+
+</body>
+</html>
