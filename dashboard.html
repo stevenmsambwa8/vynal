@@ -1,676 +1,560 @@
-<!DOCTYPE html>  
+<!-- File: public/dashboard.html -->
+<!doctype html>
 <html lang="en">
-
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>VYNAL • Artist Dashboard</title>
 <link rel="stylesheet" href="remixicon.min.css">
 <link rel="stylesheet" href="app.css">
-
 <style>
-/* === Post UI Enhancements === */
-.post-card { cursor: pointer; }
-
-/* Post image fixed height + cover */
-.post-media {
-  position: relative;
-}
-
-
-
-/* Watermark overlay */
-.post-media .watermark {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.post-media .watermark img {
-  height: 50px;
-  border-radius: 999px;
-  width: auto;
-}
-
-.hidden { display: none !important; }
-
-
-@keyframes fadeIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-
-
-@keyframes pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.4); }
-  100% { transform: scale(1); }
-}
+/* small set of styles used by script */
+.post-count { font-weight: 600; margin-left: 6px; }
+.like-btn.liked i { color: #ff5a7a; transform: scale(1.05); }
+.modal-backdrop { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); z-index:40; }
+.modal { background:#fff; border-radius:8px; padding:12px; max-height:80vh; overflow:auto; box-shadow:0 12px 40px rgba(0,0,0,0.2); }
+.hidden { display:none !important; }
+.post-card { margin-bottom:14px; border-radius:8px; background:var(--card-bg, #fff); padding:12px; }
+.action-btn { background:none; border:none; cursor:pointer; padding:6px 8px; display:inline-flex; align-items:center; gap:6px; }
+.muted { color:#777; font-size:0.9rem; }
+.comment { display:flex; gap:8px; margin-bottom:10px; }
+.comment-avatar img { width:36px; height:36px; border-radius:999px; object-fit:cover; }
+.comment-body { flex:1; background:#f7f7f7; padding:8px; border-radius:8px; }
+.add-comment { width:100%; padding:8px; border-radius:8px; }
+.small { font-size:0.85rem; color:#555; }
+.toast { position:fixed; right:12px; bottom:12px; background:#222;color:#fff;padding:8px 12px;border-radius:8px; z-index:60; }
 </style>
 </head>
-
 <body>
-
-<!-- ===== Sidebar ===== -->
-<aside class="aside" aria-label="Sidebar">
-<div class="brand"><span><img src="logo2.png" width="300"> </span></div>
-<div class="side-search">
-<i class="ri-search-2-line" aria-hidden="true"></i>
-<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
-</div>
-
-
-<div class="side-group">
-<div class="side-label">Main</div>
-<nav class="nav" aria-label="Primary">
-<a href="start.html" class="active"><i class="ri-stack-fill"></i><span>Feed</span></a>
-<a href="upload.html"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
-<a href="mall.html"><i class="ri-music-line"></i><span>Mi-pages</span></a>
-<a href="states.html"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
-<a href="index.html"><i class="ri-book-line"></i><span>Documents</span></a>
-</nav>
-</div>
-
-<div class="side-group">
-<div class="side-label">Account</div>
-<nav class="nav" aria-label="Secondary">
-<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
-<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
-</nav>
-</div>
-
-<div class="collapse">
-<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
-class="ri-sun-line"></i></button>
-</div>
+<aside class="aside" aria-label="Sidebar"> <!-- your sidebar markup (truncated for brevity) -->
+  <div style="padding:12px;">
+    <img src="oflogo2.png" width="220" alt="Vynal">
+    <div id="auth-area" style="margin-top:12px;"></div>
+  </div>
 </aside>
 
-<section id="content">
-<!-- ===== Header ===== -->
-<header class="header" role="banner">
-<div class="moblogo"><span><img src="logo.png" height="40"> </span></div>
-<div class="searchbar">
-<i class="ri-search-2-line" aria-hidden="true"></i>
-<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
-aria-label="Global search" />
-</div>
-<div class="actions">
-<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
-<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
-<a href="mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
-<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
-</div>
-
-</header>
-<!-- ===== Main ===== -->
-<main class="main">
-<!-- Row: Metrics + Profile Quick Card -->
-<section class="grid-12" aria-label="Key metrics">
-<div class="card span-6" data-animate style="border:none;padding: 0; box-shadow: none;background:transparent;">
-  <div class="slider">
-    <div class="slides">
-            <div class="slide" style="border: 1px solid #fff3fc17;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Introducing VYNAL states</span></div>
-            <div class="muted">Own your state inside Vynal land, accept the requests from artists who wants to join your new state.!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-alert-line ri-l"></i> Go</button>
-          </div>
-        </div>
-        <div class="divider"></div> 
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Administrator</div>
-            <div class="nowrap"><strong>Nabo</strong></div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Posts</div>
-            <div>20,000</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Members</div>
-            <div>50,000</div>
-          </div>
-        </div>
-      </div>
-            <div class="slide" style=" background: linear-gradient(40deg, #121212, #07a521);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Coin system</span></div>
-            <div class="muted" style="color: #ffffffa6;">Learn more about the official Vynal coin system, you can spend these below coins in the Mi-mall. Cart More - Spend Less!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">LA Coin</div>
-            <div class="nowrap">53.2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Durable Coin</div>
-            <div>2% profit</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Premium Coin</div>
-            <div><span class="badge">79.46% Profit</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212,#071e9c);  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:600; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span>Audiophiler</span></div>
-            <div class="muted" style="color: #ffffffa6;">Craft your next track & upload it to the globe. Show them your skills...Available at Upload land</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-add-line ri-l"></i> Upload</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-                 <div class="slide" style=" background: linear-gradient(240deg, #121212, var(--brand));  border: none;padding: 16px;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div>
-            <div style="font-weight:800; font-size:20px;line-height: 1.0;margin-bottom: 5px;"><span class="ellipsis-text" data-fulltext="Artistic Connections">Artistic...</span></div>
-            <div class="muted" style="color: #ffffffa6;">Start your career with connections to other artists. Find the best upcoming artists and get connections for a deal!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-book-line ri-l"></i> Docs</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div>My uploads</div>
-            <div class="nowrap">0 tracks</div>
-          </div>
-          <div class="col-4">
-            <div>Global</div>
-            <div>720 tracks</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Listeners</div>
-            <div><span class="badge">30%</span></div>
-          </div>
-        </div>
-      </div>
-         <!--  <div class="slide" style="border: 1px solid #fff3fc10; color:white; display:flex; align-items:center; justify-content:center;border-radius: 20px;">
-        <p style="font-size:14px;">Hi there, Check out some features of Vynal land</p>    
-      </div>-->
-
+<section id="content" style="margin-left:260px; padding:20px;">
+  <header class="header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; gap:10px; align-items:center;">
+      <div class="moblogo"><img src="ofminilogo1.png" height="40"></div>
+      <input id="searchAll" placeholder="Search tracks, posts..." style="padding:8px;border-radius:8px;border:1px solid #ddd;" />
     </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
-
-<div class="card span-6" data-animate style="padding: 0; box-shadow: none;background: rgba(255, 255, 255, 0.068);">
-  <div class="slider">
-    <div class="slides">
-      <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px; height:60px;">
-            <img src="logobefore.png" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Vale Artist</div>
-            <div class="muted">Indie</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
-     <div class="slide" style="padding:16px; box-sizing:border-box; height:100%;border-radius: 20px;">
-        <div style="display:flex; gap:14px; align-items:center;">
-          <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-          <div>
-            <div style="font-weight:800; font-size:18px;">Nabobeatz</div>
-            <div class="muted">Hasta la vista!!!</div>
-          </div>
-          <div style="margin-left:auto; display:flex; gap:8px;">
-            <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-            <button class="btn primary">Listen Now</button>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="row">
-          <div class="col-4">
-            <div class="muted">Top Track</div>
-            <div class="nowrap">Midnight</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Likes</div>
-            <div>0</div>
-          </div>
-          <div class="col-4">
-            <div class="muted">Engagement</div>
-            <div><span class="badge">High</span></div>
-          </div>
-        </div>
-      </div>
+    <div>
+      <button id="btnOpenUpload" class="btn primary">New Post</button>
+      <img id="user-pic" class="avatar" src="" style="width:40px;height:40px;border-radius:999px;display:inline-block;margin-left:10px;" alt="">
     </div>
-    <button class="prev">‹</button>
-    <button class="next">›</button>
-  </div>
-</div>
+  </header>
 
-
-</section>
-<!-- === Post Example === -->
-<section class="grid-12">
-<div class="span-4" data-animate>
-<div class="post-card" data-animate style="box-shadow: none;">
-<div class="post-media">
-    <img src="logo2.png" alt="Post media" width="100%">
-      <div class="watermark"><img src="cod.jpg" alt="logo"></div>
-  </div>
-  <div class="post-header">
-  <div class="post-header-left">
-  <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted"><a href="statehome.html" style="text-decoration: underline;">Nabobeatz</a> - <span style="font-weight: 600;"> 2 min ago</span></div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="btn ghost" style="color: var(--brand);"><i class="ri-external-link-line"></i></button>
-    <button class="btn ghost"> View Post</button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single!<span class="hashtag">#wonderfull</span>
-  </div>
-  <div class="post-actions">
-    <button class="action-btn like-btn"><i class="ri-heart-line" style="color: var(--brand-2);"></i><span>120</span></button>
-    <button class="action-btn comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
-    <button class="action-btn share-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
-    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
-  </div>
-</div>
-</div>
-<div class="span-4" data-animate>
-<div class="post-card" data-animate style="box-shadow: none;">
-<div class="post-media">
-    <img src="38.jpg" alt="Post media" width="100%">
-      <div class="watermark"><img src="cod.jpg" alt="logo"></div>
-  </div>
-  <div class="post-header">
-  <div class="post-header-left">
-  <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted"><a href="statehome.html" style="text-decoration: underline;">Nabobeatz</a> - <span style="font-weight: 600;"> 2 min ago</span></div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="btn ghost"><i class="ri-external-link-line"></i></button>
-    <button class="btn ghost"> View Post</button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single!<span class="hashtag">#wonderfull</span>
-  </div>
-  <div class="post-actions">
-    <button class="action-btn like-btn"><i class="ri-heart-line"></i><span>120</span></button>
-    <button class="action-btn comment-btn"><i class="ri-chat-3-line"></i><span>45</span></button>
-    <button class="action-btn share-btn"><i class="ri-share-forward-line"></i><span>12</span></button>
-    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30</span></button>
-  </div>
-</div>
-</div>
-<div class="span-4" data-animate>
-<div class="post-card" data-animate style="box-shadow: none;">
-  <div class="post-header">
-  <div class="post-header-left">
-    <div class="post-header-info">
-  <strong>
-    Nabobeatz Worldwide
-  </strong>
-  <div class="muted">2 minutes ago</div>
-</div>
-
-  </div>
-  <div class="post-header-right">
-    <button class="menu-btn"><i class="ri-add-line"></i></button>
-  </div>
-</div>
-
-  <div class="post-body">
-    Just released a new single! Check it out! <span class="hashtag">#wonderfull</span>
-  </div>
-
-  <div class="post-media">
-    <img src="Capture.PNG" alt="Post media" width="100%">
-    <div class="watermark"><img src="cod.jpg" alt="logo"></div>
-  </div>
-<div class="post-actions">
-    <button class="action-btn"><i class="ri-blaze-fill"></i><span>23M</span></button>
-    <button class="action-btn"><i class="ri-link"></i><span>2.4k</span></button>
-    <button class="action-btn"><i class="ri-add-line"></i>Posts<span>2.4k </span></button>    
-</div>
- 
-</div>
-</div>
-
+  <main class="main" id="main">
+    <section id="posts" style="max-width:980px;">
+      <!-- Posts will be rendered here -->
+    </section>
+    <div id="loader" style="color:#666;margin-top:18px;">Loading...</div>
+  </main>
 </section>
 
- <div class="divider"></div>
- <section class="grid-12">
-<div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div>  
-<div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div>  
- <div class="card span-4" style="background: rgba(255, 255, 255, 0.068);box-shadow: none;padding: 5px;" data-animate>
-  <div style="border-left: none;">
-    <div style="display:flex; gap:14px; align-items:center;">
-      <div class="cover" style="width:60px;">
-            <img src="cod.jpg" style=" border-radius:50%;">
-          </div>
-<div>
-<div style="font-weight:800; font-size:18px;">Vynal Devs</div>
-<div class="muted">Indie </div>
-</div>
-<div style="margin-right: 10px;margin-left: auto; display:flex; gap:8px;">
-<button class="btn primary" id="btnNewPost"> Connect</button>
-</div>
-</div>
-  </div>
-  
-</div> 
-</section>
-
-
-  <!-- Collapsible Comments -->
-   <div class="modal-backdrop hidden" id="CommentModal">
-  <div class="modal" style="width: 90%;max-width: 500px;">
-  
-<div class="comments-header">
-  <strong>Comments</strong>
-  <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
-</div>
-
-<div class="comments">
-  <!-- Comment 1 (with nested replies) -->
-  <div class="comment">
-    <div class="comment-avatar">
-      <img src="user1.jpg" alt="@fan1">
-    </div>
-    <div class="comment-body">
-      <div class="comment-header">
-        <span class="comment-author">@fan1</span>
-        <div class="comment-like">
-          <i class="ri-heart-line"></i> <span>12</span>
-        </div>
-      </div>
-      <div class="comment-text">Love this! 🔥</div>
-      <div class="comment-footer">
-        <span>Reply</span>
-        <span>Report</span>
-        <span class="comment-time">2m ago</span>
+<!-- Comments Modal -->
+<div id="commentModal" class="modal-backdrop hidden" aria-hidden="true">
+  <div class="modal" style="width:90%; max-width:720px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>Comments</strong>
+      <div>
+        <button id="closeComments">Close</button>
       </div>
     </div>
-  </div>
-
-  <!-- Replies toggle -->
-  <div class="view-replies" onclick="toggleReplies(this)">View 3 replies</div>
-
-  <!-- Replies -->
-  <div class="replies">
-    <div class="comment">
-      <div class="comment-avatar">
-        <img src="user2.jpg" alt="@djmix">
-      </div>
-      <div class="comment-body">
-        <div class="comment-header">
-          <span class="comment-author">@djmix</span>
-          <div class="comment-like">
-            <i class="ri-heart-line liked"></i> <span>4</span>
-          </div>
-        </div>
-        <div class="comment-text">Same here 🙌</div>
-        <div class="comment-footer">
-          <span>Reply</span>
-          <span>Report</span>
-          <span class="comment-time">1m ago</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Nested replies -->
-    <div class="view-replies" onclick="toggleReplies(this)">View 2 replies</div>
-    <div class="replies">
-      <div class="comment">
-        <div class="comment-avatar">
-          <img src="user3.jpg" alt="@clubvibes">
-        </div>
-        <div class="comment-body">
-          <div class="comment-header">
-            <span class="comment-author">@clubvibes</span>
-            <div class="comment-like">
-              <i class="ri-heart-line"></i> <span>2</span>
-            </div>
-          </div>
-          <div class="comment-text">🔥🔥 playlist material!</div>
-          <div class="comment-footer">
-            <span>Reply</span>
-            <span>Report</span>
-            <span class="comment-time">just now</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="comment">
-        <div class="comment-avatar">
-          <img src="user4.jpg" alt="@partylover">
-        </div>
-        <div class="comment-body">
-          <div class="comment-header">
-            <span class="comment-author">@partylover</span>
-            <div class="comment-like">
-              <i class="ri-heart-line"></i> <span>1</span>
-            </div>
-          </div>
-          <div class="comment-text">Can’t wait for more drops 🎶 Can’t wait for more drops 🎶</div>
-          <div class="comment-footer">
-            <span>Reply</span>
-            <span>Report</span>
-            <span class="comment-time">just now</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Comment 2 (no replies) -->
-  <div class="comment">
-    <div class="comment-avatar">
-      <img src="user5.jpg" alt="@mixqueen">
-    </div>
-    <div class="comment-body">
-      <div class="comment-header">
-        <span class="comment-author">@mixqueen</span>
-        <div class="comment-like">
-          <i class="ri-heart-line"></i> <span>7</span>
-        </div>
-      </div>
-      <div class="comment-text">This vibe is unreal 🔥</div>
-      <div class="comment-footer">
-        <span>Reply</span>
-        <span>Report</span>
-        <span class="comment-time">10m ago</span>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- Add Comment Inline -->
-  <div class="add-comment-wrapper">
-    <textarea class="add-comment" rows="1" placeholder="Add a comment…"></textarea>
-    <button class="post-comment">Post</button>
-  </div>
-</div>
-
-
-</div>
-</div>
-
-<!-- Share Modal -->
-<div class="modal-backdrop hidden" id="shareModal">
-  <div class="modal" role="document">
-    <div style="display:flex; align-items:center; justify-content:space-between;">
-      <strong>Share Post</strong>
-      <button class="btn-icon" id="shareClose"><i class="ri-close-line"></i></button>
-    </div>
-    <div class="divider"></div>
-    <div style="display:grid; gap:10px; margin-top:10px;">
-      <button class="btn ghost"><i class="ri-link"></i> Copy Link</button>
-      <button class="btn ghost"><i class="ri-twitter-line"></i> Share to Twitter</button>
-      <button class="btn ghost"><i class="ri-facebook-circle-line"></i> Share to Facebook</button>
-      <button class="btn ghost"><i class="ri-telegram-line"></i> Share to Telegram</button>
+    <div id="commentsContent" style="margin-top:12px;"></div>
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <textarea id="newCommentText" rows="2" class="add-comment" placeholder="Add a comment..."></textarea>
+      <button id="postCommentBtn" class="btn primary">Post</button>
     </div>
   </div>
 </div>
 
-</main>
-
-<div class="modal-backdrop hidden" id="uploadModal">
-  <div class="modal" role="document" style="width: 400px;">
-        <h3>What to tease for today?</h3>
-        <form id="uploadForm" class="upload" novalidate>
-          <div class="row">
-            <div class="col-6"><input class="input" type="text" id="uTitle" placeholder="Title *" required></div>
-            <div class="col-6">
-              <select id="uGenre" class="input" aria-label="Genre">
-                <option>Pop</option><option>Hip-Hop</option><option>EDM</option><option>Indie</option><option>Jazz</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-8"><input class="input" type="text" id="uTags" placeholder="Tags (comma separated)"></div>
-            <div class="col-4"><input class="input" type="number" id="uBpm" placeholder="BPM"></div>
-          </div>
-          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
-            <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
-            <input id="uFile" type="file" accept="audio/*" class="sr-only" />
-          </div>
-          <div class="row">
-            <div class="col-6"><input class="input" type="file" id="uCover" accept="image/*" aria-label="Cover image"></div>
-            <div class="col-6"><input class="input" type="text" id="uDesc" placeholder="Short description"></div>
-          </div>
-          <div class="progress" aria-hidden="true"><i id="uProgress"></i></div>
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
-            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
-          </div>
-        </form>
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal-backdrop hidden" aria-hidden="true">
+  <div class="modal" style="width:420px;">
+    <h3>New Post</h3>
+    <div style="display:grid; gap:8px;">
+      <textarea id="uContent" rows="4" class="input" placeholder="Write a description..."></textarea>
+      <input id="uFile" type="file" accept="image/*,video/*" />
+      <div class="progress" id="uProgress" style="height:8px;background:#eee;border-radius:8px;overflow:hidden;">
+        <div id="uProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#6ee7b7,#60a5fa)"></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button id="uploadClose" class="btn ghost">Cancel</button>
+        <button id="uSubmit" class="btn primary">Upload</button>
+      </div>
+    </div>
   </div>
 </div>
 
- 
-<div class="space"></div>
-</section>
+<div id="toast" class="toast hidden"></div>
 
-<!-- ===== Bottom Nav (mobile only) ===== -->
-<nav class="bottom-nav" aria-label="Mobile navigation">
-  <a href="dashboard.html" class="active"><i class="ri-stack-fill"></i></a>
-  <a href="upload.html"><i class="ri-upload-cloud-2-line"></i> Upload</a>
-  <a href="mall.html"><i class="ri-shopping-bag-2-line"></i>Mi-mall</a>
-  <a href="statehome.html"><i class="ri-compass-2-line"></i>States</a>
-  <a href="mall.html"><i class="ri-user-4-line"></i>Account</a>
-</nav>
+<script type="module">
+/* File: public/dashboard.html (inline script)
+   Minimal comments; see top-of-response for SQL and plan.
+*/
 
-<script src="app.js"></script>
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-<script>
-  function toggleReplies(el) {
-  const replies = el.nextElementSibling;
-  if (replies.style.display === "block") {
-    replies.style.display = "none";
-    el.textContent = el.dataset.original || "View replies";
+const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* --- State --- */
+let currentUser = null;
+const postsCache = new Map(); // postId -> post data
+let commentsOpenFor = null;
+
+/* --- Helpers --- */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const toast = (t, ms = 3000) => { const el = $('#toast'); el.textContent = t; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'), ms); };
+
+/* --- Auth --- */
+async function initAuth() {
+  const authArea = document.getElementById('auth-area');
+
+  // show sign in / user info
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await handleSignIn(session.user);
   } else {
-    replies.style.display = "block";
-    if (!el.dataset.original) el.dataset.original = el.textContent;
-    el.textContent = "Hide replies";
+    renderSignedOut();
+  }
+
+  sb.auth.onAuthStateChange(async (event, sess) => {
+    if (sess?.user) {
+      await handleSignIn(sess.user);
+    } else {
+      currentUser = null;
+      renderSignedOut();
+    }
+  });
+
+  function renderSignedOut(){
+    authArea.innerHTML = `<button id="btnSignInGoogle" class="btn primary">Sign in with Google</button>`;
+    document.getElementById('btnSignInGoogle').onclick = () => {
+      sb.auth.signInWithOAuth({ provider: 'google', options: { queryParams: { prompt: 'consent', access_type: 'offline' } } });
+    };
   }
 }
-</script>
 
+async function handleSignIn(user) {
+  // user: { id, app_metadata, user_metadata, ... }
+  currentUser = user;
+  // ensure profile row exists
+  await sb.from('profiles').upsert({
+    id: user.id,
+    full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+    avatar_url: user.user_metadata?.picture || '',
+    username: (user.user_metadata?.email || '').split('@')[0]
+  }, { onConflict: 'id' });
+
+  // render user area
+  const authArea = document.getElementById('auth-area');
+  const avatarUrl = user.user_metadata?.picture || '';
+  authArea.innerHTML = `
+    <div style="display:flex; gap:8px; align-items:center;">
+      <img src="${avatarUrl}" alt="Me" style="width:40px;height:40px;border-radius:999px;object-fit:cover;">
+      <div>
+        <div style="font-weight:700">${user.user_metadata?.full_name || user.user_metadata?.name || 'You'}</div>
+        <button id="signOutBtn" class="btn ghost small">Sign out</button>
+      </div>
+    </div>`;
+  document.getElementById('signOutBtn').onclick = async () => {
+    await sb.auth.signOut();
+    toast('Signed out');
+  };
+
+  // show avatar in header
+  const up = document.getElementById('user-pic');
+  if (up) up.src = avatarUrl;
+
+  // start app
+  await fetchPosts();
+  initRealtime();
+}
+
+/* --- Fetch + Render posts --- */
+const postsEl = document.getElementById('posts');
+async function fetchPosts() {
+  $('#loader').style.display = 'block';
+  const { data, error } = await sb
+    .from('posts')
+    .select(`id, user_id, content, media_path, like_count, comment_count, inserted_at, profiles (username, avatar_url)`)
+    .order('inserted_at', { ascending: false })
+    .limit(50);
+
+  $('#loader').style.display = 'none';
+  if (error) { toast('Failed to load posts'); console.error(error); return; }
+  postsEl.innerHTML = '';
+  data.forEach(p => {
+    postsCache.set(p.id, p);
+    postsEl.appendChild(renderPost(p));
+  });
+}
+
+/* build DOM for a single post */
+function renderPost(post) {
+  const root = document.createElement('article');
+  root.className = 'post-card';
+  root.dataset.postId = post.id;
+
+  const username = post.profiles?.username || 'unknown';
+  const avatar = post.profiles?.avatar_url || 'cod.jpg';
+
+  root.innerHTML = `
+    <div style="display:flex; gap:10px; align-items:flex-start;">
+      <img src="${avatar}" alt="${username}" style="width:56px;height:56px;border-radius:999px;object-fit:cover;">
+      <div style="flex:1;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong>${username}</strong><div class="muted small"> ${timeAgo(new Date(post.inserted_at))}</div>
+          </div>
+          <div>
+            <button class="btn ghost" title="Open post">Open</button>
+          </div>
+        </div>
+        <div style="margin-top:8px;">${escapeHtml(post.content || '')}</div>
+        ${post.media_path ? `<div style="margin-top:8px;"><img src="${publicUrlFor(post.media_path)}" style="max-width:100%;height:auto;border-radius:8px;"></div>` : ''}
+        <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+          <button class="action-btn like-btn" data-post-id="${post.id}" title="Like"><i class="ri-heart-line"></i> <span class="post-like-count">${formatCount(post.like_count)}</span></button>
+          <button class="action-btn comment-btn" data-post-id="${post.id}" title="Comments"><i class="ri-chat-3-line"></i> <span class="post-comment-count">${formatCount(post.comment_count)}</span></button>
+          <button class="action-btn share-btn" data-post-id="${post.id}"><i class="ri-share-forward-line"></i> Share</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // events
+  const likeBtn = root.querySelector('.like-btn');
+  likeBtn.addEventListener('click', () => toggleLikeOptimistic(post.id, likeBtn));
+
+  const commentBtn = root.querySelector('.comment-btn');
+  commentBtn.addEventListener('click', () => openComments(post.id));
+
+  return root;
+}
+
+/* --- Utils --- */
+function formatCount(n) {
+  if (n == null) return '0';
+  if (n < 1000) return String(n);
+  if (n < 1000000) return (n/1000).toFixed(n<10000?1:0) + 'K';
+  return (n/1000000).toFixed(1) + 'M';
+}
+function timeAgo(d) {
+  const s = Math.floor((Date.now() - d.getTime())/1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+function escapeHtml(s = '') {
+  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+function publicUrlFor(path) {
+  if (!path) return '';
+  // if path already a full url, return as-is
+  if (path.startsWith('http')) return path;
+  // Storage public URL
+  return `${SUPABASE_URL}/storage/v1/object/public/post_media/${encodeURIComponent(path)}`;
+}
+
+/* --- Optimistic Like --- */
+const pendingLikeOps = new Set();
+
+async function toggleLikeOptimistic(postId, likeBtnEl) {
+  if (!currentUser) { toast('Sign in to like'); return; }
+  if (pendingLikeOps.has(postId)) return;
+  pendingLikeOps.add(postId);
+
+  // toggle UI fast
+  const countSpan = likeBtnEl.querySelector('.post-like-count');
+  const wasLiked = likeBtnEl.classList.contains('liked');
+  const currentCount = parseCount(countSpan.textContent);
+  const newCount = wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+  likeBtnEl.classList.toggle('liked');
+  countSpan.textContent = formatCount(newCount);
+
+  // Attempt DB operation: insert or delete from likes (unique user+post)
+  try {
+    if (!wasLiked) {
+      const { error: e1 } = await sb.from('likes').insert({ user_id: currentUser.id, post_id: postId });
+      if (e1 && !/duplicate key/.test(e1.message || '')) throw e1;
+      // if triggers exist, posts.like_count will be incremented by DB. But to be resilient, update posts table too.
+      const { error: e2 } = await sb.from('posts').update({}).eq('id', postId); // no-op to trigger realtime update if trigger is set
+      if (e2) console.warn(e2);
+    } else {
+      // remove like
+      const { data, error } = await sb.from('likes').delete().match({ user_id: currentUser.id, post_id: postId });
+      if (error) throw error;
+    }
+  } catch(err) {
+    // revert UI
+    likeBtnEl.classList.toggle('liked');
+    countSpan.textContent = formatCount(currentCount);
+    toast('Could not change like (network).');
+    console.error(err);
+  } finally {
+    pendingLikeOps.delete(postId);
+  }
+}
+
+/* parse abbreviated count */
+function parseCount(s) {
+  if (!s) return 0;
+  s = s.replace(/,/g,'').trim();
+  if (s.endsWith('K')) return Math.round(parseFloat(s) * 1000);
+  if (s.endsWith('M')) return Math.round(parseFloat(s) * 1000000);
+  return parseInt(s) || 0;
+}
+
+/* --- Comments modal & posting --- */
+const commentModal = document.getElementById('commentModal');
+const commentsContent = document.getElementById('commentsContent');
+const newCommentText = document.getElementById('newCommentText');
+const postCommentBtn = document.getElementById('postCommentBtn');
+
+document.getElementById('closeComments').onclick = () => closeComments();
+
+async function openComments(postId) {
+  commentsOpenFor = postId;
+  commentModal.classList.remove('hidden');
+  await loadCommentsFor(postId);
+}
+
+function closeComments() {
+  commentsOpenFor = null;
+  commentModal.classList.add('hidden');
+  commentsContent.innerHTML = '';
+  newCommentText.value = '';
+}
+
+async function loadCommentsFor(postId) {
+  commentsContent.innerHTML = '<div class="small muted">Loading comments…</div>';
+  const { data, error } = await sb.from('comments').select(`id, post_id, user_id, content, parent_id, inserted_at, profiles (username, avatar_url)`).eq('post_id', postId).order('inserted_at', { ascending: true });
+  if (error) { commentsContent.innerHTML = '<div class="small muted">Failed to load comments</div>'; console.error(error); return; }
+  // group by parent_id
+  const byParent = new Map();
+  data.forEach(c => {
+    const p = c.parent_id || 'root';
+    if (!byParent.has(p)) byParent.set(p, []);
+    byParent.get(p).push(c);
+  });
+  commentsContent.innerHTML = '';
+  const rootComments = byParent.get('root') || [];
+  rootComments.forEach(c => commentsContent.appendChild(renderCommentNode(c, byParent)));
+}
+
+function renderCommentNode(comment, byParent) {
+  const el = document.createElement('div');
+  el.className = 'comment';
+  const avatar = comment.profiles?.avatar_url || 'user1.jpg';
+  el.innerHTML = `
+    <div class="comment-avatar"><img src="${avatar}" alt=""></div>
+    <div class="comment-body">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div><strong>@${comment.profiles?.username || 'anon'}</strong> <span class="small muted"> ${timeAgo(new Date(comment.inserted_at))}</span></div>
+        <div><button class="btn ghost small reply-btn" data-cid="${comment.id}">Reply</button></div>
+      </div>
+      <div style="margin-top:6px;">${escapeHtml(comment.content)}</div>
+      <div class="comment-children" style="margin-top:8px;"></div>
+    </div>
+  `;
+  const children = byParent.get(comment.id) || [];
+  const childrenContainer = el.querySelector('.comment-children');
+  children.forEach(child => childrenContainer.appendChild(renderCommentNode(child, byParent)));
+  // reply handler (inserts a simple reply box)
+  el.querySelector('.reply-btn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.dataset.open === '1') return; // already open
+    btn.dataset.open = '1';
+    const replyBox = document.createElement('div');
+    replyBox.style.marginTop = '8px';
+    replyBox.innerHTML = `<textarea class="input" rows="2" placeholder="Reply..."></textarea>
+      <div style="display:flex;justify-content:flex-end; gap:8px; margin-top:6px;">
+        <button class="btn ghost small cancel-reply">Cancel</button>
+        <button class="btn primary small submit-reply">Reply</button>
+      </div>`;
+    childrenContainer.prepend(replyBox);
+    replyBox.querySelector('.cancel-reply').onclick = () => { replyBox.remove(); btn.dataset.open = '0'; };
+    replyBox.querySelector('.submit-reply').onclick = async () => {
+      const txt = replyBox.querySelector('textarea').value.trim();
+      if (!txt) { toast('Type something'); return; }
+      // optimistic insertion
+      const optimistic = {
+        id: 'optim-' + Math.random().toString(36).slice(2),
+        content: txt,
+        profiles: { username: currentUser?.user_metadata?.name || 'You', avatar_url: currentUser?.user_metadata?.picture || ''},
+        inserted_at: new Date().toISOString()
+      };
+      childrenContainer.appendChild(renderCommentNode(optimistic, new Map()));
+      // increment post comment count fast
+      incrementPostCommentCount(commentsOpenFor, 1);
+      // send to DB
+      try {
+        const { error } = await sb.from('comments').insert({ post_id: commentsOpenFor, user_id: currentUser.id, parent_id: comment.id, content: txt });
+        if (error) throw error;
+      } catch (err) {
+        toast('Failed to post reply');
+        console.error(err);
+        decrementPostCommentCount(commentsOpenFor,1);
+        // no perfect revert of optimistic node, but realtime will sync
+      } finally {
+        replyBox.remove();
+        btn.dataset.open = '0';
+      }
+    };
+  });
+  return el;
+}
+
+postCommentBtn.onclick = async () => {
+  if (!currentUser) { toast('Sign in to comment'); return; }
+  const txt = newCommentText.value.trim();
+  if (!txt) { toast('Type a comment'); return; }
+  // optimistic UI: append to commentsContent
+  const optimistic = {
+    id: 'optim-' + Math.random().toString(36).slice(2),
+    content: txt,
+    profiles: { username: currentUser?.user_metadata?.name || 'You', avatar_url: currentUser?.user_metadata?.picture || ''},
+    inserted_at: new Date().toISOString()
+  };
+  commentsContent.appendChild(renderCommentNode(optimistic, new Map()));
+  newCommentText.value = '';
+  incrementPostCommentCount(commentsOpenFor, 1);
+
+  try {
+    const { error } = await sb.from('comments').insert({ post_id: commentsOpenFor, user_id: currentUser.id, content: txt });
+    if (error) throw error;
+  } catch (err) {
+    toast('Failed to post comment');
+    decrementPostCommentCount(commentsOpenFor, 1);
+    console.error(err);
+  }
+};
+
+function incrementPostCommentCount(postId, delta) {
+  const el = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!el) return;
+  const countSpan = el.querySelector('.post-comment-count');
+  const cur = parseCount(countSpan.textContent);
+  countSpan.textContent = formatCount(cur + delta);
+}
+function decrementPostCommentCount(postId, delta) {
+  const el = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!el) return;
+  const countSpan = el.querySelector('.post-comment-count');
+  const cur = parseCount(countSpan.textContent);
+  countSpan.textContent = formatCount(Math.max(0, cur - delta));
+}
+
+/* --- Realtime subscriptions (updates per-post only) --- */
+function initRealtime() {
+  // posts changes
+  const postChannel = sb.channel('public:posts')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+      const post = payload.new || payload.old;
+      if (!post) return;
+      postsCache.set(post.id, { ...postsCache.get(post.id), ...post });
+      // update only the post DOM counts/content
+      updatePostDOM(post.id, post);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
+      const comment = payload.new || payload.old;
+      if (!comment) return;
+      // update the post's count (if provided)
+      // fetch latest count for the post for safety OR read from postsCache if trigger exists
+      // We'll attempt to patch only the count by fetching single post row:
+      refreshPostCounts(comment.post_id);
+      // if comment modal open for this post, refresh comments list
+      if (commentsOpenFor === comment.post_id) loadCommentsFor(comment.post_id);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+      const like = payload.new || payload.old;
+      if (!like) return;
+      refreshPostCounts(like.post_id);
+    })
+    .subscribe();
+
+  // keep reference (not strictly necessary)
+  window._vynal_channels = (window._vynal_channels || []).concat([postChannel]);
+}
+
+/* update only the post DOM fields that changed */
+async function updatePostDOM(postId, partialPost) {
+  const el = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!el) return;
+  if (partialPost.like_count != null) {
+    const s = el.querySelector('.post-like-count');
+    if (s) s.textContent = formatCount(partialPost.like_count);
+  }
+  if (partialPost.comment_count != null) {
+    const s = el.querySelector('.post-comment-count');
+    if (s) s.textContent = formatCount(partialPost.comment_count);
+  }
+  if (partialPost.content != null) {
+    const body = el.querySelector('div:nth-child(2) > div:nth-child(2)');
+    if (body) body.innerHTML = escapeHtml(partialPost.content);
+  }
+}
+
+/* robust refresh of counts by fetching post row */
+async function refreshPostCounts(postId) {
+  if (!postId) return;
+  const { data, error } = await sb.from('posts').select('like_count,comment_count').eq('id', postId).single();
+  if (error) return;
+  updatePostDOM(postId, data);
+}
+
+/* --- Upload (create post) --- */
+$('#btnOpenUpload').onclick = () => $('#uploadModal').classList.remove('hidden');
+$('#uploadClose').onclick = () => $('#uploadModal').classList.add('hidden');
+
+$('#uSubmit').onclick = async () => {
+  if (!currentUser) { toast('Sign in to post'); return; }
+  const content = $('#uContent').value.trim();
+  const file = $('#uFile').files[0];
+  $('#uSubmit').disabled = true;
+  try {
+    let mediaPath = null;
+    if (file) {
+      // store in post_media bucket with a safe filename
+      const filename = `${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
+      // The supabase-js storage.upload() doesn't report progress; we animate the progress bar for UX and then set to complete when finished.
+      $('#uProgressBar').style.width = '10%';
+      const { data, error } = await sb.storage.from('post_media').upload(filename, file, { cacheControl: '3600', upsert: false });
+      if (error) throw error;
+      $('#uProgressBar').style.width = '90%';
+      mediaPath = filename;
+    }
+    // insert post row
+    const { error } = await sb.from('posts').insert({ user_id: currentUser.id, content, media_path: mediaPath });
+    if (error) throw error;
+    // done
+    $('#uProgressBar').style.width = '100%';
+    toast('Post uploaded');
+    $('#uploadModal').classList.add('hidden');
+    $('#uContent').value = '';
+    $('#uFile').value = '';
+    setTimeout(()=>$('#uProgressBar').style.width = '0%', 600);
+    // reload top posts quickly (we could fetch one row or rely on realtime); do a quick fetch of latest 5
+    await fetchPosts();
+  } catch (err) {
+    console.error(err);
+    toast('Upload failed');
+  } finally {
+    $('#uSubmit').disabled = false;
+  }
+};
+
+/* --- Boot --- */
+await initAuth();
+
+/* Utility note: format for safe public storage path */
+</script>
 </body>
 </html>
