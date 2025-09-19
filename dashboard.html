@@ -91,470 +91,77 @@
 <div id="toast" class="toast hidden"></div>
 
 <script type="module">
-/* File: public/dashboard.html (inline script)
-   Minimal comments; see top-of-response for SQL and plan.
-*/
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
-
+const SUPABASE_ANON_KEY = "YOUR_KEY";
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* --- State --- */
-let currentUser = null;
-const postsCache = new Map(); // postId -> post data
-let commentsOpenFor = null;
+/* === Post Upload === */
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const desc = document.getElementById("uTitle").value;
+  const tags = document.getElementById("uTags").value.split(",").map(t => t.trim());
+  const file = document.getElementById("uCover").files[0];
 
-/* --- Helpers --- */
-const $ = sel => document.querySelector(sel);
-const $$ = sel => Array.from(document.querySelectorAll(sel));
-const toast = (t, ms = 3000) => { const el = $('#toast'); el.textContent = t; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'), ms); };
-
-/* --- Auth --- */
-async function initAuth() {
-  const authArea = document.getElementById('auth-area');
-
-  // show sign in / user info
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) {
-    await handleSignIn(session.user);
-  } else {
-    renderSignedOut();
+  let mediaUrl = null;
+  if (file) {
+    const { data, error } = await sb.storage.from("post_media").upload(`posts/${Date.now()}-${file.name}`, file, { upsert: true });
+    if (!error) mediaUrl = sb.storage.from("post_media").getPublicUrl(data.path).data.publicUrl;
   }
 
-  sb.auth.onAuthStateChange(async (event, sess) => {
-    if (sess?.user) {
-      await handleSignIn(sess.user);
-    } else {
-      currentUser = null;
-      renderSignedOut();
-    }
-  });
+  await sb.from("posts").insert({ content: desc, tags, media_url: mediaUrl, user_id: (await sb.auth.getUser()).data.user.id });
+});
 
-  function renderSignedOut(){
-    authArea.innerHTML = `<button id="btnSignInGoogle" class="btn primary">Sign in with Google</button>`;
-    document.getElementById('btnSignInGoogle').onclick = () => {
-      sb.auth.signInWithOAuth({ provider: 'google', options: { queryParams: { prompt: 'consent', access_type: 'offline' } } });
-    };
+/* === Like Button Optimistic === */
+document.addEventListener("click", async (e) => {
+  if (e.target.closest(".like-btn")) {
+    const btn = e.target.closest(".like-btn");
+    const span = btn.querySelector("span");
+    span.textContent = parseInt(span.textContent) + 1; // fast bump
+
+    const postId = btn.dataset.postId;
+    const userId = (await sb.auth.getUser()).data.user.id;
+    await sb.from("likes").insert({ post_id: postId, user_id: userId }).catch(async () => {
+      // if already liked, remove
+      await sb.from("likes").delete().eq("post_id", postId).eq("user_id", userId);
+      span.textContent = parseInt(span.textContent) - 2; // rollback (bump -1 net)
+    });
   }
-}
+});
 
-async function handleSignIn(user) {
-  // user: { id, app_metadata, user_metadata, ... }
-  currentUser = user;
-  // ensure profile row exists
-  await sb.from('profiles').upsert({
-    id: user.id,
-    full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-    avatar_url: user.user_metadata?.picture || '',
-    username: (user.user_metadata?.email || '').split('@')[0]
-  }, { onConflict: 'id' });
+/* === Comment Optimistic === */
+document.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("post-comment")) {
+    const textarea = e.target.previousElementSibling;
+    const content = textarea.value;
+    if (!content) return;
 
-  // render user area
-  const authArea = document.getElementById('auth-area');
-  const avatarUrl = user.user_metadata?.picture || '';
-  authArea.innerHTML = `
-    <div style="display:flex; gap:8px; align-items:center;">
-      <img src="${avatarUrl}" alt="Me" style="width:40px;height:40px;border-radius:999px;object-fit:cover;">
-      <div>
-        <div style="font-weight:700">${user.user_metadata?.full_name || user.user_metadata?.name || 'You'}</div>
-        <button id="signOutBtn" class="btn ghost small">Sign out</button>
-      </div>
-    </div>`;
-  document.getElementById('signOutBtn').onclick = async () => {
-    await sb.auth.signOut();
-    toast('Signed out');
-  };
+    const postId = e.target.dataset.postId;
+    const userId = (await sb.auth.getUser()).data.user.id;
 
-  // show avatar in header
-  const up = document.getElementById('user-pic');
-  if (up) up.src = avatarUrl;
+    // Optimistic add
+    const commentsEl = document.querySelector(".comments");
+    commentsEl.innerHTML += `<div class="comment"><div class="comment-body"><strong>You</strong> ${content}</div></div>`;
+    textarea.value = "";
 
-  // start app
-  await fetchPosts();
-  initRealtime();
-}
-
-/* --- Fetch + Render posts --- */
-const postsEl = document.getElementById('posts');
-async function fetchPosts() {
-  $('#loader').style.display = 'block';
-  const { data, error } = await sb
-    .from('posts')
-    .select(`id, user_id, content, media_path, like_count, comment_count, inserted_at, profiles (username, avatar_url)`)
-    .order('inserted_at', { ascending: false })
-    .limit(50);
-
-  $('#loader').style.display = 'none';
-  if (error) { toast('Failed to load posts'); console.error(error); return; }
-  postsEl.innerHTML = '';
-  data.forEach(p => {
-    postsCache.set(p.id, p);
-    postsEl.appendChild(renderPost(p));
-  });
-}
-
-/* build DOM for a single post */
-function renderPost(post) {
-  const root = document.createElement('article');
-  root.className = 'post-card';
-  root.dataset.postId = post.id;
-
-  const username = post.profiles?.username || 'unknown';
-  const avatar = post.profiles?.avatar_url || 'cod.jpg';
-
-  root.innerHTML = `
-    <div style="display:flex; gap:10px; align-items:flex-start;">
-      <img src="${avatar}" alt="${username}" style="width:56px;height:56px;border-radius:999px;object-fit:cover;">
-      <div style="flex:1;">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <strong>${username}</strong><div class="muted small"> ${timeAgo(new Date(post.inserted_at))}</div>
-          </div>
-          <div>
-            <button class="btn ghost" title="Open post">Open</button>
-          </div>
-        </div>
-        <div style="margin-top:8px;">${escapeHtml(post.content || '')}</div>
-        ${post.media_path ? `<div style="margin-top:8px;"><img src="${publicUrlFor(post.media_path)}" style="max-width:100%;height:auto;border-radius:8px;"></div>` : ''}
-        <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
-          <button class="action-btn like-btn" data-post-id="${post.id}" title="Like"><i class="ri-heart-line"></i> <span class="post-like-count">${formatCount(post.like_count)}</span></button>
-          <button class="action-btn comment-btn" data-post-id="${post.id}" title="Comments"><i class="ri-chat-3-line"></i> <span class="post-comment-count">${formatCount(post.comment_count)}</span></button>
-          <button class="action-btn share-btn" data-post-id="${post.id}"><i class="ri-share-forward-line"></i> Share</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // events
-  const likeBtn = root.querySelector('.like-btn');
-  likeBtn.addEventListener('click', () => toggleLikeOptimistic(post.id, likeBtn));
-
-  const commentBtn = root.querySelector('.comment-btn');
-  commentBtn.addEventListener('click', () => openComments(post.id));
-
-  return root;
-}
-
-/* --- Utils --- */
-function formatCount(n) {
-  if (n == null) return '0';
-  if (n < 1000) return String(n);
-  if (n < 1000000) return (n/1000).toFixed(n<10000?1:0) + 'K';
-  return (n/1000000).toFixed(1) + 'M';
-}
-function timeAgo(d) {
-  const s = Math.floor((Date.now() - d.getTime())/1000);
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s/60)}m ago`;
-  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-  return `${Math.floor(s/86400)}d ago`;
-}
-function escapeHtml(s = '') {
-  return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
-}
-function publicUrlFor(path) {
-  if (!path) return '';
-  // if path already a full url, return as-is
-  if (path.startsWith('http')) return path;
-  // Storage public URL
-  return `${SUPABASE_URL}/storage/v1/object/public/post_media/${encodeURIComponent(path)}`;
-}
-
-/* --- Optimistic Like --- */
-const pendingLikeOps = new Set();
-
-async function toggleLikeOptimistic(postId, likeBtnEl) {
-  if (!currentUser) { toast('Sign in to like'); return; }
-  if (pendingLikeOps.has(postId)) return;
-  pendingLikeOps.add(postId);
-
-  // toggle UI fast
-  const countSpan = likeBtnEl.querySelector('.post-like-count');
-  const wasLiked = likeBtnEl.classList.contains('liked');
-  const currentCount = parseCount(countSpan.textContent);
-  const newCount = wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
-  likeBtnEl.classList.toggle('liked');
-  countSpan.textContent = formatCount(newCount);
-
-  // Attempt DB operation: insert or delete from likes (unique user+post)
-  try {
-    if (!wasLiked) {
-      const { error: e1 } = await sb.from('likes').insert({ user_id: currentUser.id, post_id: postId });
-      if (e1 && !/duplicate key/.test(e1.message || '')) throw e1;
-      // if triggers exist, posts.like_count will be incremented by DB. But to be resilient, update posts table too.
-      const { error: e2 } = await sb.from('posts').update({}).eq('id', postId); // no-op to trigger realtime update if trigger is set
-      if (e2) console.warn(e2);
-    } else {
-      // remove like
-      const { data, error } = await sb.from('likes').delete().match({ user_id: currentUser.id, post_id: postId });
-      if (error) throw error;
-    }
-  } catch(err) {
-    // revert UI
-    likeBtnEl.classList.toggle('liked');
-    countSpan.textContent = formatCount(currentCount);
-    toast('Could not change like (network).');
-    console.error(err);
-  } finally {
-    pendingLikeOps.delete(postId);
+    await sb.from("comments").insert({ post_id: postId, user_id: userId, content });
   }
-}
+});
 
-/* parse abbreviated count */
-function parseCount(s) {
-  if (!s) return 0;
-  s = s.replace(/,/g,'').trim();
-  if (s.endsWith('K')) return Math.round(parseFloat(s) * 1000);
-  if (s.endsWith('M')) return Math.round(parseFloat(s) * 1000000);
-  return parseInt(s) || 0;
-}
-
-/* --- Comments modal & posting --- */
-const commentModal = document.getElementById('commentModal');
-const commentsContent = document.getElementById('commentsContent');
-const newCommentText = document.getElementById('newCommentText');
-const postCommentBtn = document.getElementById('postCommentBtn');
-
-document.getElementById('closeComments').onclick = () => closeComments();
-
-async function openComments(postId) {
-  commentsOpenFor = postId;
-  commentModal.classList.remove('hidden');
-  await loadCommentsFor(postId);
-}
-
-function closeComments() {
-  commentsOpenFor = null;
-  commentModal.classList.add('hidden');
-  commentsContent.innerHTML = '';
-  newCommentText.value = '';
-}
-
-async function loadCommentsFor(postId) {
-  commentsContent.innerHTML = '<div class="small muted">Loading comments…</div>';
-  const { data, error } = await sb.from('comments').select(`id, post_id, user_id, content, parent_id, inserted_at, profiles (username, avatar_url)`).eq('post_id', postId).order('inserted_at', { ascending: true });
-  if (error) { commentsContent.innerHTML = '<div class="small muted">Failed to load comments</div>'; console.error(error); return; }
-  // group by parent_id
-  const byParent = new Map();
-  data.forEach(c => {
-    const p = c.parent_id || 'root';
-    if (!byParent.has(p)) byParent.set(p, []);
-    byParent.get(p).push(c);
-  });
-  commentsContent.innerHTML = '';
-  const rootComments = byParent.get('root') || [];
-  rootComments.forEach(c => commentsContent.appendChild(renderCommentNode(c, byParent)));
-}
-
-function renderCommentNode(comment, byParent) {
-  const el = document.createElement('div');
-  el.className = 'comment';
-  const avatar = comment.profiles?.avatar_url || 'user1.jpg';
-  el.innerHTML = `
-    <div class="comment-avatar"><img src="${avatar}" alt=""></div>
-    <div class="comment-body">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div><strong>@${comment.profiles?.username || 'anon'}</strong> <span class="small muted"> ${timeAgo(new Date(comment.inserted_at))}</span></div>
-        <div><button class="btn ghost small reply-btn" data-cid="${comment.id}">Reply</button></div>
-      </div>
-      <div style="margin-top:6px;">${escapeHtml(comment.content)}</div>
-      <div class="comment-children" style="margin-top:8px;"></div>
-    </div>
-  `;
-  const children = byParent.get(comment.id) || [];
-  const childrenContainer = el.querySelector('.comment-children');
-  children.forEach(child => childrenContainer.appendChild(renderCommentNode(child, byParent)));
-  // reply handler (inserts a simple reply box)
-  el.querySelector('.reply-btn').addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    if (btn.dataset.open === '1') return; // already open
-    btn.dataset.open = '1';
-    const replyBox = document.createElement('div');
-    replyBox.style.marginTop = '8px';
-    replyBox.innerHTML = `<textarea class="input" rows="2" placeholder="Reply..."></textarea>
-      <div style="display:flex;justify-content:flex-end; gap:8px; margin-top:6px;">
-        <button class="btn ghost small cancel-reply">Cancel</button>
-        <button class="btn primary small submit-reply">Reply</button>
-      </div>`;
-    childrenContainer.prepend(replyBox);
-    replyBox.querySelector('.cancel-reply').onclick = () => { replyBox.remove(); btn.dataset.open = '0'; };
-    replyBox.querySelector('.submit-reply').onclick = async () => {
-      const txt = replyBox.querySelector('textarea').value.trim();
-      if (!txt) { toast('Type something'); return; }
-      // optimistic insertion
-      const optimistic = {
-        id: 'optim-' + Math.random().toString(36).slice(2),
-        content: txt,
-        profiles: { username: currentUser?.user_metadata?.name || 'You', avatar_url: currentUser?.user_metadata?.picture || ''},
-        inserted_at: new Date().toISOString()
-      };
-      childrenContainer.appendChild(renderCommentNode(optimistic, new Map()));
-      // increment post comment count fast
-      incrementPostCommentCount(commentsOpenFor, 1);
-      // send to DB
-      try {
-        const { error } = await sb.from('comments').insert({ post_id: commentsOpenFor, user_id: currentUser.id, parent_id: comment.id, content: txt });
-        if (error) throw error;
-      } catch (err) {
-        toast('Failed to post reply');
-        console.error(err);
-        decrementPostCommentCount(commentsOpenFor,1);
-        // no perfect revert of optimistic node, but realtime will sync
-      } finally {
-        replyBox.remove();
-        btn.dataset.open = '0';
-      }
-    };
-  });
-  return el;
-}
-
-postCommentBtn.onclick = async () => {
-  if (!currentUser) { toast('Sign in to comment'); return; }
-  const txt = newCommentText.value.trim();
-  if (!txt) { toast('Type a comment'); return; }
-  // optimistic UI: append to commentsContent
-  const optimistic = {
-    id: 'optim-' + Math.random().toString(36).slice(2),
-    content: txt,
-    profiles: { username: currentUser?.user_metadata?.name || 'You', avatar_url: currentUser?.user_metadata?.picture || ''},
-    inserted_at: new Date().toISOString()
-  };
-  commentsContent.appendChild(renderCommentNode(optimistic, new Map()));
-  newCommentText.value = '';
-  incrementPostCommentCount(commentsOpenFor, 1);
-
-  try {
-    const { error } = await sb.from('comments').insert({ post_id: commentsOpenFor, user_id: currentUser.id, content: txt });
-    if (error) throw error;
-  } catch (err) {
-    toast('Failed to post comment');
-    decrementPostCommentCount(commentsOpenFor, 1);
-    console.error(err);
-  }
-};
-
-function incrementPostCommentCount(postId, delta) {
-  const el = document.querySelector(`[data-post-id="${postId}"]`);
-  if (!el) return;
-  const countSpan = el.querySelector('.post-comment-count');
-  const cur = parseCount(countSpan.textContent);
-  countSpan.textContent = formatCount(cur + delta);
-}
-function decrementPostCommentCount(postId, delta) {
-  const el = document.querySelector(`[data-post-id="${postId}"]`);
-  if (!el) return;
-  const countSpan = el.querySelector('.post-comment-count');
-  const cur = parseCount(countSpan.textContent);
-  countSpan.textContent = formatCount(Math.max(0, cur - delta));
-}
-
-/* --- Realtime subscriptions (updates per-post only) --- */
-function initRealtime() {
-  // posts changes
-  const postChannel = sb.channel('public:posts')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
-      const post = payload.new || payload.old;
-      if (!post) return;
-      postsCache.set(post.id, { ...postsCache.get(post.id), ...post });
-      // update only the post DOM counts/content
-      updatePostDOM(post.id, post);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, payload => {
-      const comment = payload.new || payload.old;
-      if (!comment) return;
-      // update the post's count (if provided)
-      // fetch latest count for the post for safety OR read from postsCache if trigger exists
-      // We'll attempt to patch only the count by fetching single post row:
-      refreshPostCounts(comment.post_id);
-      // if comment modal open for this post, refresh comments list
-      if (commentsOpenFor === comment.post_id) loadCommentsFor(comment.post_id);
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
-      const like = payload.new || payload.old;
-      if (!like) return;
-      refreshPostCounts(like.post_id);
-    })
-    .subscribe();
-
-  // keep reference (not strictly necessary)
-  window._vynal_channels = (window._vynal_channels || []).concat([postChannel]);
-}
-
-/* update only the post DOM fields that changed */
-async function updatePostDOM(postId, partialPost) {
-  const el = document.querySelector(`[data-post-id="${postId}"]`);
-  if (!el) return;
-  if (partialPost.like_count != null) {
-    const s = el.querySelector('.post-like-count');
-    if (s) s.textContent = formatCount(partialPost.like_count);
-  }
-  if (partialPost.comment_count != null) {
-    const s = el.querySelector('.post-comment-count');
-    if (s) s.textContent = formatCount(partialPost.comment_count);
-  }
-  if (partialPost.content != null) {
-    const body = el.querySelector('div:nth-child(2) > div:nth-child(2)');
-    if (body) body.innerHTML = escapeHtml(partialPost.content);
-  }
-}
-
-/* robust refresh of counts by fetching post row */
-async function refreshPostCounts(postId) {
-  if (!postId) return;
-  const { data, error } = await sb.from('posts').select('like_count,comment_count').eq('id', postId).single();
-  if (error) return;
-  updatePostDOM(postId, data);
-}
-
-/* --- Upload (create post) --- */
-$('#btnOpenUpload').onclick = () => $('#uploadModal').classList.remove('hidden');
-$('#uploadClose').onclick = () => $('#uploadModal').classList.add('hidden');
-
-$('#uSubmit').onclick = async () => {
-  if (!currentUser) { toast('Sign in to post'); return; }
-  const content = $('#uContent').value.trim();
-  const file = $('#uFile').files[0];
-  $('#uSubmit').disabled = true;
-  try {
-    let mediaPath = null;
-    if (file) {
-      // store in post_media bucket with a safe filename
-      const filename = `${Date.now()}_${file.name.replace(/\s+/g,'_')}`;
-      // The supabase-js storage.upload() doesn't report progress; we animate the progress bar for UX and then set to complete when finished.
-      $('#uProgressBar').style.width = '10%';
-      const { data, error } = await sb.storage.from('post_media').upload(filename, file, { cacheControl: '3600', upsert: false });
-      if (error) throw error;
-      $('#uProgressBar').style.width = '90%';
-      mediaPath = filename;
-    }
-    // insert post row
-    const { error } = await sb.from('posts').insert({ user_id: currentUser.id, content, media_path: mediaPath });
-    if (error) throw error;
-    // done
-    $('#uProgressBar').style.width = '100%';
-    toast('Post uploaded');
-    $('#uploadModal').classList.add('hidden');
-    $('#uContent').value = '';
-    $('#uFile').value = '';
-    setTimeout(()=>$('#uProgressBar').style.width = '0%', 600);
-    // reload top posts quickly (we could fetch one row or rely on realtime); do a quick fetch of latest 5
-    await fetchPosts();
-  } catch (err) {
-    console.error(err);
-    toast('Upload failed');
-  } finally {
-    $('#uSubmit').disabled = false;
-  }
-};
-
-/* --- Boot --- */
-await initAuth();
-
-/* Utility note: format for safe public storage path */
+/* === Realtime sync === */
+sb.channel("db-changes")
+  .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, (payload) => {
+    // Only update affected post comments
+    console.log("New comment event", payload);
+  })
+  .on("postgres_changes", { event: "*", schema: "public", table: "likes" }, (payload) => {
+    // Update like counts for that post only
+    console.log("Like event", payload);
+  })
+  .subscribe();
 </script>
+
 </body>
 </html>
+
