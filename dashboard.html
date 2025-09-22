@@ -24,6 +24,11 @@
         </form>
     </div>
 
+    <!-- Loading/Status Messages -->
+    <div id="statusMessage" style="display:none; padding: 20px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+        <span id="statusText">Loading posts...</span>
+    </div>
+
     <!-- Posts Container -->
     <div id="postsContainer">
         <!-- Posts will be loaded here -->
@@ -102,18 +107,85 @@
         let currentUser = null;
         let postIntervals = new Map(); // Track intervals for each post
 
-        // Check authentication on load
-        window.addEventListener('load', async () => {
+        // Check authentication and setup user
+        async function initializeApp() {
+            showStatus('Checking authentication...', 'loading');
+            
             const { data: { session } } = await sb.auth.getSession();
             if (!session) {
-                window.location.href = 'register.html';
+                showStatus('Not authenticated, redirecting...', 'error');
+                setTimeout(() => window.location.href = 'register.html', 1000);
                 return;
             }
+            
             currentUser = session.user;
+            showStatus('Authentication successful!', 'success');
+            
+            // Check if user exists in database, create if not
+            await ensureUserExists();
+            
             displayUserInfo();
-            loadPosts();
+            await loadPosts();
             setupRealTimeSubscriptions();
-        });
+        }
+
+        // Ensure user exists in database
+        async function ensureUserExists() {
+            const { data: existingUser } = await sb
+                .from('users')
+                .select('id')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (!existingUser) {
+                showStatus('Setting up your profile...', 'loading');
+                await sb.from('users').insert({
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    name: currentUser.user_metadata.name || currentUser.email,
+                    avatar_url: currentUser.user_metadata.avatar_url
+                });
+            }
+        }
+
+        // Show status messages
+        function showStatus(message, type = 'loading', duration = null) {
+            const statusEl = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            
+            statusText.textContent = message;
+            statusEl.style.display = 'block';
+            
+            // Style based on type
+            switch(type) {
+                case 'success':
+                    statusEl.style.background = '#e8f5e8';
+                    statusEl.style.color = '#2e7d2e';
+                    break;
+                case 'error':
+                    statusEl.style.background = '#fee';
+                    statusEl.style.color = '#d63384';
+                    break;
+                case 'info':
+                    statusEl.style.background = '#e3f2fd';
+                    statusEl.style.color = '#1976d2';
+                    break;
+                default: // loading
+                    statusEl.style.background = '#fff3cd';
+                    statusEl.style.color = '#856404';
+            }
+            
+            if (duration) {
+                setTimeout(() => hideStatus(), duration);
+            }
+        }
+
+        function hideStatus() {
+            document.getElementById('statusMessage').style.display = 'none';
+        }
+
+        // Check authentication on load
+        window.addEventListener('load', initializeApp);
 
         function displayUserInfo() {
             const userInfo = document.getElementById('userInfo');
@@ -130,73 +202,122 @@
         document.getElementById('createPostForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            showStatus('Creating your post...', 'loading');
+            
             const title = document.getElementById('postTitle').value;
             const description = document.getElementById('postDescription').value;
             const imageFile = document.getElementById('postImage').files[0];
             const musicFile = document.getElementById('postMusic').files[0];
             
-            let imageUrl = null;
-            let musicUrl = null;
-            
-            // Upload image if provided
-            if (imageFile) {
-                const imageFileName = `${currentUser.id}/${Date.now()}_${imageFile.name}`;
-                const { data: imageData, error: imageError } = await sb.storage
-                    .from('post-media')
-                    .upload(imageFileName, imageFile);
+            try {
+                let imageUrl = null;
+                let musicUrl = null;
                 
-                if (!imageError) {
+                // Upload image if provided
+                if (imageFile) {
+                    showStatus('Uploading image...', 'loading');
+                    const imageFileName = `${currentUser.id}/${Date.now()}_${imageFile.name}`;
+                    const { data: imageData, error: imageError } = await sb.storage
+                        .from('post-media')
+                        .upload(imageFileName, imageFile);
+                    
+                    if (imageError) {
+                        console.error('Image upload error:', imageError);
+                        showStatus('Error uploading image: ' + imageError.message, 'error', 5000);
+                        return;
+                    }
+                    
                     imageUrl = sb.storage.from('post-media').getPublicUrl(imageFileName).data.publicUrl;
                 }
-            }
-            
-            // Upload music if provided
-            if (musicFile) {
-                const musicFileName = `${currentUser.id}/${Date.now()}_${musicFile.name}`;
-                const { data: musicData, error: musicError } = await sb.storage
-                    .from('post-media')
-                    .upload(musicFileName, musicFile);
                 
-                if (!musicError) {
+                // Upload music if provided
+                if (musicFile) {
+                    showStatus('Uploading audio...', 'loading');
+                    const musicFileName = `${currentUser.id}/${Date.now()}_${musicFile.name}`;
+                    const { data: musicData, error: musicError } = await sb.storage
+                        .from('post-media')
+                        .upload(musicFileName, musicFile);
+                    
+                    if (musicError) {
+                        console.error('Music upload error:', musicError);
+                        showStatus('Error uploading audio: ' + musicError.message, 'error', 5000);
+                        return;
+                    }
+                    
                     musicUrl = sb.storage.from('post-media').getPublicUrl(musicFileName).data.publicUrl;
                 }
-            }
-            
-            // Create post
-            const { data, error } = await sb
-                .from('posts')
-                .insert({
-                    user_id: currentUser.id,
-                    title,
-                    description,
-                    image_url: imageUrl,
-                    music_url: musicUrl
-                })
-                .select(`
-                    *,
-                    users (name, avatar_url)
-                `)
-                .single();
-            
-            if (!error) {
+                
+                showStatus('Saving post...', 'loading');
+                
+                // Create post
+                const { data, error } = await sb
+                    .from('posts')
+                    .insert({
+                        user_id: currentUser.id,
+                        title,
+                        description,
+                        image_url: imageUrl,
+                        music_url: musicUrl
+                    })
+                    .select(`
+                        *,
+                        users (name, avatar_url)
+                    `)
+                    .single();
+                
+                if (error) {
+                    console.error('Error creating post:', error);
+                    showStatus('Error creating post: ' + error.message, 'error', 5000);
+                    return;
+                }
+                
                 document.getElementById('createPostForm').reset();
                 prependPost(data);
+                showStatus('Post created successfully!', 'success', 2000);
+                
+            } catch (err) {
+                console.error('Unexpected error creating post:', err);
+                showStatus('Unexpected error occurred while creating post', 'error', 5000);
             }
         });
 
         async function loadPosts() {
-            const { data: posts, error } = await sb
-                .from('posts')
-                .select(`
-                    *,
-                    users (name, avatar_url)
-                `)
-                .order('created_at', { ascending: false });
+            showStatus('Loading posts...', 'loading');
             
-            if (!error && posts) {
+            try {
+                const { data: posts, error } = await sb
+                    .from('posts')
+                    .select(`
+                        *,
+                        users (name, avatar_url)
+                    `)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Error loading posts:', error);
+                    showStatus('Error loading posts: ' + error.message, 'error', 5000);
+                    return;
+                }
+                
                 const container = document.getElementById('postsContainer');
                 container.innerHTML = '';
-                posts.forEach(post => appendPost(post));
+                
+                if (!posts || posts.length === 0) {
+                    showStatus('No posts found. Be the first to create one!', 'info', 3000);
+                    return;
+                }
+                
+                showStatus(`Loading ${posts.length} posts...`, 'loading');
+                
+                posts.forEach(post => {
+                    appendPost(post);
+                });
+                
+                showStatus(`Successfully loaded ${posts.length} posts!`, 'success', 2000);
+                
+            } catch (err) {
+                console.error('Unexpected error loading posts:', err);
+                showStatus('Unexpected error occurred while loading posts', 'error', 5000);
             }
         }
 
@@ -338,23 +459,42 @@
         };
 
         async function loadComments(postId) {
-            const { data: comments, error } = await sb
-                .from('comments')
-                .select(`
-                    *,
-                    users (name, avatar_url)
-                `)
-                .eq('post_id', postId)
-                .order('created_at', { ascending: true });
+            const post = document.querySelector(`[data-post-id="${postId}"]`);
+            const commentsList = post.querySelector('.comments-list');
             
-            if (!error && comments) {
-                const post = document.querySelector(`[data-post-id="${postId}"]`);
-                const commentsList = post.querySelector('.comments-list');
-                commentsList.innerHTML = '';
+            // Show loading in comments
+            commentsList.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Loading comments...</div>';
+            
+            try {
+                const { data: comments, error } = await sb
+                    .from('comments')
+                    .select(`
+                        *,
+                        users (name, avatar_url)
+                    `)
+                    .eq('post_id', postId)
+                    .order('created_at', { ascending: true });
+                
+                commentsList.innerHTML = ''; // Clear loading message
+                
+                if (error) {
+                    console.error('Error loading comments:', error);
+                    commentsList.innerHTML = '<div style="padding: 10px; color: #dc3545;">Error loading comments</div>';
+                    return;
+                }
+                
+                if (!comments || comments.length === 0) {
+                    commentsList.innerHTML = '<div style="padding: 10px; color: #666; text-align: center;">No comments yet. Be the first!</div>';
+                    return;
+                }
                 
                 comments.forEach(comment => {
                     appendComment(commentsList, comment);
                 });
+                
+            } catch (err) {
+                console.error('Unexpected error loading comments:', err);
+                commentsList.innerHTML = '<div style="padding: 10px; color: #dc3545;">Error loading comments</div>';
             }
         }
 
@@ -718,7 +858,3 @@
                 flex-direction: column;
             }
         }
-
-    </style>
-</body>
-</html>
