@@ -355,7 +355,6 @@ async function initializeApp() {
         displayUserInfo();
         await loadPosts();
         setupRealTimeSubscriptions();
-        setupEventListeners(); // Add event listeners
     } catch (error) {
         console.error("Initialization error:", error);
         showStatus("Failed to initialize app: " + error.message, "error", 5000);
@@ -471,38 +470,45 @@ function hideStatus() {
 }
 
 // -------------------- LIKING SYSTEM --------------------
-async function toggleLike(postId) {
+async function toggleLike(buttonElement) {
     if (!currentUser) {
         showStatus("Please log in to like posts", "error", 3000);
         return;
     }
 
-    if (!postId) {
-        console.error("No post ID provided for like toggle");
+    if (!buttonElement) {
+        console.error("No button element provided");
         return;
     }
 
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    // Find the post element and get post ID
+    const postElement = buttonElement.closest('[data-post-id]');
     if (!postElement) {
-        console.error("Post element not found:", postId);
+        console.error("Could not find post element");
         return;
     }
 
-    const likeBtn = postElement.querySelector(".like-btn");
-    const likesCountEl = postElement.querySelector(".likes-count");
+    const postId = postElement.getAttribute('data-post-id');
+    if (!postId) {
+        console.error("No post ID found");
+        return;
+    }
+
+    const likeIcon = buttonElement.querySelector('i');
+    const likesCountEl = buttonElement.querySelector('.likes-count');
     
-    if (!likeBtn || !likesCountEl) {
-        console.error("Like button or count element not found for post:", postId);
+    if (!likeIcon || !likesCountEl) {
+        console.error("Like icon or count element not found");
         return;
     }
 
     // Disable button during operation
-    likeBtn.disabled = true;
-    const originalText = likeBtn.innerHTML;
-    likeBtn.innerHTML = "⏳ ...";
+    buttonElement.disabled = true;
+    const originalIconClass = likeIcon.className;
 
     try {
         const isLiked = userLikes.has(postId);
+        const currentCount = parseInt(likesCountEl.textContent) || 0;
         
         if (isLiked) {
             // Unlike the post
@@ -521,9 +527,10 @@ async function toggleLike(postId) {
             // Update local state
             userLikes.delete(postId);
             
-            // Update UI
-            likeBtn.classList.remove("liked");
-            likeBtn.innerHTML = "🤍 <span class='likes-count'>" + (parseInt(likesCountEl.textContent) - 1) + "</span>";
+            // Update UI - change to outline heart
+            likeIcon.className = "ri-heart-line";
+            likeIcon.style.color = "var(--brand-2)";
+            likesCountEl.textContent = Math.max(0, currentCount - 1);
             
             showStatus("Post unliked!", "success", 1500);
             
@@ -545,9 +552,10 @@ async function toggleLike(postId) {
             // Update local state
             userLikes.add(postId);
             
-            // Update UI
-            likeBtn.classList.add("liked");
-            likeBtn.innerHTML = "❤️ <span class='likes-count'>" + (parseInt(likesCountEl.textContent) + 1) + "</span>";
+            // Update UI - change to filled heart
+            likeIcon.className = "ri-heart-fill";
+            likeIcon.style.color = "#ff4757"; // Red color for liked state
+            likesCountEl.textContent = currentCount + 1;
             
             showStatus("Post liked!", "success", 1500);
         }
@@ -558,10 +566,11 @@ async function toggleLike(postId) {
     } catch (error) {
         console.error("Unexpected error in toggleLike:", error);
         showStatus("An unexpected error occurred", "error", 3000);
-        likeBtn.innerHTML = originalText;
+        // Restore original state
+        likeIcon.className = originalIconClass;
     } finally {
         // Re-enable button
-        likeBtn.disabled = false;
+        buttonElement.disabled = false;
     }
 }
 
@@ -711,15 +720,22 @@ function createPostElement(post) {
 
     // Like button setup
     const isLiked = userLikes.has(post.id);
-    const likeIcon = isLiked ? "❤️" : "🤍";
-    const likeClass = isLiked ? "liked" : "";
-    
-    safeSetContent(".like-btn", `${likeIcon} <span class="likes-count">${post.likes_count ?? 0}</span>`, 'innerHTML');
-    
     const likeBtn = postElement.querySelector(".like-btn");
-    if (likeBtn) {
-        likeBtn.className = `like-btn ${likeClass}`;
-        likeBtn.setAttribute("data-post-id", post.id);
+    const likeIcon = postElement.querySelector(".like-btn i");
+    const likesCount = postElement.querySelector(".likes-count");
+    
+    if (likeIcon && likesCount) {
+        // Set the correct icon based on like status
+        if (isLiked) {
+            likeIcon.className = "ri-heart-fill";
+            likeIcon.style.color = "#ff4757"; // Red for liked
+        } else {
+            likeIcon.className = "ri-heart-line";
+            likeIcon.style.color = "var(--brand-2)"; // Default color
+        }
+        
+        // Set likes count
+        likesCount.textContent = post.likes_count ?? 0;
     }
 
     // Comments count
@@ -744,8 +760,8 @@ function createPostElementFallback(post) {
     postDiv.setAttribute('data-post-id', post.id);
     
     const isLiked = userLikes.has(post.id);
-    const likeIcon = isLiked ? "❤️" : "🤍";
-    const likeClass = isLiked ? "liked" : "";
+    const likeIconClass = isLiked ? "ri-heart-fill" : "ri-heart-line";
+    const likeIconColor = isLiked ? "#ff4757" : "var(--brand-2)";
     
     postDiv.innerHTML = `
         <div class="post-header">
@@ -761,12 +777,22 @@ function createPostElementFallback(post) {
             ${post.image_url ? `<img class="post-image" src="${post.image_url}" alt="Post image" style="max-width: 100%; height: auto;">` : ''}
             ${post.music_url ? `<audio class="post-music" controls><source src="${post.music_url}" type="audio/mpeg"></audio>` : ''}
         </div>
-        <div class="post-stats">
-            <button class="like-btn ${likeClass}" data-post-id="${post.id}">
-                ${likeIcon} <span class="likes-count">${post.likes_count ?? 0}</span>
+        <div class="post-actions">
+            <button class="action-btn like-btn" onclick="toggleLike(this)">
+                <i class="${likeIconClass}" style="color: ${likeIconColor};"></i>
+                <span class="likes-count">${post.likes_count ?? 0}</span>
             </button>
-            <button class="comment-btn" onclick="toggleComments('${post.id}')">
-                💬 <span class="comments-count">${post.comments_count ?? 0}</span>
+            <button class="action-btn comment-btn">
+                <i class="ri-chat-3-line"></i>
+                <span class="comments-count">${post.comments_count ?? 0}</span>
+            </button>
+            <button class="action-btn share-btn">
+                <i class="ri-share-forward-line"></i>
+                <span>12.8K</span>
+            </button>
+            <button class="action-btn">
+                <i class="ri-bookmark-line"></i>
+                <span>30B</span>
             </button>
             ${post.user_id === currentUser?.id ? '<button class="delete-post" style="display: inline-block;">Delete</button>' : ''}
         </div>
@@ -843,7 +869,7 @@ function startPostUpdates(postId) {
     
     const interval = setInterval(async () => {
         await updatePostStats(postId);
-    }, 10000); // Reduced frequency to 10 seconds
+    }, 10000); // Update every 10 seconds
     postIntervals.set(postId, interval);
 }
 
@@ -902,23 +928,6 @@ async function updatePostStats(postId) {
     } catch (error) {
         console.error("Error updating post stats:", error);
     }
-}
-
-// -------------------- EVENT LISTENERS --------------------
-function setupEventListeners() {
-    // Use event delegation for like buttons
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.like-btn')) {
-            e.preventDefault();
-            const likeBtn = e.target.closest('.like-btn');
-            const postId = likeBtn.getAttribute('data-post-id');
-            if (postId) {
-                toggleLike(postId);
-            } else {
-                console.error("No post ID found on like button");
-            }
-        }
-    });
 }
 
 // -------------------- COMMENTS --------------------
@@ -1068,7 +1077,7 @@ window.addEventListener("beforeunload", () => {
     postIntervals.forEach(interval => clearInterval(interval));
 });
 
-// Expose functions to global scope
+// Expose functions to global scope for onclick handlers
 window.loadComments = loadComments;
 window.toggleComments = toggleComments;
 window.toggleLike = toggleLike;
