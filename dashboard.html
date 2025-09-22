@@ -267,7 +267,7 @@ aria-label="Global search" />
             <div class="col-8"><input class="input" type="text" id="postDescription" placeholder="decrt"></div>
             <div class="col-4"><input class="input" type="file" id="postImage"  accept="image/*" aria-label="Cover image"></div>
           </div>
-          <div class="dropzone" id="dropAudio" aria-label="Audio dropzone">
+          <div class="dropzone" aria-label="Audio dropzone">
             <i class="ri-upload-cloud-2-line"></i> Drop audio file here or <u>browse</u>
             <input id="postMusic" type="file" accept="audio/*" class="sr-only" />
           </div>
@@ -579,6 +579,67 @@ async function toggleLike(buttonElement) {
         buttonElement.disabled = false;
     }
 }
+// -------------------- CREATE POST --------------------
+document.getElementById("createPostForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+        showStatus("Please log in to upload", "error", 3000);
+        return;
+    }
+
+    try {
+        showStatus("Uploading post...", "loading");
+
+        const title = document.getElementById("postTitle").value.trim();
+        const description = document.getElementById("postDescription").value.trim();
+        const imageFile = document.getElementById("postImage").files[0];
+        const musicFile = document.getElementById("postMusic").files[0];
+
+        let imageUrl = null;
+        let musicUrl = null;
+
+        // Upload image if exists
+        if (imageFile) {
+            const imagePath = `images/${currentUser.id}/${Date.now()}_${imageFile.name}`;
+            const { error: imgErr } = await sb.storage.from("uploads").upload(imagePath, imageFile);
+            if (imgErr) throw imgErr;
+
+            const { data: { publicUrl } } = sb.storage.from("uploads").getPublicUrl(imagePath);
+            imageUrl = publicUrl;
+        }
+
+        // Upload music if exists
+        if (musicFile) {
+            const musicPath = `music/${currentUser.id}/${Date.now()}_${musicFile.name}`;
+            const { error: musErr } = await sb.storage.from("uploads").upload(musicPath, musicFile);
+            if (musErr) throw musErr;
+
+            const { data: { publicUrl } } = sb.storage.from("uploads").getPublicUrl(musicPath);
+            musicUrl = publicUrl;
+        }
+
+        // Insert into posts table
+        const { error: insertErr } = await sb.from("posts").insert({
+            user_id: currentUser.id,
+            title,
+            description,
+            image_url: imageUrl,
+            music_url: musicUrl,
+        });
+
+        if (insertErr) throw insertErr;
+
+        showStatus("Post uploaded successfully!", "success", 3000);
+
+        // Reset form + hide modal
+        e.target.reset();
+        document.getElementById("createPostSection").style.display = "none";
+
+    } catch (err) {
+        console.error("Upload error:", err);
+        showStatus("Upload failed: " + err.message, "error", 5000);
+    }
+});
 
 // -------------------- POSTS --------------------
 async function loadPosts() {
