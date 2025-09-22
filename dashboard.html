@@ -724,6 +724,7 @@ async function updatePostStats(postId) {
                 const likesCount = postElement.querySelector(".likes-count");
                 const commentsCount = postElement.querySelector(".comments-count");
                 
+                // ADD NULL CHECKS HERE
                 if (likesCount) likesCount.textContent = post.likes_count ?? 0;
                 if (commentsCount) commentsCount.textContent = post.comments_count ?? 0;
             }
