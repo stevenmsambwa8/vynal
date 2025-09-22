@@ -317,8 +317,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-let postIntervals = new Map();
-let userLikes = new Set(); // Track user's likes
+let userLikes = new Set(); // Track user's likes locally
 
 // -------------------- GLOBAL ERROR HANDLER --------------------
 window.onerror = (msg, src, line, col, err) => {
@@ -395,7 +394,7 @@ async function ensureUserExists() {
     }
 }
 
-// Load user's existing likes
+// Load user's existing likes - SIMPLIFIED
 async function loadUserLikes() {
     try {
         const { data: likes, error } = await sb
@@ -469,25 +468,16 @@ function hideStatus() {
     }
 }
 
-// -------------------- LIKING SYSTEM (CORRECTED) --------------------
+// -------------------- OPTIMIZED LIKING SYSTEM --------------------
 async function toggleLike(buttonElement) {
     if (!currentUser) {
         showStatus("Please log in to like posts", "error", 3000);
         return;
     }
 
-    if (!buttonElement) {
-        console.error("No button element provided");
-        return;
-    }
-
     const postElement = buttonElement.closest('[data-post-id]');
-    if (!postElement) {
-        console.error("Could not find post element");
-        return;
-    }
-
-    const postId = postElement.getAttribute('data-post-id');
+    const postId = postElement?.getAttribute('data-post-id');
+    
     if (!postId) {
         console.error("No post ID found");
         return;
@@ -497,7 +487,7 @@ async function toggleLike(buttonElement) {
     const likesCountEl = buttonElement.querySelector('.likes-count');
     
     if (!likeIcon || !likesCountEl) {
-        console.error("Like icon or count element not found");
+        console.error("Like elements not found");
         return;
     }
 
@@ -506,167 +496,73 @@ async function toggleLike(buttonElement) {
 
     try {
         const isLiked = userLikes.has(postId);
+        const currentCount = parseInt(likesCountEl.textContent) || 0;
         
         if (isLiked) {
-            // Unlike the post
-            const { error } = await sb
-                .from("likes")
-                .delete()
-                .eq("post_id", postId)
-                .eq("user_id", currentUser.id);
-
-            if (error) {
-                console.error("Error unliking post:", error);
-                showStatus("Failed to unlike post: " + error.message, "error", 3000);
-                return;
-            }
-
-            // Update local state
+            // UNLIKE - Update UI immediately, then database
             userLikes.delete(postId);
-            
-            // Update UI immediately
             likeIcon.className = "ri-heart-line";
             likeIcon.style.color = "var(--brand-2)";
-            
-            // Update like count in database
-            await updateLikeCount(postId, -1);
-            
-        } else {
-            // Like the post
-            const { error } = await sb
-                .from("likes")
-                .insert({ 
-                    post_id: postId, 
-                    user_id: currentUser.id 
+            likesCountEl.textContent = Math.max(0, currentCount - 1);
+
+            // Delete from database (no need to wait)
+            sb.from("likes")
+                .delete()
+                .eq("post_id", postId)
+                .eq("user_id", currentUser.id)
+                .then(({ error }) => {
+                    if (error) {
+                        // Revert UI on error
+                        userLikes.add(postId);
+                        likeIcon.className = "ri-heart-fill";
+                        likeIcon.style.color = "#ff4757";
+                        likesCountEl.textContent = currentCount;
+                        console.error("Error unliking:", error);
+                    }
                 });
-
-            if (error) {
-                console.error("Error liking post:", error);
-                showStatus("Failed to like post: " + error.message, "error", 3000);
-                return;
-            }
-
-            // Update local state
+                
+        } else {
+            // LIKE - Update UI immediately, then database
             userLikes.add(postId);
-            
-            // Update UI immediately
             likeIcon.className = "ri-heart-fill";
             likeIcon.style.color = "#ff4757";
-            
-            // Update like count in database
-            await updateLikeCount(postId, 1);
-        }
+            likesCountEl.textContent = currentCount + 1;
 
-        // Refresh the actual count from database
-        await refreshLikeCount(postId);
+            // Insert into database (no need to wait)
+            sb.from("likes")
+                .insert({ post_id: postId, user_id: currentUser.id })
+                .then(({ error }) => {
+                    if (error) {
+                        // Revert UI on error
+                        userLikes.delete(postId);
+                        likeIcon.className = "ri-heart-line";
+                        likeIcon.style.color = "var(--brand-2)";
+                        likesCountEl.textContent = currentCount;
+                        console.error("Error liking:", error);
+                    }
+                });
+        }
         
     } catch (error) {
         console.error("Unexpected error in toggleLike:", error);
-        showStatus("An unexpected error occurred", "error", 3000);
     } finally {
         buttonElement.disabled = false;
     }
 }
 
-// Update like count in the posts table
-async function updateLikeCount(postId, increment) {
-    try {
-        // First get current count
-        const { data: currentPost, error: fetchError } = await sb
-            .from("posts")
-            .select("likes_count")
-            .eq("id", postId)
-            .single();
-
-        if (fetchError) {
-            console.error("Error fetching current like count:", fetchError);
-            return;
-        }
-
-        const currentCount = currentPost?.likes_count || 0;
-        const newCount = Math.max(0, currentCount + increment);
-
-        // Update the count
-        const { error: updateError } = await sb
-            .from("posts")
-            .update({ likes_count: newCount })
-            .eq("id", postId);
-
-        if (updateError) {
-            console.error("Error updating like count:", updateError);
-        }
-
-    } catch (error) {
-        console.error("Error in updateLikeCount:", error);
-    }
-}
-
-// Refresh like count from database
-async function refreshLikeCount(postId) {
-    try {
-        // Get actual count from database
-        const { data: actualCount, error: countError } = await sb
-            .from("likes")
-            .select("id", { count: 'exact' })
-            .eq("post_id", postId);
-
-        if (countError) {
-            console.error("Error getting actual like count:", countError);
-            return;
-        }
-
-        const realCount = actualCount?.length || 0;
-
-        // Update posts table with real count
-        const { error: updateError } = await sb
-            .from("posts")
-            .update({ likes_count: realCount })
-            .eq("id", postId);
-
-        if (updateError) {
-            console.error("Error updating post like count:", updateError);
-        }
-
-        // Update UI with real count
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const likesCountEl = postElement.querySelector('.likes-count');
-            if (likesCountEl) {
-                likesCountEl.textContent = realCount;
-            }
-        }
-
-    } catch (error) {
-        console.error("Error refreshing like count:", error);
-    }
-}
 // -------------------- POSTS --------------------
 async function loadPosts() {
     showStatus("Loading posts...", "loading");
     console.log("Starting to load posts...");
 
     try {
-        const { data: testData, error: testError } = await sb
-            .from("posts")
-            .select("id")
-            .limit(1);
-
-        console.log("Test query result:", { testData, testError });
-
-        if (testError) {
-            console.error("Test query failed:", testError);
-            showStatus("Database connection error: " + testError.message, "error", 5000);
-            return;
-        }
-
+        // SIMPLIFIED: Get posts with like counts from database
         const { data: posts, error } = await sb
             .from("posts")
             .select(`
                 *,
-                users!posts_user_id_fkey (
-                    name, 
-                    avatar_url
-                )
+                users!posts_user_id_fkey (name, avatar_url),
+                likes!left (id)
             `)
             .order("created_at", { ascending: false });
 
@@ -696,11 +592,12 @@ async function loadPosts() {
         console.log(`Rendering ${posts.length} posts...`);
         posts.forEach((post, index) => {
             try {
+                // Calculate like count from joined data
+                post.likes_count = post.likes?.length || 0;
                 console.log(`Rendering post ${index + 1}:`, post);
                 appendPost(post);
             } catch (err) {
                 console.error("Error rendering post:", post, err);
-                // Continue with other posts instead of stopping
             }
         });
 
@@ -741,8 +638,6 @@ function createPostElement(post) {
                 } else {
                     element[attribute] = content || '';
                 }
-            } else {
-                console.warn(`Element not found: ${selector} for post ${post.id}`);
             }
         } catch (error) {
             console.error(`Error setting content for ${selector}:`, error);
@@ -784,9 +679,8 @@ function createPostElement(post) {
         }
     }
 
-    // Like button setup
+    // SIMPLIFIED Like button setup
     const isLiked = userLikes.has(post.id);
-    const likeBtn = postElement.querySelector(".like-btn");
     const likeIcon = postElement.querySelector(".like-btn i");
     const likesCount = postElement.querySelector(".likes-count");
     
@@ -794,14 +688,14 @@ function createPostElement(post) {
         // Set the correct icon based on like status
         if (isLiked) {
             likeIcon.className = "ri-heart-fill";
-            likeIcon.style.color = "#ff4757"; // Red for liked
+            likeIcon.style.color = "#ff4757";
         } else {
             likeIcon.className = "ri-heart-line";
-            likeIcon.style.color = "var(--brand-2)"; // Default color
+            likeIcon.style.color = "var(--brand-2)";
         }
         
-        // Set likes count
-        likesCount.textContent = post.likes_count ?? 0;
+        // Set likes count (from database or calculated)
+        likesCount.textContent = post.likes_count || 0;
     }
 
     // Comments count
@@ -818,58 +712,6 @@ function createPostElement(post) {
     return postElement;
 }
 
-// Alternative: Create post element with fallback HTML if template is missing
-function createPostElementFallback(post) {
-    const user = post.users || {};
-    const postDiv = document.createElement('div');
-    postDiv.className = 'post';
-    postDiv.setAttribute('data-post-id', post.id);
-    
-    const isLiked = userLikes.has(post.id);
-    const likeIconClass = isLiked ? "ri-heart-fill" : "ri-heart-line";
-    const likeIconColor = isLiked ? "#ff4757" : "var(--brand-2)";
-    
-    postDiv.innerHTML = `
-        <div class="post-header">
-            <img class="user-avatar" src="${user.avatar_url || 'default-avatar.png'}" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%;">
-            <div>
-                <div class="user-name">${user.name || 'Unknown User'}</div>
-                <div class="post-time">${post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown time'}</div>
-            </div>
-        </div>
-        <div class="post-content">
-            <h3 class="post-title">${post.title || '(No title)'}</h3>
-            <p class="post-description">${post.description || ''}</p>
-            ${post.image_url ? `<img class="post-image" src="${post.image_url}" alt="Post image" style="max-width: 100%; height: auto;">` : ''}
-            ${post.music_url ? `<audio class="post-music" controls><source src="${post.music_url}" type="audio/mpeg"></audio>` : ''}
-        </div>
-        <div class="post-actions">
-            <button class="action-btn like-btn" onclick="toggleLike(this)">
-                <i class="${likeIconClass}" style="color: ${likeIconColor};"></i>
-                <span class="likes-count">${post.likes_count ?? 0}</span>
-            </button>
-            <button class="action-btn comment-btn">
-                <i class="ri-chat-3-line"></i>
-                <span class="comments-count">${post.comments_count ?? 0}</span>
-            </button>
-            <button class="action-btn share-btn">
-                <i class="ri-share-forward-line"></i>
-                <span>12.8K</span>
-            </button>
-            <button class="action-btn">
-                <i class="ri-bookmark-line"></i>
-                <span>30B</span>
-            </button>
-            ${post.user_id === currentUser?.id ? '<button class="delete-post" style="display: inline-block;">Delete</button>' : ''}
-        </div>
-        <div class="comments-section" style="display: none;">
-            <div class="comments-list"></div>
-        </div>
-    `;
-    
-    return postDiv;
-}
-
 function appendPost(post) {
     const container = document.getElementById("postsContainer");
     if (!container) {
@@ -878,22 +720,12 @@ function appendPost(post) {
     }
 
     try {
-        let postElement;
-        
-        // Try to use template first, fallback to manual creation
-        try {
-            postElement = createPostElement(post);
-        } catch (templateError) {
-            console.warn("Template creation failed, using fallback:", templateError);
-            postElement = createPostElementFallback(post);
-        }
-        
+        const postElement = createPostElement(post);
         container.appendChild(postElement);
-        startPostUpdates(post.id);
     } catch (error) {
         console.error("Error appending post:", error);
         
-        // Last resort: create a simple text representation
+        // Fallback: create simple representation
         const fallbackDiv = document.createElement('div');
         fallbackDiv.innerHTML = `
             <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
@@ -914,72 +746,13 @@ function prependPost(post) {
     }
 
     try {
-        let postElement;
-        
-        try {
-            postElement = createPostElement(post);
-        } catch (templateError) {
-            console.warn("Template creation failed, using fallback:", templateError);
-            postElement = createPostElementFallback(post);
-        }
-        
+        const postElement = createPostElement(post);
         container.insertBefore(postElement, container.firstChild);
-        startPostUpdates(post.id);
     } catch (error) {
         console.error("Error prepending post:", error);
     }
 }
 
-function startPostUpdates(postId) {
-    if (!postId) return;
-    
-    const interval = setInterval(async () => {
-        await updatePostStats(postId);
-    }, 10000); // Update every 10 seconds
-    postIntervals.set(postId, interval);
-}
-
-
-async function updatePostStats(postId) {
-    try {
-        // Get actual counts from database
-        const [likesResult, commentsResult, postResult] = await Promise.all([
-            sb.from("likes").select("id", { count: 'exact' }).eq("post_id", postId),
-            sb.from("comments").select("id", { count: 'exact' }).eq("post_id", postId),
-            sb.from("posts").select("likes_count, comments_count").eq("id", postId).single()
-        ]);
-
-        const actualLikesCount = likesResult.data?.length || 0;
-        const actualCommentsCount = commentsResult.data?.length || 0;
-
-        // Update posts table if counts are different
-        const currentLikesCount = postResult.data?.likes_count || 0;
-        const currentCommentsCount = postResult.data?.comments_count || 0;
-
-        if (actualLikesCount !== currentLikesCount || actualCommentsCount !== currentCommentsCount) {
-            await sb
-                .from("posts")
-                .update({ 
-                    likes_count: actualLikesCount,
-                    comments_count: actualCommentsCount 
-                })
-                .eq("id", postId);
-        }
-
-        // Update UI
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            const likesCount = postElement.querySelector(".likes-count");
-            const commentsCount = postElement.querySelector(".comments-count");
-            
-            if (likesCount) likesCount.textContent = actualLikesCount;
-            if (commentsCount) commentsCount.textContent = actualCommentsCount;
-        }
-
-    } catch (error) {
-        console.error("Error updating post stats:", error);
-    }
-}
 // -------------------- COMMENTS --------------------
 async function loadComments(postId) {
     const post = document.querySelector(`[data-post-id="${postId}"]`);
@@ -995,10 +768,7 @@ async function loadComments(postId) {
             .from("comments")
             .select(`
                 *,
-                users!comments_user_id_fkey (
-                    name, 
-                    avatar_url
-                )
+                users!comments_user_id_fkey (name, avatar_url)
             `)
             .eq("post_id", postId)
             .order("created_at", { ascending: true });
@@ -1089,10 +859,10 @@ function toggleComments(postId) {
     }
 }
 
-// -------------------- REAL-TIME SUBSCRIPTIONS (UPDATED) --------------------
+// -------------------- SIMPLIFIED REAL-TIME --------------------
 function setupRealTimeSubscriptions() {
     try {
-        // Subscribe to new posts
+        // Subscribe to new posts only
         sb.channel('posts-channel')
             .on('postgres_changes', 
                 { event: 'INSERT', schema: 'public', table: 'posts' }, 
@@ -1104,15 +874,13 @@ function setupRealTimeSubscriptions() {
                             .from("posts")
                             .select(`
                                 *,
-                                users!posts_user_id_fkey (
-                                    name,
-                                    avatar_url
-                                )
+                                users!posts_user_id_fkey (name, avatar_url)
                             `)
                             .eq("id", payload.new.id)
                             .single();
 
                         if (!error && fullPost) {
+                            fullPost.likes_count = 0; // New post has 0 likes
                             prependPost(fullPost);
                             showStatus("New post added!", "success", 2000);
                         }
@@ -1121,25 +889,7 @@ function setupRealTimeSubscriptions() {
             )
             .subscribe();
 
-        // Subscribe to likes changes (but don't auto-update to prevent conflicts)
-        sb.channel('likes-channel')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'likes' },
-                async (payload) => {
-                    console.log('Like change detected:', payload);
-                    // Only refresh if it's not from current user to avoid conflicts
-                    if (payload.new?.user_id !== currentUser?.id && payload.old?.user_id !== currentUser?.id) {
-                        setTimeout(() => {
-                            if (payload.new?.post_id) {
-                                refreshLikeCount(payload.new.post_id);
-                            } else if (payload.old?.post_id) {
-                                refreshLikeCount(payload.old.post_id);
-                            }
-                        }, 1000); // Delay to avoid race conditions
-                    }
-                }
-            )
-            .subscribe();
+        console.log("Real-time subscriptions set up successfully");
 
     } catch (error) {
         console.error("Error setting up real-time subscriptions:", error);
@@ -1148,10 +898,6 @@ function setupRealTimeSubscriptions() {
 
 // -------------------- EVENTS --------------------
 document.addEventListener("DOMContentLoaded", initializeApp);
-
-window.addEventListener("beforeunload", () => {
-    postIntervals.forEach(interval => clearInterval(interval));
-});
 
 // Expose functions to global scope for onclick handlers
 window.loadComments = loadComments;
