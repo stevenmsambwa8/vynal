@@ -1,102 +1,307 @@
-<!DOCTYPE html>
+<!DOCTYPE html>  
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VYNAL • Artist Dashboard</title>
+<link rel="stylesheet" href="remixicon.min.css">
+<link rel="stylesheet" href="app.css">
+
+<style>
+/* === Post UI Enhancements === */
+.post-card { cursor: pointer; }
+
+/* Post image fixed height + cover */
+.post-media {
+  position: relative;
+}
+
+
+
+/* Watermark overlay */
+.post-media .watermark {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.post-media .watermark img {
+  height: 50px;
+  border-radius: 999px;
+  width: auto;
+}
+
+.hidden { display: none !important; }
+
+
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+</style>
 </head>
+
 <body>
-    <header>
-        <h1>Social Dashboard</h1>
-        <div id="userInfo"></div>
-        <button onclick="logout()">Logout</button>
-    </header>
 
-    <!-- Create Post Form -->
-    <div id="createPostSection">
-        <h2>Create New Post</h2>
-        <form id="createPostForm">
-            <input type="text" id="postTitle" placeholder="Post Title" required>
-            <textarea id="postDescription" placeholder="What's on your mind?" rows="4"></textarea>
-            <input type="file" id="postImage" accept="image/*">
-            <input type="file" id="postMusic" accept="audio/*">
-            <button type="submit">Create Post</button>
-        </form>
-    </div>
+<!-- ===== Sidebar ===== -->
+<aside class="aside" aria-label="Sidebar">
+<div class="brand"><span><img src="oflogo2.png" width="300"> </span></div>
+<div class="side-search">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" placeholder="Quick jump…" aria-label="Sidebar quick jump" />
+</div>
 
-    <!-- Loading/Status Messages -->
+
+<div class="side-group">
+<div class="side-label">Main</div>
+<nav class="nav" aria-label="Primary">
+<a href="start.html" class="active"><i class="ri-stack-fill"></i><span>Feed</span></a>
+<a href="upload.html"><i class="ri-upload-cloud-2-line"></i><span>Upload</span></a>
+<a href="mall.html"><i class="ri-music-line"></i><span>Mi-pages</span></a>
+<a href="states.html"><i class="ri-dashboard-line"></i><span>Dashboard</span></a>
+<a href="index.html"><i class="ri-book-line"></i><span>Documents</span></a>
+</nav>
+</div>
+
+<div class="side-group">
+<div class="side-label" id="userInfo">Account</div>
+<nav class="nav" aria-label="Secondary">
+<a href="#" data-link><i class="ri-user-3-line"></i><span id="user-name">Profile</span></a>
+<a href="#" data-link><i class="ri-settings-3-line"></i><span id="user-email">Settings</span></a>
+</nav>
+</div>
+
+<div class="collapse">
+<button class="btn-icon" id="logout-btn" title="Toggle me" aria-label="Toggle theme"><i
+class="ri-sun-line"></i></button>
+</div>
+</aside>
+
+<section id="content">
+<!-- ===== Header ===== -->
+<header class="header" role="banner">
+<div class="moblogo"><span><img src="ofminilogo1.png" height="40"> </span></div>
+<div class="searchbar">
+<i class="ri-search-2-line" aria-hidden="true"></i>
+<input type="search" id="searchAll" placeholder="Search tracks, posts, connected…"
+aria-label="Global search" />
+</div>
+<div class="actions">
+<button class="pill upload-btn"><i class="ri-add-line"></i><span>Create</span></button>
+<button class="btn-icon" id="btnNoti" aria-label="Notifications"><i class="ri-notification-3-line"></i></button>
+<a href="mall.html" data-link><button class="btn-icon" aria-label="Notifications"><i class="ri-shopping-bag-line"></i></button></a>
+<img class="avatar" id="user-pic" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">
+</div>
+
+</header>
+<!-- ===== Main ===== -->
+<main class="main">
+ <!-- Loading/Status Messages -->
     <div id="statusMessage" style="display:none; padding: 20px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px; text-align: center;">
         <span id="statusText">Loading posts...</span>
     </div>
+<!-- === Post templates === -->
+<section class="grid-12" id="postsContainer">
+ 
+  <!-- === Admini === -->
+<div class="span-4" data-animate>
+<div class="post-card" data-animate style="box-shadow: none;">
+  <div class="post-header">
+  <div class="post-header-left">
+    <div class="post-header-info">
+  <strong>
+    Admini Sponsored Post
+  </strong>
+  <div class="muted">example time stamp - 2 minutes ago</div>
+</div>
 
-    <!-- Posts Container -->
-    <div id="postsContainer">
-        <!-- Posts will be loaded here -->
+  </div>
+  <div class="post-header-right">
+    <button class="menu-btn"><i class="ri-add-line"></i></button>
+  </div>
+</div>
+
+  <div class="post-body">
+    Example admini content or description<span class="hashtag">#example tags</span>
+  </div>
+
+  <div class="post-media">
+    <img src="ofminilogo1.png" alt="Post media" width="100%">
+    <div class="watermark"><img src="cod.jpg" alt="logo"></div>
+  </div>
+<div class="post-actions">
+    <button class="action-btn"><i class="ri-blaze-fill"></i><span>23M</span></button>
+    <button class="action-btn"><i class="ri-link"></i><span>2.4k</span></button>
+    <button class="action-btn"><i class="ri-add-line"></i>Posts<span>2.4k </span></button>    
+</div>
+ 
+</div>
+</div>
+
+</section>
+
+ <div class="divider"></div>
+
+
+
+  <!-- Comments -->
+   <div class="modal-backdrop hidden" id="CommentModal">
+  <div class="modal" style="width: 90%;max-width: 500px;">
+  
+<div class="comments-header">
+  <strong>Comments</strong>
+  <button class="btn-icon" id="commentClose"><i class="ri-close-line"></i></button>
+</div>
+
+<div class="comments comments-list">
+  <!-- Comment-->
+  <template id="commentTemplate" class="comment">
+    <div class="comment-avatar">
+      <img class="comment-avatar" src="" alt="avatar">
     </div>
+    <div class="comment-body comment-content">
+      <div class="comment-header">
+        <span class="comment-author">@example</span>
+        <div class="comment-like">
+          <button class="delete-comment" onclick="deleteComment(this)" style="display:none"><i class="ri-telegram-line"></i></button>
+        </div>
+      </div>
+      <div class="comment-text">example comment 🔥</div>
+      <div class="comment-footer">
+        <span>Reply</span>
+        <span>Report</span>
+        <span class="comment-time">2m ago</span>
+      </div>
+    </div>
+  </template>
 
-    <!-- Post Template -->
-    <template id="postTemplate">
-        <article class="post" data-post-id="">
-            <header class="post-header">
-                <img class="user-avatar" src="" alt="User Avatar">
-                <div class="user-info">
-                    <h3 class="user-name"></h3>
-                    <time class="post-time"></time>
-                </div>
-                <div class="post-actions">
-                    <button class="delete-post" onclick="deletePost(this)" style="display:none">Delete</button>
-                </div>
-            </header>
-            
-            <div class="post-content">
-                <h2 class="post-title"></h2>
-                <p class="post-description"></p>
-                <img class="post-image" src="" alt="Post Image" style="display:none">
-                <audio class="post-music" controls style="display:none">
+  <!-- Add Comment Inline -->
+  <div class="add-comment-wrapper comment-form" onsubmit="addComment(event, this)">
+    <textarea class="add-comment" rows="1" placeholder="Add a comment…"></textarea>
+    <button class="post-comment">Post</button>
+  </div>
+</div>
+
+
+</div>
+</div>
+<template id="postTemplate" class="span-4">
+<div class="post-card post" data-post-id="" style="box-shadow: none;">
+<div class="post-media">
+    <img class="post-image" src="" alt="Post Image" style="display:none" width="100%">
+      <div class="watermark"><img class="user-avatar" src="" alt="logo"></div>
+  </div>
+  <audio class="post-music" controls style="display:none">
                     <source src="" type="audio/mpeg">
                 </audio>
-            </div>
-            
-            <footer class="post-footer">
-                <div class="post-stats">
-                    <span class="likes-count">0</span> likes
-                    <span class="comments-count">0</span> comments
-                </div>
-                
-                <div class="post-interactions">
-                    <button class="like-btn" onclick="toggleLike(this)">
-                        <span class="like-text">Like</span>
-                    </button>
-                    <button class="comment-btn" onclick="toggleComments(this)">Comment</button>
-                </div>
-                
-                <div class="comments-section" style="display:none">
-                    <form class="comment-form" onsubmit="addComment(event, this)">
-                        <input type="text" placeholder="Write a comment..." required>
-                        <button type="submit">Post</button>
-                    </form>
-                    <div class="comments-list">
-                        <!-- Comments will be loaded here -->
-                    </div>
-                </div>
-            </footer>
-        </article>
-    </template>
+  <div class="post-header">
+  <div class="post-header-left">
+  <div class="post-header-info">
+  <strong class="user-name">
+    Username
+  </strong>
+  <div class="muted post-time"><span style="font-weight: 600;"> Timestamp eg (2 min ago)</span></div>
+</div>
 
-    <!-- Comment Template -->
-    <template id="commentTemplate">
-        <div class="comment" data-comment-id="">
-            <img class="comment-avatar" src="" alt="User Avatar">
-            <div class="comment-content">
-                <strong class="comment-author"></strong>
-                <p class="comment-text"></p>
-                <time class="comment-time"></time>
-                <button class="delete-comment" onclick="deleteComment(this)" style="display:none">Delete</button>
-            </div>
-        </div>
-    </template>
+  </div>
+  <div class="post-header-right">
+    <button class="btn ghost" style="color: var(--brand);"><i class="ri-external-link-line"></i></button>
+    <button class="btn ghost delete-post" onclick="deletePost(this)" style="display:none">Delete</button>
+  </div>
+</div>
 
-    <script type="module">
+  <div class="post-body">
+    <h2 class="post-title hashtag"></h2>
+    <p class="post-description"></p>
+  </div>
+  <div class="post-actions">
+    <button class="action-btn like-btn" onclick="toggleLike(this)"><i class="ri-heart-line" style="color: var(--brand-2);"></i><span class="likes-count"></span></button>
+    <button class="action-btn comment-btn"><i class="ri-chat-3-line"></i><span class="comments-count"></span></button>
+    <button class="action-btn share-btn"><i class="ri-share-forward-line"></i><span>12.8K</span></button>
+    <button class="action-btn"><i class="ri-bookmark-line"></i><span>30B</span></button>
+  </div>
+</div>
+</template>
+<!-- Share Modal -->
+<div class="modal-backdrop hidden" id="shareModal">
+  <div class="modal" role="document">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <strong>Share Post</strong>
+      <button class="btn-icon" id="shareClose"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="divider"></div>
+    <div style="display:grid; gap:10px; margin-top:10px;">
+      <button class="btn ghost"><i class="ri-link"></i> Copy Link</button>
+      <button class="btn ghost"><i class="ri-twitter-line"></i> Share to Twitter</button>
+      <button class="btn ghost"><i class="ri-facebook-circle-line"></i> Share to Facebook</button>
+      <button class="btn ghost"><i class="ri-telegram-line"></i> Share to Telegram</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div class="modal-backdrop hidden" id="uploadModal">
+  <div class="modal" role="document" style="width: 400px;" id="createPostSection">
+        <h3>What to tease for today?</h3>
+        <form  id="createPostForm" class="upload" novalidate>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="postTitle" placeholder="Description area *" required></div>
+          </div>
+          <div class="row">
+            <div class="col-8"><input class="input" type="text" id="postDescription" placeholder="decrt"></div>
+            <div class="col-4"><input class="input" type="file" id="postImage"  accept="image/*" aria-label="Cover image"></div>
+           
+            <input type="file" id="postMusic" accept="audio/*">
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
+            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
+          </div>
+        </form>
+  </div>
+</div>
+
+ 
+<div class="space"></div>
+</section>
+
+<!-- ===== Bottom Nav (mobile only) ===== -->
+<nav class="bottom-nav" aria-label="Mobile navigation">
+  <a href="dashboard.html" class="active"><i class="ri-stack-fill"></i></a>
+  <a href="upload.html"><i class="ri-upload-cloud-2-line"></i> Upload</a>
+  <a href="mall.html"><i class="ri-shopping-bag-2-line"></i>Mi-mall</a>
+  <a href="statehome.html"><i class="ri-compass-2-line"></i>States</a>
+  <a href="mall.html"><i class="ri-user-4-line"></i>Account</a>
+</nav>
+
+<script src="app.js"></script>
+
+<script>
+  function toggleReplies(el) {
+  const replies = el.nextElementSibling;
+  if (replies.style.display === "block") {
+    replies.style.display = "none";
+    el.textContent = el.dataset.original || "View replies";
+  } else {
+    replies.style.display = "block";
+    if (!el.dataset.original) el.dataset.original = el.textContent;
+    el.textContent = "Hide replies";
+  }
+}
+</script>
+   <script type="module">
         import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
         const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
@@ -627,237 +832,5 @@
             postIntervals.forEach(interval => clearInterval(interval));
         });
     </script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-
-        header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #createPostSection {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        #createPostForm {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        #createPostForm input, #createPostForm textarea {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        #createPostForm button {
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .post {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .post-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .user-info {
-            flex-grow: 1;
-        }
-
-        .user-name {
-            margin: 0;
-            font-size: 16px;
-        }
-
-        .post-time {
-            color: #666;
-            font-size: 12px;
-        }
-
-        .post-title {
-            margin: 0 0 10px 0;
-        }
-
-        .post-description {
-            margin: 0 0 15px 0;
-            color: #333;
-        }
-
-        .post-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin-bottom: 15px;
-        }
-
-        .post-music {
-            width: 100%;
-            margin-bottom: 15px;
-        }
-
-        .post-stats {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .post-interactions {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .post-interactions button {
-            padding: 8px 16px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .post-interactions button:hover {
-            background: #e9ecef;
-        }
-
-        .like-btn.liked {
-            background: #007bff;
-            color: white;
-        }
-
-        .comments-section {
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .comment-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .comment-form input {
-            flex-grow: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-        }
-
-        .comment-form button {
-            padding: 8px 16px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-
-        .comment {
-            display: flex;
-            margin-bottom: 15px;
-        }
-
-        .comment-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .comment-content {
-            flex-grow: 1;
-        }
-
-        .comment-author {
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .comment-text {
-            margin: 0 0 4px 0;
-            font-size: 14px;
-        }
-
-        .comment-time {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .delete-post, .delete-comment {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .delete-post:hover, .delete-comment:hover {
-            background: #c82333;
-        }
-
-        button {
-            transition: all 0.2s ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            
-            .post-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .post-interactions {
-                flex-direction: column;
-            }
-            
-            .comment-form {
-                flex-direction: column;
-            }
-        }   
-    </style>
 </body>
 </html>
