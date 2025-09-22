@@ -469,6 +469,9 @@ function hideStatus() {
 }
 
 // -------------------- OPTIMIZED LIKING SYSTEM --------------------
+// Track pending operations to prevent race conditions
+const pendingLikes = new Set();
+
 async function toggleLike(buttonElement) {
     if (!currentUser) {
         showStatus("Please log in to like posts", "error", 3000);
@@ -483,6 +486,12 @@ async function toggleLike(buttonElement) {
         return;
     }
 
+    // Prevent multiple clicks on same post
+    if (pendingLikes.has(postId)) {
+        console.log("Like operation already in progress for post:", postId);
+        return;
+    }
+
     const likeIcon = buttonElement.querySelector('i');
     const likesCountEl = buttonElement.querySelector('.likes-count');
     
@@ -491,7 +500,8 @@ async function toggleLike(buttonElement) {
         return;
     }
 
-    // Disable button during operation
+    // Mark as pending
+    pendingLikes.add(postId);
     buttonElement.disabled = true;
 
     try {
@@ -505,21 +515,22 @@ async function toggleLike(buttonElement) {
             likeIcon.style.color = "var(--brand-2)";
             likesCountEl.textContent = Math.max(0, currentCount - 1);
 
-            // Delete from database (no need to wait)
-            sb.from("likes")
+            // Delete from database
+            const { error } = await sb
+                .from("likes")
                 .delete()
                 .eq("post_id", postId)
-                .eq("user_id", currentUser.id)
-                .then(({ error }) => {
-                    if (error) {
-                        // Revert UI on error
-                        userLikes.add(postId);
-                        likeIcon.className = "ri-heart-fill";
-                        likeIcon.style.color = "#ff4757";
-                        likesCountEl.textContent = currentCount;
-                        console.error("Error unliking:", error);
-                    }
-                });
+                .eq("user_id", currentUser.id);
+
+            if (error) {
+                // Revert UI on error
+                userLikes.add(postId);
+                likeIcon.className = "ri-heart-fill";
+                likeIcon.style.color = "#ff4757";
+                likesCountEl.textContent = currentCount;
+                console.error("Error unliking:", error);
+                showStatus("Failed to unlike post", "error", 2000);
+            }
                 
         } else {
             // LIKE - Update UI immediately, then database
@@ -528,24 +539,40 @@ async function toggleLike(buttonElement) {
             likeIcon.style.color = "#ff4757";
             likesCountEl.textContent = currentCount + 1;
 
-            // Insert into database (no need to wait)
-            sb.from("likes")
-                .insert({ post_id: postId, user_id: currentUser.id })
-                .then(({ error }) => {
-                    if (error) {
-                        // Revert UI on error
-                        userLikes.delete(postId);
-                        likeIcon.className = "ri-heart-line";
-                        likeIcon.style.color = "var(--brand-2)";
-                        likesCountEl.textContent = currentCount;
-                        console.error("Error liking:", error);
-                    }
+            // Insert into database with upsert to handle duplicates
+            const { error } = await sb
+                .from("likes")
+                .upsert({ 
+                    post_id: postId, 
+                    user_id: currentUser.id 
+                }, { 
+                    onConflict: 'user_id,post_id',
+                    ignoreDuplicates: true 
                 });
+
+            if (error) {
+                // Handle specific duplicate error gracefully
+                if (error.code === '23505') {
+                    console.log("Like already exists - this is expected");
+                    // Don't revert UI since the like actually exists
+                } else {
+                    // Revert UI on other errors
+                    userLikes.delete(postId);
+                    likeIcon.className = "ri-heart-line";
+                    likeIcon.style.color = "var(--brand-2)";
+                    likesCountEl.textContent = currentCount;
+                    console.error("Error liking:", error);
+                    showStatus("Failed to like post", "error", 2000);
+                }
+            }
         }
         
     } catch (error) {
         console.error("Unexpected error in toggleLike:", error);
+        showStatus("An error occurred", "error", 2000);
     } finally {
+        // Always clean up
+        pendingLikes.delete(postId);
         buttonElement.disabled = false;
     }
 }
@@ -904,8 +931,5 @@ window.loadComments = loadComments;
 window.toggleComments = toggleComments;
 window.toggleLike = toggleLike;
 </script>
-
-
-
 </body>
 </html>
