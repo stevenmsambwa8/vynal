@@ -328,52 +328,88 @@ window.onerror = (msg, src, line, col, err) => {
 
 // -------------------- INIT --------------------
 async function initializeApp() {
-    showStatus("Checking authentication...", "loading");
+    try {
+        showStatus("Checking authentication...", "loading");
 
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-        showStatus("Not authenticated, redirecting...", "error");
-        setTimeout(() => window.location.href = "register.html", 1000);
-        return;
+        const { data: { session }, error: sessionError } = await sb.auth.getSession();
+        
+        if (sessionError) {
+            console.error("Session error:", sessionError);
+            showStatus("Authentication error: " + sessionError.message, "error");
+            return;
+        }
+
+        if (!session) {
+            showStatus("Not authenticated, redirecting...", "error");
+            setTimeout(() => window.location.href = "register.html", 1000);
+            return;
+        }
+
+        currentUser = session.user;
+        console.log("Current user:", currentUser);
+        showStatus("Authentication successful!", "success");
+
+        await ensureUserExists();
+        displayUserInfo();
+        await loadPosts();
+        setupRealTimeSubscriptions();
+    } catch (error) {
+        console.error("Initialization error:", error);
+        showStatus("Failed to initialize app: " + error.message, "error", 5000);
     }
-
-    currentUser = session.user;
-    showStatus("Authentication successful!", "success");
-
-    await ensureUserExists();
-    displayUserInfo();
-    await loadPosts();
-    setupRealTimeSubscriptions();
 }
 
 // -------------------- USER --------------------
 async function ensureUserExists() {
-    const { data: existingUser } = await sb
-        .from("users")
-        .select("id")
-        .eq("id", currentUser.id)
-        .single();
+    try {
+        const { data: existingUser, error } = await sb
+            .from("users")
+            .select("id")
+            .eq("id", currentUser.id)
+            .single();
 
-    if (!existingUser) {
-        showStatus("Setting up your profile...", "loading");
-        await sb.from("users").insert({
-            id: currentUser.id,
-            email: currentUser.email,
-            name: currentUser.user_metadata.name || currentUser.email,
-            avatar_url: currentUser.user_metadata.avatar_url
-        });
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+            console.error("Error checking user:", error);
+            throw error;
+        }
+
+        if (!existingUser) {
+            showStatus("Setting up your profile...", "loading");
+            const { error: insertError } = await sb.from("users").insert({
+                id: currentUser.id,
+                email: currentUser.email,
+                name: currentUser.user_metadata?.name || currentUser.email,
+                avatar_url: currentUser.user_metadata?.avatar_url
+            });
+
+            if (insertError) {
+                console.error("Error creating user:", insertError);
+                throw insertError;
+            }
+        }
+    } catch (error) {
+        console.error("Error in ensureUserExists:", error);
+        showStatus("Error setting up user profile: " + error.message, "error", 5000);
     }
 }
 
 function displayUserInfo() {
     const userInfo = document.getElementById("userInfo");
-    userInfo.innerHTML = `Welcome, ${currentUser.user_metadata.name || currentUser.email}`;
+    if (userInfo) {
+        userInfo.innerHTML = `Welcome, ${currentUser.user_metadata?.name || currentUser.email}`;
+    }
 }
 
 // -------------------- STATUS --------------------
 function showStatus(message, type = "loading", duration = null) {
     const statusEl = document.getElementById("statusMessage");
     const statusText = document.getElementById("statusText");
+
+    if (!statusEl || !statusText) {
+        console.warn("Status elements not found in DOM");
+        console.log("Status:", message, type);
+        return;
+    }
 
     statusText.textContent = message;
     statusEl.style.display = "block";
@@ -400,24 +436,55 @@ function showStatus(message, type = "loading", duration = null) {
         setTimeout(() => hideStatus(), duration);
     }
 }
+
 function hideStatus() {
-    document.getElementById("statusMessage").style.display = "none";
+    const statusEl = document.getElementById("statusMessage");
+    if (statusEl) {
+        statusEl.style.display = "none";
+    }
 }
 
 // -------------------- POSTS --------------------
 async function loadPosts() {
     showStatus("Loading posts...", "loading");
+    console.log("Starting to load posts...");
 
     try {
+        // First, try a simple query to test connection
+        const { data: testData, error: testError } = await sb
+            .from("posts")
+            .select("id")
+            .limit(1);
+
+        console.log("Test query result:", { testData, testError });
+
+        if (testError) {
+            console.error("Test query failed:", testError);
+            showStatus("Database connection error: " + testError.message, "error", 5000);
+            return;
+        }
+
+        // Now try the full query
         const { data: posts, error } = await sb
             .from("posts")
             .select(`
                 *,
-                users (name, avatar_url)
+                users!posts_user_id_fkey (
+                    name, 
+                    avatar_url
+                )
             `)
             .order("created_at", { ascending: false });
 
+        console.log("Posts query result:", { posts, error });
+
         const container = document.getElementById("postsContainer");
+        if (!container) {
+            console.error("Posts container not found in DOM");
+            showStatus("Posts container not found", "error", 5000);
+            return;
+        }
+
         container.innerHTML = "";
 
         if (error) {
@@ -428,11 +495,14 @@ async function loadPosts() {
 
         if (!posts || posts.length === 0) {
             showStatus("No posts found. Be the first to create one!", "info", 3000);
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No posts yet. Create the first one!</div>';
             return;
         }
 
-        posts.forEach(post => {
+        console.log(`Rendering ${posts.length} posts...`);
+        posts.forEach((post, index) => {
             try {
+                console.log(`Rendering post ${index + 1}:`, post);
                 appendPost(post);
             } catch (err) {
                 console.error("Error rendering post:", post, err);
@@ -443,51 +513,78 @@ async function loadPosts() {
 
     } catch (err) {
         console.error("Unexpected error loading posts:", err);
-        showStatus("Unexpected error occurred while loading posts", "error", 5000);
+        showStatus("Unexpected error occurred while loading posts: " + err.message, "error", 5000);
     }
 }
 
 function createPostElement(post) {
     const template = document.getElementById("postTemplate");
+    if (!template) {
+        console.error("Post template not found");
+        throw new Error("Post template not found");
+    }
+
     const postElement = template.content.cloneNode(true);
 
     const article = postElement.querySelector(".post");
+    if (!article) {
+        console.error("Post article element not found in template");
+        throw new Error("Post article element not found in template");
+    }
+
     article.setAttribute("data-post-id", post.id || "unknown");
 
     // Safe user info
     const user = post.users || {};
-    postElement.querySelector(".user-avatar").src = user.avatar_url || "default-avatar.png";
-    postElement.querySelector(".user-name").textContent = user.name || "Unknown User";
-    postElement.querySelector(".post-time").textContent = post.created_at
+    
+    // Use optional chaining and provide fallbacks
+    const userAvatar = postElement.querySelector(".user-avatar");
+    const userName = postElement.querySelector(".user-name");
+    const postTime = postElement.querySelector(".post-time");
+    const postTitle = postElement.querySelector(".post-title");
+    const postDescription = postElement.querySelector(".post-description");
+
+    if (userAvatar) userAvatar.src = user.avatar_url || "default-avatar.png";
+    if (userName) userName.textContent = user.name || "Unknown User";
+    if (postTime) postTime.textContent = post.created_at
         ? new Date(post.created_at).toLocaleString()
         : "Unknown time";
 
     // Content
-    postElement.querySelector(".post-title").textContent = post.title || "(No title)";
-    postElement.querySelector(".post-description").textContent = post.description || "";
+    if (postTitle) postTitle.textContent = post.title || "(No title)";
+    if (postDescription) postDescription.textContent = post.description || "";
 
     const img = postElement.querySelector(".post-image");
-    if (post.image_url) {
-        img.src = post.image_url;
-        img.style.display = "block";
-    } else {
-        img.style.display = "none";
+    if (img) {
+        if (post.image_url) {
+            img.src = post.image_url;
+            img.style.display = "block";
+        } else {
+            img.style.display = "none";
+        }
     }
 
     const audio = postElement.querySelector(".post-music");
-    if (post.music_url) {
-        audio.querySelector("source").src = post.music_url;
-        audio.style.display = "block";
-    } else {
-        audio.style.display = "none";
+    if (audio) {
+        const source = audio.querySelector("source");
+        if (post.music_url && source) {
+            source.src = post.music_url;
+            audio.style.display = "block";
+        } else {
+            audio.style.display = "none";
+        }
     }
 
     // Stats
-    postElement.querySelector(".likes-count").textContent = post.likes_count ?? 0;
-    postElement.querySelector(".comments-count").textContent = post.comments_count ?? 0;
+    const likesCount = postElement.querySelector(".likes-count");
+    const commentsCount = postElement.querySelector(".comments-count");
+    
+    if (likesCount) likesCount.textContent = post.likes_count ?? 0;
+    if (commentsCount) commentsCount.textContent = post.comments_count ?? 0;
 
-    if (post.user_id === currentUser.id) {
-        postElement.querySelector(".delete-post").style.display = "inline-block";
+    const deleteBtn = postElement.querySelector(".delete-post");
+    if (deleteBtn && post.user_id === currentUser?.id) {
+        deleteBtn.style.display = "inline-block";
     }
 
     return postElement;
@@ -495,19 +592,39 @@ function createPostElement(post) {
 
 function appendPost(post) {
     const container = document.getElementById("postsContainer");
-    const postElement = createPostElement(post);
-    container.appendChild(postElement);
-    startPostUpdates(post.id);
+    if (!container) {
+        console.error("Posts container not found");
+        return;
+    }
+
+    try {
+        const postElement = createPostElement(post);
+        container.appendChild(postElement);
+        startPostUpdates(post.id);
+    } catch (error) {
+        console.error("Error appending post:", error);
+    }
 }
 
 function prependPost(post) {
     const container = document.getElementById("postsContainer");
-    const postElement = createPostElement(post);
-    container.insertBefore(postElement, container.firstChild);
-    startPostUpdates(post.id);
+    if (!container) {
+        console.error("Posts container not found");
+        return;
+    }
+
+    try {
+        const postElement = createPostElement(post);
+        container.insertBefore(postElement, container.firstChild);
+        startPostUpdates(post.id);
+    } catch (error) {
+        console.error("Error prepending post:", error);
+    }
 }
 
 function startPostUpdates(postId) {
+    if (!postId) return;
+    
     const interval = setInterval(async () => {
         await updatePostStats(postId);
     }, 5000);
@@ -515,25 +632,35 @@ function startPostUpdates(postId) {
 }
 
 async function updatePostStats(postId) {
-    const { data: post, error } = await sb
-        .from("posts")
-        .select("likes_count, comments_count")
-        .eq("id", postId)
-        .single();
+    try {
+        const { data: post, error } = await sb
+            .from("posts")
+            .select("likes_count, comments_count")
+            .eq("id", postId)
+            .single();
 
-    if (!error && post) {
-        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-        if (postElement) {
-            postElement.querySelector(".likes-count").textContent = post.likes_count ?? 0;
-            postElement.querySelector(".comments-count").textContent = post.comments_count ?? 0;
+        if (!error && post) {
+            const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+            if (postElement) {
+                const likesCount = postElement.querySelector(".likes-count");
+                const commentsCount = postElement.querySelector(".comments-count");
+                
+                if (likesCount) likesCount.textContent = post.likes_count ?? 0;
+                if (commentsCount) commentsCount.textContent = post.comments_count ?? 0;
+            }
         }
+    } catch (error) {
+        console.error("Error updating post stats:", error);
     }
 }
 
 // -------------------- COMMENTS --------------------
 async function loadComments(postId) {
     const post = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!post) return;
+
     const commentsList = post.querySelector(".comments-list");
+    if (!commentsList) return;
 
     commentsList.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Loading comments...</div>';
 
@@ -542,7 +669,10 @@ async function loadComments(postId) {
             .from("comments")
             .select(`
                 *,
-                users (name, avatar_url)
+                users!comments_user_id_fkey (
+                    name, 
+                    avatar_url
+                )
             `)
             .eq("post_id", postId)
             .order("created_at", { ascending: true });
@@ -576,52 +706,84 @@ async function loadComments(postId) {
 
 function appendComment(container, comment) {
     const template = document.getElementById("commentTemplate");
-    const commentElement = template.content.cloneNode(true);
+    if (!template || !container) return;
 
-    commentElement.querySelector(".comment").setAttribute("data-comment-id", comment.id || "unknown");
+    try {
+        const commentElement = template.content.cloneNode(true);
 
-    const user = comment.users || {};
-    commentElement.querySelector(".comment-avatar").src = user.avatar_url || "default-avatar.png";
-    commentElement.querySelector(".comment-author").textContent = user.name || "Anonymous";
-    commentElement.querySelector(".comment-text").textContent = comment.content || "";
-    commentElement.querySelector(".comment-time").textContent = comment.created_at
-        ? new Date(comment.created_at).toLocaleString()
-        : "Unknown time";
+        const commentDiv = commentElement.querySelector(".comment");
+        if (commentDiv) {
+            commentDiv.setAttribute("data-comment-id", comment.id || "unknown");
+        }
 
-    if (comment.user_id === currentUser.id) {
-        commentElement.querySelector(".delete-comment").style.display = "inline-block";
+        const user = comment.users || {};
+        
+        const avatar = commentElement.querySelector(".comment-avatar");
+        const author = commentElement.querySelector(".comment-author");
+        const text = commentElement.querySelector(".comment-text");
+        const time = commentElement.querySelector(".comment-time");
+
+        if (avatar) avatar.src = user.avatar_url || "default-avatar.png";
+        if (author) author.textContent = user.name || "Anonymous";
+        if (text) text.textContent = comment.content || "";
+        if (time) time.textContent = comment.created_at
+            ? new Date(comment.created_at).toLocaleString()
+            : "Unknown time";
+
+        const deleteBtn = commentElement.querySelector(".delete-comment");
+        if (deleteBtn && comment.user_id === currentUser?.id) {
+            deleteBtn.style.display = "inline-block";
+        }
+
+        container.appendChild(commentElement);
+    } catch (error) {
+        console.error("Error appending comment:", error);
     }
-
-    container.appendChild(commentElement);
 }
 
 // -------------------- REALTIME --------------------
 function setupRealTimeSubscriptions() {
-    sb.channel("posts")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" },
-            async (payload) => {
-                if (payload.new.user_id !== currentUser.id) {
-                    const { data: post } = await sb
-                        .from("posts")
-                        .select(`
-                            *,
-                            users (name, avatar_url)
-                        `)
-                        .eq("id", payload.new.id)
-                        .single();
+    try {
+        sb.channel("posts")
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" },
+                async (payload) => {
+                    console.log("New post received:", payload);
+                    if (payload.new.user_id !== currentUser?.id) {
+                        const { data: post } = await sb
+                            .from("posts")
+                            .select(`
+                                *,
+                                users!posts_user_id_fkey (
+                                    name, 
+                                    avatar_url
+                                )
+                            `)
+                            .eq("id", payload.new.id)
+                            .single();
 
-                    if (post) prependPost(post);
-                }
-            })
-        .subscribe();
+                        if (post) prependPost(post);
+                    }
+                })
+            .subscribe((status) => {
+                console.log("Realtime subscription status:", status);
+            });
+    } catch (error) {
+        console.error("Error setting up realtime subscriptions:", error);
+    }
 }
 
 // -------------------- EVENTS --------------------
-window.addEventListener("load", initializeApp);
+// Use DOMContentLoaded instead of load for faster initialization
+document.addEventListener("DOMContentLoaded", initializeApp);
+
 window.addEventListener("beforeunload", () => {
     postIntervals.forEach(interval => clearInterval(interval));
 });
+
+// Expose functions to global scope if needed for HTML event handlers
+window.loadComments = loadComments;
 </script>
+
 
 </body>
 </html>
