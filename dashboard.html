@@ -1256,6 +1256,10 @@ async function logout() {
         showStatus("Unexpected error during logout", "error", 3000);
     }
 }
+ // -------------------- APP START --------------------
+  document.addEventListener("DOMContentLoaded", () => {
+      initializeApp();
+  });
 </script>
 </body>
 </html>
