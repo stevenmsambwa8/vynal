@@ -261,25 +261,37 @@ aria-label="Global search" />
 
 <div class="modal-backdrop hidden" id="uploadModal">
   <div class="modal" role="document" style="width: 400px;" id="createPostSection">
-        <h3>What to tease for today?</h3>
-        <form  id="createPostForm" class="upload" novalidate>
-          <div class="row">
-            <div class="col-8"><input class="input" type="text" id="postTitle" placeholder="Description area *" required></div>
-          </div>
-          <div class="row">
-            <div class="col-8"><input class="input" type="text" id="postDescription" placeholder="decrt"></div>
-            <div class="col-4"><input class="input" type="file" id="postImage"  accept="image/*" aria-label="Cover image"></div>
-           
-            <input type="file" id="postMusic" accept="audio/*">
-          </div>
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #c5040433;" id="uploadClose"><i class="ri-close-line"></i> Cancel</button>
-            <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit"><i class="ri-upload-2-line"></i> Upload</button>
-          </div>
-        </form>
+    <h3>What to tease for today?</h3>
+    <form id="createPostForm" class="upload" novalidate>
+      <div class="row">
+        <div class="col-8">
+          <input class="input" type="text" id="postTitle" name="title" placeholder="Description area *" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-8">
+          <input class="input" type="text" id="postDescription" name="description" placeholder="Additional details (optional)">
+        </div>
+        <div class="col-4">
+          <input class="input" type="file" id="postImage" name="image" accept="image/*" aria-label="Cover image">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <input class="input" type="file" id="postMusic" name="music" accept="audio/*" aria-label="Audio file">
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" class="btn ghost" title="Why cancel?" style="background-color: #f30303ab;" id="uploadClose">
+          <i class="ri-close-line"></i> Cancel
+        </button>
+        <button class="btn primary" id="uSubmit" title="Let's get popular" type="submit">
+          <i class="ri-upload-2-line"></i> Upload
+        </button>
+      </div>
+    </form>
   </div>
 </div>
-
  
 <div class="space"></div>
 </section>
@@ -1094,6 +1106,173 @@ async function addComment(postId, commentText) {
     }
 }
 
+// Add this to your existing JavaScript code
+
+// -------------------- FORM HANDLING --------------------
+function setupFormHandlers() {
+    const createPostForm = document.getElementById("createPostForm");
+    const uploadModal = document.getElementById("uploadModal");
+    const uploadClose = document.getElementById("uploadClose");
+
+    // Form submit handler
+    if (createPostForm) {
+        createPostForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await handleFormSubmit();
+        });
+    }
+
+    // Close modal handler
+    if (uploadClose) {
+        uploadClose.addEventListener("click", () => {
+            if (uploadModal) {
+                uploadModal.classList.add("hidden");
+            }
+            if (createPostForm) {
+                createPostForm.reset();
+            }
+        });
+    }
+}
+
+async function handleFormSubmit() {
+    const form = document.getElementById("createPostForm");
+    const submitBtn = document.getElementById("uSubmit");
+    
+    if (!form || !currentUser) {
+        showStatus("Please log in to create posts", "error", 3000);
+        return;
+    }
+
+    // Disable submit button to prevent double submission
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ri-loader-line"></i> Uploading...';
+    }
+
+    try {
+        showStatus("Creating post...", "loading");
+
+        // Get form values
+        const title = document.getElementById("postTitle")?.value?.trim();
+        const description = document.getElementById("postDescription")?.value?.trim();
+        const imageFile = document.getElementById("postImage")?.files[0];
+        const musicFile = document.getElementById("postMusic")?.files[0];
+
+        // Validate required fields
+        if (!title) {
+            showStatus("Please enter a description", "error", 3000);
+            return;
+        }
+
+        // Upload files if present
+        let imageUrl = null;
+        let musicUrl = null;
+
+        if (imageFile) {
+            showStatus("Uploading image...", "loading");
+            try {
+                imageUrl = await uploadFile(imageFile, 'images');
+            } catch (error) {
+                console.error("Image upload failed:", error);
+                showStatus("Image upload failed: " + error.message, "error", 3000);
+                return;
+            }
+        }
+
+        if (musicFile) {
+            showStatus("Uploading audio...", "loading");
+            try {
+                musicUrl = await uploadFile(musicFile, 'audio');
+            } catch (error) {
+                console.error("Audio upload failed:", error);
+                showStatus("Audio upload failed: " + error.message, "error", 3000);
+                return;
+            }
+        }
+
+        // Create post in database
+        const { data: post, error } = await sb
+            .from("posts")
+            .insert({
+                user_id: currentUser.id,
+                title: title,
+                description: description,
+                image_url: imageUrl,
+                music_url: musicUrl,
+                likes_count: 0,
+                comments_count: 0
+            })
+            .select(`
+                *,
+                users!posts_user_id_fkey (name, avatar_url)
+            `)
+            .single();
+
+        if (error) {
+            console.error("Error creating post:", error);
+            showStatus("Failed to create post: " + error.message, "error", 5000);
+            return;
+        }
+
+        // Add to UI immediately
+        post.likes_count = 0;
+        prependPost(post);
+        showStatus("Post created successfully!", "success", 3000);
+
+        // Clear form and close modal
+        form.reset();
+        const uploadModal = document.getElementById("uploadModal");
+        if (uploadModal) {
+            uploadModal.classList.add("hidden");
+        }
+
+    } catch (error) {
+        console.error("Unexpected error creating post:", error);
+        showStatus("Unexpected error occurred: " + error.message, "error", 5000);
+    } finally {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="ri-upload-2-line"></i> Upload';
+        }
+    }
+}
+
+// Update your initializeApp function to include form setup
+async function initializeApp() {
+    try {
+        showStatus("Checking authentication...", "loading");
+
+        const { data: { session }, error: sessionError } = await sb.auth.getSession();
+        
+        if (sessionError) {
+            console.error("Session error:", sessionError);
+            showStatus("Authentication error: " + sessionError.message, "error");
+            return;
+        }
+
+        if (!session) {
+            showStatus("Not authenticated, redirecting...", "error");
+            setTimeout(() => window.location.href = "register.html", 1000);
+            return;
+        }
+
+        currentUser = session.user;
+        console.log("Current user:", currentUser);
+        showStatus("Authentication successful!", "success");
+
+        await ensureUserExists();
+        await loadUserLikes();
+        displayUserInfo();
+        await loadPosts();
+        setupRealTimeSubscriptions();
+        setupFormHandlers(); // Add this line
+    } catch (error) {
+        console.error("Initialization error:", error);
+        showStatus("Failed to initialize app: " + error.message, "error", 5000);
+    }
+}
 // -------------------- EVENTS --------------------
 document.addEventListener("DOMContentLoaded", initializeApp);
 
