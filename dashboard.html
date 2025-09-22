@@ -368,7 +368,7 @@ async function ensureUserExists() {
             .eq("id", currentUser.id)
             .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+        if (error && error.code !== 'PGRST116') {
             console.error("Error checking user:", error);
             throw error;
         }
@@ -427,7 +427,7 @@ function showStatus(message, type = "loading", duration = null) {
             statusEl.style.background = "#e3f2fd";
             statusEl.style.color = "#1976d2";
             break;
-        default: // loading
+        default:
             statusEl.style.background = "#fff3cd";
             statusEl.style.color = "#856404";
     }
@@ -450,7 +450,6 @@ async function loadPosts() {
     console.log("Starting to load posts...");
 
     try {
-        // First, try a simple query to test connection
         const { data: testData, error: testError } = await sb
             .from("posts")
             .select("id")
@@ -464,7 +463,6 @@ async function loadPosts() {
             return;
         }
 
-        // Now try the full query
         const { data: posts, error } = await sb
             .from("posts")
             .select(`
@@ -506,6 +504,7 @@ async function loadPosts() {
                 appendPost(post);
             } catch (err) {
                 console.error("Error rendering post:", post, err);
+                // Continue with other posts instead of stopping
             }
         });
 
@@ -534,26 +533,43 @@ function createPostElement(post) {
 
     article.setAttribute("data-post-id", post.id || "unknown");
 
-    // Safe user info
+    // Helper function to safely set element content
+    const safeSetContent = (selector, content, attribute = 'textContent') => {
+        const element = postElement.querySelector(selector);
+        if (element) {
+            if (attribute === 'src') {
+                element.src = content;
+            } else {
+                element[attribute] = content;
+            }
+        } else {
+            console.warn(`Element not found: ${selector}`);
+        }
+    };
+
+    // Helper function to safely set element style
+    const safeSetStyle = (selector, property, value) => {
+        const element = postElement.querySelector(selector);
+        if (element) {
+            element.style[property] = value;
+        } else {
+            console.warn(`Element not found for styling: ${selector}`);
+        }
+    };
+
+    // User info
     const user = post.users || {};
-    
-    // Use optional chaining and provide fallbacks
-    const userAvatar = postElement.querySelector(".user-avatar");
-    const userName = postElement.querySelector(".user-name");
-    const postTime = postElement.querySelector(".post-time");
-    const postTitle = postElement.querySelector(".post-title");
-    const postDescription = postElement.querySelector(".post-description");
+    safeSetContent(".user-avatar", user.avatar_url || "default-avatar.png", 'src');
+    safeSetContent(".user-name", user.name || "Unknown User");
+    safeSetContent(".post-time", post.created_at 
+        ? new Date(post.created_at).toLocaleString() 
+        : "Unknown time");
 
-    if (userAvatar) userAvatar.src = user.avatar_url || "default-avatar.png";
-    if (userName) userName.textContent = user.name || "Unknown User";
-    if (postTime) postTime.textContent = post.created_at
-        ? new Date(post.created_at).toLocaleString()
-        : "Unknown time";
+    // Post content
+    safeSetContent(".post-title", post.title || "(No title)");
+    safeSetContent(".post-description", post.description || "");
 
-    // Content
-    if (postTitle) postTitle.textContent = post.title || "(No title)";
-    if (postDescription) postDescription.textContent = post.description || "";
-
+    // Image handling
     const img = postElement.querySelector(".post-image");
     if (img) {
         if (post.image_url) {
@@ -564,6 +580,7 @@ function createPostElement(post) {
         }
     }
 
+    // Audio handling
     const audio = postElement.querySelector(".post-music");
     if (audio) {
         const source = audio.querySelector("source");
@@ -576,18 +593,52 @@ function createPostElement(post) {
     }
 
     // Stats
-    const likesCount = postElement.querySelector(".likes-count");
-    const commentsCount = postElement.querySelector(".comments-count");
-    
-    if (likesCount) likesCount.textContent = post.likes_count ?? 0;
-    if (commentsCount) commentsCount.textContent = post.comments_count ?? 0;
+    safeSetContent(".likes-count", post.likes_count ?? 0);
+    safeSetContent(".comments-count", post.comments_count ?? 0);
 
+    // Delete button (only show for post owner)
     const deleteBtn = postElement.querySelector(".delete-post");
     if (deleteBtn && post.user_id === currentUser?.id) {
         deleteBtn.style.display = "inline-block";
+    } else if (deleteBtn) {
+        deleteBtn.style.display = "none";
     }
 
     return postElement;
+}
+
+// Alternative: Create post element with fallback HTML if template is missing
+function createPostElementFallback(post) {
+    const user = post.users || {};
+    const postDiv = document.createElement('div');
+    postDiv.className = 'post';
+    postDiv.setAttribute('data-post-id', post.id);
+    
+    postDiv.innerHTML = `
+        <div class="post-header">
+            <img class="user-avatar" src="${user.avatar_url || 'default-avatar.png'}" alt="Avatar" style="width: 40px; height: 40px; border-radius: 50%;">
+            <div>
+                <div class="user-name">${user.name || 'Unknown User'}</div>
+                <div class="post-time">${post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown time'}</div>
+            </div>
+        </div>
+        <div class="post-content">
+            <h3 class="post-title">${post.title || '(No title)'}</h3>
+            <p class="post-description">${post.description || ''}</p>
+            ${post.image_url ? `<img class="post-image" src="${post.image_url}" alt="Post image" style="max-width: 100%; height: auto;">` : ''}
+            ${post.music_url ? `<audio class="post-music" controls><source src="${post.music_url}" type="audio/mpeg"></audio>` : ''}
+        </div>
+        <div class="post-stats">
+            <span>❤️ <span class="likes-count">${post.likes_count ?? 0}</span></span>
+            <span>💬 <span class="comments-count">${post.comments_count ?? 0}</span></span>
+            ${post.user_id === currentUser?.id ? '<button class="delete-post" style="display: inline-block;">Delete</button>' : ''}
+        </div>
+        <div class="comments-section" style="display: none;">
+            <div class="comments-list"></div>
+        </div>
+    `;
+    
+    return postDiv;
 }
 
 function appendPost(post) {
@@ -598,11 +649,31 @@ function appendPost(post) {
     }
 
     try {
-        const postElement = createPostElement(post);
+        let postElement;
+        
+        // Try to use template first, fallback to manual creation
+        try {
+            postElement = createPostElement(post);
+        } catch (templateError) {
+            console.warn("Template creation failed, using fallback:", templateError);
+            postElement = createPostElementFallback(post);
+        }
+        
         container.appendChild(postElement);
         startPostUpdates(post.id);
     } catch (error) {
         console.error("Error appending post:", error);
+        
+        // Last resort: create a simple text representation
+        const fallbackDiv = document.createElement('div');
+        fallbackDiv.innerHTML = `
+            <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+                <h4>${post.title || 'Untitled Post'}</h4>
+                <p>${post.description || 'No description'}</p>
+                <small>Posted: ${post.created_at ? new Date(post.created_at).toLocaleString() : 'Unknown'}</small>
+            </div>
+        `;
+        container.appendChild(fallbackDiv);
     }
 }
 
@@ -614,7 +685,15 @@ function prependPost(post) {
     }
 
     try {
-        const postElement = createPostElement(post);
+        let postElement;
+        
+        try {
+            postElement = createPostElement(post);
+        } catch (templateError) {
+            console.warn("Template creation failed, using fallback:", templateError);
+            postElement = createPostElementFallback(post);
+        }
+        
         container.insertBefore(postElement, container.firstChild);
         startPostUpdates(post.id);
     } catch (error) {
@@ -718,17 +797,23 @@ function appendComment(container, comment) {
 
         const user = comment.users || {};
         
-        const avatar = commentElement.querySelector(".comment-avatar");
-        const author = commentElement.querySelector(".comment-author");
-        const text = commentElement.querySelector(".comment-text");
-        const time = commentElement.querySelector(".comment-time");
+        const safeSetContent = (selector, content, attribute = 'textContent') => {
+            const element = commentElement.querySelector(selector);
+            if (element) {
+                if (attribute === 'src') {
+                    element.src = content;
+                } else {
+                    element[attribute] = content;
+                }
+            }
+        };
 
-        if (avatar) avatar.src = user.avatar_url || "default-avatar.png";
-        if (author) author.textContent = user.name || "Anonymous";
-        if (text) text.textContent = comment.content || "";
-        if (time) time.textContent = comment.created_at
+        safeSetContent(".comment-avatar", user.avatar_url || "default-avatar.png", 'src');
+        safeSetContent(".comment-author", user.name || "Anonymous");
+        safeSetContent(".comment-text", comment.content || "");
+        safeSetContent(".comment-time", comment.created_at
             ? new Date(comment.created_at).toLocaleString()
-            : "Unknown time";
+            : "Unknown time");
 
         const deleteBtn = commentElement.querySelector(".delete-comment");
         if (deleteBtn && comment.user_id === currentUser?.id) {
@@ -773,14 +858,12 @@ function setupRealTimeSubscriptions() {
 }
 
 // -------------------- EVENTS --------------------
-// Use DOMContentLoaded instead of load for faster initialization
 document.addEventListener("DOMContentLoaded", initializeApp);
 
 window.addEventListener("beforeunload", () => {
     postIntervals.forEach(interval => clearInterval(interval));
 });
 
-// Expose functions to global scope if needed for HTML event handlers
 window.loadComments = loadComments;
 </script>
 
