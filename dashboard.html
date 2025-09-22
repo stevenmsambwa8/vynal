@@ -9,15 +9,10 @@
     <div id="app">
         <header>
             <h1>Social Dashboard</h1>
-            <div id="user-info"></div>
-            <button id="logout-btn" style="display:none;">Logout</button>
+            <div id="user-info">Welcome, User!</div>
         </header>
 
-        <div id="auth-section">
-            <button id="login-btn">Login with Google</button>
-        </div>
-
-        <div id="dashboard" style="display:none;">
+        <div id="dashboard">
             <!-- Create Post Section -->
             <div id="create-post-section">
                 <h2>Create Post</h2>
@@ -44,49 +39,21 @@
 
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentUser = null;
+        // Mock user data (replace with your actual user handling)
+        const currentUser = {
+            id: 'demo-user-id',
+            email: 'user@example.com',
+            user_metadata: {
+                full_name: 'Demo User',
+                avatar_url: 'https://via.placeholder.com/40'
+            }
+        };
+
         let postsSubscription = null;
 
         // DOM Elements
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const authSection = document.getElementById('auth-section');
-        const dashboard = document.getElementById('dashboard');
-        const userInfo = document.getElementById('user-info');
         const postForm = document.getElementById('post-form');
         const postsList = document.getElementById('posts-list');
-
-        // Auth Functions
-        async function signInWithGoogle() {
-            const { data, error } = await sb.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/dashboard.html`
-                }
-            });
-            if (error) console.error('Error signing in:', error);
-        }
-
-        async function signOut() {
-            const { error } = await sb.auth.signOut();
-            if (error) console.error('Error signing out:', error);
-        }
-
-        async function createOrUpdateProfile(user) {
-            const { data, error } = await sb
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    email: user.email,
-                    name: user.user_metadata.full_name,
-                    avatar_url: user.user_metadata.avatar_url,
-                    updated_at: new Date().toISOString()
-                })
-                .select();
-            
-            if (error) console.error('Error creating/updating profile:', error);
-            return data;
-        }
 
         // Post Functions
         async function createPost(content, imageFile = null) {
@@ -122,6 +89,7 @@
             } else {
                 document.getElementById('post-content').value = '';
                 document.getElementById('post-image').value = '';
+                await loadPosts(); // Reload posts after creating
             }
         }
 
@@ -198,8 +166,9 @@
                 commentsList.removeChild(tempComment);
             } else {
                 // Replace temp comment with real data
+                const profileName = data[0].profiles?.name || currentUser.user_metadata.full_name;
                 tempComment.innerHTML = `
-                    <strong>${data[0].profiles.name}:</strong> ${data[0].content}
+                    <strong>${profileName}:</strong> ${data[0].content}
                     <small> - ${new Date(data[0].created_at).toLocaleString()}</small>
                 `;
             }
@@ -237,12 +206,14 @@
             postDiv.setAttribute('data-post-id', post.id);
             
             const userLiked = post.likes.some(like => like.user_id === currentUser.id);
+            const authorName = post.profiles?.name || 'Unknown User';
+            const authorAvatar = post.profiles?.avatar_url || 'https://via.placeholder.com/40';
             
             postDiv.innerHTML = `
                 <div class="post-header">
-                    <img src="${post.profiles.avatar_url || ''}" alt="Avatar" width="40" height="40" style="border-radius: 50%;">
+                    <img src="${authorAvatar}" alt="Avatar" width="40" height="40" style="border-radius: 50%;">
                     <div>
-                        <strong>${post.profiles.name}</strong>
+                        <strong>${authorName}</strong>
                         <div><small>${new Date(post.created_at).toLocaleString()}</small></div>
                     </div>
                 </div>
@@ -254,9 +225,9 @@
                     <button class="like-btn ${userLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
                         ${userLiked ? '♥ Liked' : '♡ Like'}
                     </button>
-                    <span class="like-count">${post.like_count}</span>
+                    <span class="like-count">${post.like_count || post.likes.length}</span>
                     <button onclick="toggleComments('${post.id}')">💬 Comment</button>
-                    <span class="comment-count">${post.comment_count}</span>
+                    <span class="comment-count">${post.comment_count || post.comments.length}</span>
                 </div>
                 <div class="comments-section" style="display:none;">
                     <div class="add-comment">
@@ -266,7 +237,7 @@
                     <div class="comments-list">
                         ${post.comments.map(comment => `
                             <div class="comment">
-                                <strong>${comment.profiles.name}:</strong> ${comment.content}
+                                <strong>${comment.profiles?.name || 'Unknown User'}:</strong> ${comment.content}
                                 <small> - ${new Date(comment.created_at).toLocaleString()}</small>
                             </div>
                         `).join('')}
@@ -303,7 +274,6 @@
 
         // Real-time subscriptions
         function setupRealtimeSubscriptions() {
-            // Subscribe to posts changes
             postsSubscription = sb
                 .channel('posts-changes')
                 .on('postgres_changes', 
@@ -364,7 +334,7 @@
                     const commentsList = postElement.querySelector('.comments-list');
                     commentsList.innerHTML = comments.map(comment => `
                         <div class="comment">
-                            <strong>${comment.profiles.name}:</strong> ${comment.content}
+                            <strong>${comment.profiles?.name || 'Unknown User'}:</strong> ${comment.content}
                             <small> - ${new Date(comment.created_at).toLocaleString()}</small>
                         </div>
                     `).join('');
@@ -373,9 +343,6 @@
         }
 
         // Event Listeners
-        loginBtn.addEventListener('click', signInWithGoogle);
-        logoutBtn.addEventListener('click', signOut);
-
         postForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const content = document.getElementById('post-content').value;
@@ -386,53 +353,14 @@
             }
         });
 
-        // Auth State Management
-        sb.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session?.user?.email);
-            
-            if (session?.user) {
-                currentUser = session.user;
-                await createOrUpdateProfile(currentUser);
-                
-                authSection.style.display = 'none';
-                dashboard.style.display = 'block';
-                logoutBtn.style.display = 'inline-block';
-                userInfo.innerHTML = `Welcome, ${currentUser.user_metadata.full_name}!`;
-                
-                await loadPosts();
-                setupRealtimeSubscriptions();
-            } else {
-                currentUser = null;
-                authSection.style.display = 'block';
-                dashboard.style.display = 'none';
-                logoutBtn.style.display = 'none';
-                userInfo.innerHTML = '';
-                
-                if (postsSubscription) {
-                    postsSubscription.unsubscribe();
-                }
-            }
-        });
-
-        // Initialize - Check for existing session
-        async function initializeAuth() {
-            const { data: { session }, error } = await sb.auth.getSession();
-            if (error) {
-                console.error('Error getting session:', error);
-                return;
-            }
-            
-            if (session?.user) {
-                console.log('Existing session found:', session.user.email);
-                currentUser = session.user;
-                // The onAuthStateChange will handle the UI updates
-            } else {
-                console.log('No existing session found');
-            }
+        // Initialize the dashboard
+        async function initializeDashboard() {
+            await loadPosts();
+            setupRealtimeSubscriptions();
         }
 
-        // Call initialize function
-        initializeAuth();
+        // Start the app
+        initializeDashboard();
     </script>
 
     <style>
@@ -453,41 +381,6 @@
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        #auth-section {
-            text-align: center;
-            padding: 50px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        #login-btn {
-            background: #4285f4;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        
-        #login-btn:hover {
-            background: #3367d6;
-        }
-        
-        #logout-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        #logout-btn:hover {
-            background: #c82333;
         }
         
         .post {
