@@ -61,7 +61,7 @@
             const { data, error } = await sb.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: `${window.location.origin}/dashboard.html`
                 }
             });
             if (error) console.error('Error signing in:', error);
@@ -388,6 +388,8 @@
 
         // Auth State Management
         sb.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email);
+            
             if (session?.user) {
                 currentUser = session.user;
                 await createOrUpdateProfile(currentUser);
@@ -412,12 +414,25 @@
             }
         });
 
-        // Initialize
-        sb.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                currentUser = session.user;
+        // Initialize - Check for existing session
+        async function initializeAuth() {
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (error) {
+                console.error('Error getting session:', error);
+                return;
             }
-        });
+            
+            if (session?.user) {
+                console.log('Existing session found:', session.user.email);
+                currentUser = session.user;
+                // The onAuthStateChange will handle the UI updates
+            } else {
+                console.log('No existing session found');
+            }
+        }
+
+        // Call initialize function
+        initializeAuth();
     </script>
 
     <style>
@@ -426,69 +441,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-        }
-        
-        .post {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        
-        .post-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            gap: 10px;
-        }
-        
-        .post-actions {
-            margin: 10px 0;
-        }
-        
-        .post-actions button {
-            margin-right: 10px;
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        
-        .like-btn.liked {
-            background: #ff6b6b;
-            color: white;
-        }
-        
-        .comments-section {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #eee;
-        }
-        
-        .add-comment {
-            margin-bottom: 10px;
-        }
-        
-        .add-comment input {
-            width: 70%;
-            padding: 5px;
-            margin-right: 10px;
-        }
-        
-        .comment {
-            margin: 5px 0;
-            padding: 5px;
-            background: #f9f9f9;
-            border-radius: 4px;
-        }
-        
-        #create-post-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background: #f9f9f9;
+            background-color: #f5f5f5;
         }
         
         header {
@@ -496,8 +449,199 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #ddd;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #auth-section {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #login-btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #login-btn:hover {
+            background: #3367d6;
+        }
+        
+        #logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #logout-btn:hover {
+            background: #c82333;
+        }
+        
+        .post {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        
+        .post-header img {
+            border: 2px solid #ddd;
+        }
+        
+        .post-content {
+            margin-bottom: 15px;
+        }
+        
+        .post-content p {
+            margin: 0 0 10px 0;
+            line-height: 1.5;
+        }
+        
+        .post-content img {
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .post-actions {
+            margin: 15px 0;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .post-actions button {
+            margin-right: 15px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .post-actions button:hover {
+            background: #f8f9fa;
+        }
+        
+        .like-btn.liked {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+        }
+        
+        .like-count, .comment-count {
+            margin-right: 15px;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .comments-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .add-comment {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .add-comment input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .add-comment button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .add-comment button:hover {
+            background: #0056b3;
+        }
+        
+        .comment {
+            margin: 8px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+        
+        .comment small {
+            color: #666;
+        }
+        
+        #create-post-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        #create-post-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        #post-content {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        #post-image {
+            margin: 10px 0;
+        }
+        
+        #post-form button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        #post-form button:hover {
+            background: #218838;
+        }
+        
+        #posts-container h2 {
+            color: #333;
+            margin-bottom: 20px;
         }
     </style>
 </body>
