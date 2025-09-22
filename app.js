@@ -83,31 +83,6 @@ document.querySelectorAll('.slider').forEach((slider, i) => {
 
 
 
-  document.addEventListener("click", e => {
-    const btn = e.target.closest(".like-btn");
-    if (!btn) return;
-
-    btn.classList.toggle("liked");
-    const icon = btn.querySelector("i");
-    const text = document.querySelector(".liked-text");
-
-    if (btn.classList.contains("liked")) {
-      // Swap to filled star + show text
-      icon.className = "ri-heart-fill";
-      text.textContent = "Liked";
-      text.classList.add("show");
-
-      // Hide the word after 2s
-      setTimeout(() => {
-        text.classList.remove("show");
-      }, 2000);
-    } else {
-      // Swap back to outline star
-      icon.className = "ri-heart-line";
-      text.textContent = "";
-      text.classList.remove("show");
-    }
-  });
 
   
 // Mobile nav toggle
