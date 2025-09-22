@@ -3,33 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Social Dashboard</title>
+    <title>Dashboard</title>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>Social Dashboard</h1>
-            <div id="user-info">Welcome, User!</div>
-        </header>
+    <header>
+        <h1>Social Dashboard</h1>
+        <div id="userInfo"></div>
+        <button onclick="logout()">Logout</button>
+    </header>
 
-        <div id="dashboard">
-            <!-- Create Post Section -->
-            <div id="create-post-section">
-                <h2>Create Post</h2>
-                <form id="post-form">
-                    <textarea id="post-content" placeholder="What's on your mind?" rows="3" cols="50" required></textarea><br><br>
-                    <input type="file" id="post-image" accept="image/*"><br><br>
-                    <button type="submit">Post</button>
-                </form>
+    <!-- Create Post Form -->
+    <div id="createPostSection">
+        <h2>Create New Post</h2>
+        <form id="createPostForm">
+            <input type="text" id="postTitle" placeholder="Post Title" required>
+            <textarea id="postDescription" placeholder="What's on your mind?" rows="4"></textarea>
+            <input type="file" id="postImage" accept="image/*">
+            <input type="file" id="postMusic" accept="audio/*">
+            <button type="submit">Create Post</button>
+        </form>
+    </div>
+
+    <!-- Posts Container -->
+    <div id="postsContainer">
+        <!-- Posts will be loaded here -->
+    </div>
+
+    <!-- Post Template -->
+    <template id="postTemplate">
+        <article class="post" data-post-id="">
+            <header class="post-header">
+                <img class="user-avatar" src="" alt="User Avatar">
+                <div class="user-info">
+                    <h3 class="user-name"></h3>
+                    <time class="post-time"></time>
+                </div>
+                <div class="post-actions">
+                    <button class="delete-post" onclick="deletePost(this)" style="display:none">Delete</button>
+                </div>
+            </header>
+            
+            <div class="post-content">
+                <h2 class="post-title"></h2>
+                <p class="post-description"></p>
+                <img class="post-image" src="" alt="Post Image" style="display:none">
+                <audio class="post-music" controls style="display:none">
+                    <source src="" type="audio/mpeg">
+                </audio>
             </div>
+            
+            <footer class="post-footer">
+                <div class="post-stats">
+                    <span class="likes-count">0</span> likes
+                    <span class="comments-count">0</span> comments
+                </div>
+                
+                <div class="post-interactions">
+                    <button class="like-btn" onclick="toggleLike(this)">
+                        <span class="like-text">Like</span>
+                    </button>
+                    <button class="comment-btn" onclick="toggleComments(this)">Comment</button>
+                </div>
+                
+                <div class="comments-section" style="display:none">
+                    <form class="comment-form" onsubmit="addComment(event, this)">
+                        <input type="text" placeholder="Write a comment..." required>
+                        <button type="submit">Post</button>
+                    </form>
+                    <div class="comments-list">
+                        <!-- Comments will be loaded here -->
+                    </div>
+                </div>
+            </footer>
+        </article>
+    </template>
 
-            <!-- Posts Feed -->
-            <div id="posts-container">
-                <h2>Posts</h2>
-                <div id="posts-list"></div>
+    <!-- Comment Template -->
+    <template id="commentTemplate">
+        <div class="comment" data-comment-id="">
+            <img class="comment-avatar" src="" alt="User Avatar">
+            <div class="comment-content">
+                <strong class="comment-author"></strong>
+                <p class="comment-text"></p>
+                <time class="comment-time"></time>
+                <button class="delete-comment" onclick="deleteComment(this)" style="display:none">Delete</button>
             </div>
         </div>
-    </div>
+    </template>
 
     <script type="module">
         import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -38,329 +98,394 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
 
         const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let currentUser = null;
+        let postIntervals = new Map(); // Track intervals for each post
 
-        // Mock user data (replace with your actual user handling)
-        const currentUser = {
-            id: 'demo-user-id',
-            email: 'user@example.com',
-            user_metadata: {
-                full_name: 'Demo User',
-                avatar_url: 'https://via.placeholder.com/40'
+        // Check authentication on load
+        window.addEventListener('load', async () => {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) {
+                window.location.href = 'register.html';
+                return;
             }
+            currentUser = session.user;
+            displayUserInfo();
+            loadPosts();
+            setupRealTimeSubscriptions();
+        });
+
+        function displayUserInfo() {
+            const userInfo = document.getElementById('userInfo');
+            userInfo.innerHTML = `Welcome, ${currentUser.user_metadata.name || currentUser.email}`;
+        }
+
+        // Global functions
+        window.logout = async () => {
+            await sb.auth.signOut();
+            window.location.href = 'register.html';
         };
 
-        let postsSubscription = null;
-
-        // DOM Elements
-        const postForm = document.getElementById('post-form');
-        const postsList = document.getElementById('posts-list');
-
-        // Post Functions
-        async function createPost(content, imageFile = null) {
-            let imageUrl = null;
+        // Create Post
+        document.getElementById('createPostForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
+            const title = document.getElementById('postTitle').value;
+            const description = document.getElementById('postDescription').value;
+            const imageFile = document.getElementById('postImage').files[0];
+            const musicFile = document.getElementById('postMusic').files[0];
+            
+            let imageUrl = null;
+            let musicUrl = null;
+            
+            // Upload image if provided
             if (imageFile) {
-                const fileName = `${Date.now()}-${imageFile.name}`;
-                const { data: uploadData, error: uploadError } = await sb.storage
-                    .from('post-images')
-                    .upload(fileName, imageFile);
+                const imageFileName = `${currentUser.id}/${Date.now()}_${imageFile.name}`;
+                const { data: imageData, error: imageError } = await sb.storage
+                    .from('post-media')
+                    .upload(imageFileName, imageFile);
                 
-                if (uploadError) {
-                    console.error('Error uploading image:', uploadError);
-                } else {
-                    const { data: urlData } = sb.storage
-                        .from('post-images')
-                        .getPublicUrl(fileName);
-                    imageUrl = urlData.publicUrl;
+                if (!imageError) {
+                    imageUrl = sb.storage.from('post-media').getPublicUrl(imageFileName).data.publicUrl;
                 }
             }
-
+            
+            // Upload music if provided
+            if (musicFile) {
+                const musicFileName = `${currentUser.id}/${Date.now()}_${musicFile.name}`;
+                const { data: musicData, error: musicError } = await sb.storage
+                    .from('post-media')
+                    .upload(musicFileName, musicFile);
+                
+                if (!musicError) {
+                    musicUrl = sb.storage.from('post-media').getPublicUrl(musicFileName).data.publicUrl;
+                }
+            }
+            
+            // Create post
             const { data, error } = await sb
                 .from('posts')
                 .insert({
                     user_id: currentUser.id,
-                    content: content,
-                    image_url: imageUrl
-                })
-                .select();
-
-            if (error) {
-                console.error('Error creating post:', error);
-            } else {
-                document.getElementById('post-content').value = '';
-                document.getElementById('post-image').value = '';
-                await loadPosts(); // Reload posts after creating
-            }
-        }
-
-        async function toggleLike(postId, postElement) {
-            const likeBtn = postElement.querySelector('.like-btn');
-            const likeCount = postElement.querySelector('.like-count');
-            const isLiked = likeBtn.classList.contains('liked');
-            
-            // Fast counter update
-            const currentCount = parseInt(likeCount.textContent);
-            if (isLiked) {
-                likeCount.textContent = currentCount - 1;
-                likeBtn.classList.remove('liked');
-                likeBtn.textContent = '♡ Like';
-            } else {
-                likeCount.textContent = currentCount + 1;
-                likeBtn.classList.add('liked');
-                likeBtn.textContent = '♥ Liked';
-            }
-
-            // Database update
-            if (isLiked) {
-                const { error } = await sb
-                    .from('likes')
-                    .delete()
-                    .eq('user_id', currentUser.id)
-                    .eq('post_id', postId);
-                if (error) console.error('Error removing like:', error);
-            } else {
-                const { error } = await sb
-                    .from('likes')
-                    .insert({
-                        user_id: currentUser.id,
-                        post_id: postId
-                    });
-                if (error) console.error('Error adding like:', error);
-            }
-        }
-
-        async function addComment(postId, content, postElement) {
-            const commentsList = postElement.querySelector('.comments-list');
-            const commentCount = postElement.querySelector('.comment-count');
-            
-            // Fast counter update
-            const currentCount = parseInt(commentCount.textContent);
-            commentCount.textContent = currentCount + 1;
-            
-            // Add comment to UI immediately
-            const tempComment = document.createElement('div');
-            tempComment.className = 'comment';
-            tempComment.innerHTML = `
-                <strong>${currentUser.user_metadata.full_name}:</strong> ${content}
-                <small> - just now</small>
-            `;
-            commentsList.appendChild(tempComment);
-
-            // Database update
-            const { data, error } = await sb
-                .from('comments')
-                .insert({
-                    user_id: currentUser.id,
-                    post_id: postId,
-                    content: content
+                    title,
+                    description,
+                    image_url: imageUrl,
+                    music_url: musicUrl
                 })
                 .select(`
                     *,
-                    profiles:user_id (name, avatar_url)
-                `);
-
-            if (error) {
-                console.error('Error adding comment:', error);
-                // Revert on error
-                commentCount.textContent = currentCount;
-                commentsList.removeChild(tempComment);
-            } else {
-                // Replace temp comment with real data
-                const profileName = data[0].profiles?.name || currentUser.user_metadata.full_name;
-                tempComment.innerHTML = `
-                    <strong>${profileName}:</strong> ${data[0].content}
-                    <small> - ${new Date(data[0].created_at).toLocaleString()}</small>
-                `;
+                    users (name, avatar_url)
+                `)
+                .single();
+            
+            if (!error) {
+                document.getElementById('createPostForm').reset();
+                prependPost(data);
             }
-        }
+        });
 
         async function loadPosts() {
             const { data: posts, error } = await sb
                 .from('posts')
                 .select(`
                     *,
-                    profiles:user_id (name, avatar_url),
-                    likes (user_id),
-                    comments (
-                        *,
-                        profiles:user_id (name, avatar_url)
-                    )
+                    users (name, avatar_url)
                 `)
                 .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Error loading posts:', error);
-                return;
+            
+            if (!error && posts) {
+                const container = document.getElementById('postsContainer');
+                container.innerHTML = '';
+                posts.forEach(post => appendPost(post));
             }
-
-            postsList.innerHTML = '';
-            posts.forEach(post => {
-                const postElement = createPostElement(post);
-                postsList.appendChild(postElement);
-            });
         }
 
         function createPostElement(post) {
-            const postDiv = document.createElement('div');
-            postDiv.className = 'post';
-            postDiv.setAttribute('data-post-id', post.id);
+            const template = document.getElementById('postTemplate');
+            const postElement = template.content.cloneNode(true);
             
-            const userLiked = post.likes.some(like => like.user_id === currentUser.id);
-            const authorName = post.profiles?.name || 'Unknown User';
-            const authorAvatar = post.profiles?.avatar_url || 'https://via.placeholder.com/40';
+            // Set post data
+            const article = postElement.querySelector('.post');
+            article.setAttribute('data-post-id', post.id);
             
-            postDiv.innerHTML = `
-                <div class="post-header">
-                    <img src="${authorAvatar}" alt="Avatar" width="40" height="40" style="border-radius: 50%;">
-                    <div>
-                        <strong>${authorName}</strong>
-                        <div><small>${new Date(post.created_at).toLocaleString()}</small></div>
-                    </div>
-                </div>
-                <div class="post-content">
-                    <p>${post.content}</p>
-                    ${post.image_url ? `<img src="${post.image_url}" alt="Post image" style="max-width: 100%; height: auto;">` : ''}
-                </div>
-                <div class="post-actions">
-                    <button class="like-btn ${userLiked ? 'liked' : ''}" onclick="handleLike('${post.id}')">
-                        ${userLiked ? '♥ Liked' : '♡ Like'}
-                    </button>
-                    <span class="like-count">${post.like_count || post.likes.length}</span>
-                    <button onclick="toggleComments('${post.id}')">💬 Comment</button>
-                    <span class="comment-count">${post.comment_count || post.comments.length}</span>
-                </div>
-                <div class="comments-section" style="display:none;">
-                    <div class="add-comment">
-                        <input type="text" placeholder="Add a comment..." class="comment-input">
-                        <button onclick="handleAddComment('${post.id}')">Post</button>
-                    </div>
-                    <div class="comments-list">
-                        ${post.comments.map(comment => `
-                            <div class="comment">
-                                <strong>${comment.profiles?.name || 'Unknown User'}:</strong> ${comment.content}
-                                <small> - ${new Date(comment.created_at).toLocaleString()}</small>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                <hr>
-            `;
+            // User info
+            postElement.querySelector('.user-avatar').src = post.users.avatar_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNjY2MiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMTAgMzBjMC02IDQtMTAgMTAtMTBzMTAgNCAxMCAxMCIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=';
+            postElement.querySelector('.user-name').textContent = post.users.name;
+            postElement.querySelector('.post-time').textContent = new Date(post.created_at).toLocaleString();
             
-            return postDiv;
-        }
-
-        // Global functions for onclick handlers
-        window.handleLike = function(postId) {
-            const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-            toggleLike(postId, postElement);
-        };
-
-        window.toggleComments = function(postId) {
-            const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-            const commentsSection = postElement.querySelector('.comments-section');
-            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
-        };
-
-        window.handleAddComment = function(postId) {
-            const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-            const commentInput = postElement.querySelector('.comment-input');
-            const content = commentInput.value.trim();
+            // Post content
+            postElement.querySelector('.post-title').textContent = post.title;
+            postElement.querySelector('.post-description').textContent = post.description || '';
             
-            if (content) {
-                addComment(postId, content, postElement);
-                commentInput.value = '';
+            if (post.image_url) {
+                const img = postElement.querySelector('.post-image');
+                img.src = post.image_url;
+                img.style.display = 'block';
             }
-        };
-
-        // Real-time subscriptions
-        function setupRealtimeSubscriptions() {
-            postsSubscription = sb
-                .channel('posts-changes')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'posts' },
-                    (payload) => {
-                        console.log('Posts change:', payload);
-                        loadPosts(); // Reload posts on any change
-                    }
-                )
-                .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'likes' },
-                    (payload) => {
-                        console.log('Likes change:', payload);
-                        updatePostCounts(payload.new?.post_id || payload.old?.post_id);
-                    }
-                )
-                .on('postgres_changes',
-                    { event: '*', schema: 'public', table: 'comments' },
-                    (payload) => {
-                        console.log('Comments change:', payload);
-                        if (payload.eventType === 'INSERT') {
-                            loadCommentsForPost(payload.new.post_id);
-                        }
-                    }
-                )
-                .subscribe();
+            
+            if (post.music_url) {
+                const audio = postElement.querySelector('.post-music');
+                audio.querySelector('source').src = post.music_url;
+                audio.style.display = 'block';
+            }
+            
+            // Post stats
+            postElement.querySelector('.likes-count').textContent = post.likes_count;
+            postElement.querySelector('.comments-count').textContent = post.comments_count;
+            
+            // Show delete button if user owns the post
+            if (post.user_id === currentUser.id) {
+                postElement.querySelector('.delete-post').style.display = 'inline-block';
+            }
+            
+            return postElement;
         }
 
-        async function updatePostCounts(postId) {
-            const { data, error } = await sb
+        function appendPost(post) {
+            const container = document.getElementById('postsContainer');
+            const postElement = createPostElement(post);
+            container.appendChild(postElement);
+            
+            // Start real-time updates for this post
+            startPostUpdates(post.id);
+        }
+
+        function prependPost(post) {
+            const container = document.getElementById('postsContainer');
+            const postElement = createPostElement(post);
+            container.insertBefore(postElement, container.firstChild);
+            
+            // Start real-time updates for this post
+            startPostUpdates(post.id);
+        }
+
+        function startPostUpdates(postId) {
+            // Update post stats every 5 seconds
+            const interval = setInterval(async () => {
+                await updatePostStats(postId);
+            }, 5000);
+            
+            postIntervals.set(postId, interval);
+        }
+
+        async function updatePostStats(postId) {
+            const { data: post, error } = await sb
                 .from('posts')
-                .select('like_count, comment_count')
+                .select('likes_count, comments_count')
                 .eq('id', postId)
                 .single();
             
-            if (!error && data) {
+            if (!error && post) {
                 const postElement = document.querySelector(`[data-post-id="${postId}"]`);
                 if (postElement) {
-                    postElement.querySelector('.like-count').textContent = data.like_count;
-                    postElement.querySelector('.comment-count').textContent = data.comment_count;
+                    postElement.querySelector('.likes-count').textContent = post.likes_count;
+                    postElement.querySelector('.comments-count').textContent = post.comments_count;
                 }
             }
         }
 
-        async function loadCommentsForPost(postId) {
+        // Like functionality
+        window.toggleLike = async (button) => {
+            const post = button.closest('.post');
+            const postId = post.getAttribute('data-post-id');
+            const likesCountEl = post.querySelector('.likes-count');
+            const currentCount = parseInt(likesCountEl.textContent);
+            
+            // Check if already liked
+            const { data: existingLike } = await sb
+                .from('likes')
+                .select('id')
+                .eq('post_id', postId)
+                .eq('user_id', currentUser.id)
+                .single();
+            
+            if (existingLike) {
+                // Unlike - fast counter update
+                likesCountEl.textContent = currentCount - 1;
+                button.querySelector('.like-text').textContent = 'Like';
+                
+                // Real database update
+                await sb
+                    .from('likes')
+                    .delete()
+                    .eq('id', existingLike.id);
+            } else {
+                // Like - fast counter update
+                likesCountEl.textContent = currentCount + 1;
+                button.querySelector('.like-text').textContent = 'Unlike';
+                
+                // Real database update
+                await sb
+                    .from('likes')
+                    .insert({
+                        post_id: postId,
+                        user_id: currentUser.id
+                    });
+            }
+        };
+
+        // Comment functionality
+        window.toggleComments = async (button) => {
+            const post = button.closest('.post');
+            const commentsSection = post.querySelector('.comments-section');
+            
+            if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+                commentsSection.style.display = 'block';
+                await loadComments(post.getAttribute('data-post-id'));
+            } else {
+                commentsSection.style.display = 'none';
+            }
+        };
+
+        async function loadComments(postId) {
             const { data: comments, error } = await sb
                 .from('comments')
                 .select(`
                     *,
-                    profiles:user_id (name, avatar_url)
+                    users (name, avatar_url)
                 `)
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true });
-
-            if (!error && comments) {
-                const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-                if (postElement) {
-                    const commentsList = postElement.querySelector('.comments-list');
-                    commentsList.innerHTML = comments.map(comment => `
-                        <div class="comment">
-                            <strong>${comment.profiles?.name || 'Unknown User'}:</strong> ${comment.content}
-                            <small> - ${new Date(comment.created_at).toLocaleString()}</small>
-                        </div>
-                    `).join('');
-                }
-            }
-        }
-
-        // Event Listeners
-        postForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const content = document.getElementById('post-content').value;
-            const imageFile = document.getElementById('post-image').files[0];
             
-            if (content.trim()) {
-                await createPost(content, imageFile);
+            if (!error && comments) {
+                const post = document.querySelector(`[data-post-id="${postId}"]`);
+                const commentsList = post.querySelector('.comments-list');
+                commentsList.innerHTML = '';
+                
+                comments.forEach(comment => {
+                    appendComment(commentsList, comment);
+                });
             }
-        });
-
-        // Initialize the dashboard
-        async function initializeDashboard() {
-            await loadPosts();
-            setupRealtimeSubscriptions();
         }
 
-        // Start the app
-        initializeDashboard();
+        function appendComment(container, comment) {
+            const template = document.getElementById('commentTemplate');
+            const commentElement = template.content.cloneNode(true);
+            
+            commentElement.querySelector('.comment').setAttribute('data-comment-id', comment.id);
+            commentElement.querySelector('.comment-avatar').src = comment.users.avatar_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNjY2MiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJtMTAgMzBjMC02IDQtMTAgMTAtMTBzMTAgNCAxMCAxMCIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4=';
+            commentElement.querySelector('.comment-author').textContent = comment.users.name;
+            commentElement.querySelector('.comment-text').textContent = comment.content;
+            commentElement.querySelector('.comment-time').textContent = new Date(comment.created_at).toLocaleString();
+            
+            if (comment.user_id === currentUser.id) {
+                commentElement.querySelector('.delete-comment').style.display = 'inline-block';
+            }
+            
+            container.appendChild(commentElement);
+        }
+
+        window.addComment = async (event, form) => {
+            event.preventDefault();
+            
+            const post = form.closest('.post');
+            const postId = post.getAttribute('data-post-id');
+            const input = form.querySelector('input');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            // Fast counter update
+            const commentsCountEl = post.querySelector('.comments-count');
+            const currentCount = parseInt(commentsCountEl.textContent);
+            commentsCountEl.textContent = currentCount + 1;
+            
+            // Clear input immediately
+            input.value = '';
+            
+            // Real database update
+            const { data, error } = await sb
+                .from('comments')
+                .insert({
+                    post_id: postId,
+                    user_id: currentUser.id,
+                    content
+                })
+                .select(`
+                    *,
+                    users (name, avatar_url)
+                `)
+                .single();
+            
+            if (!error) {
+                const commentsList = post.querySelector('.comments-list');
+                appendComment(commentsList, data);
+            }
+        };
+
+        window.deletePost = async (button) => {
+            const post = button.closest('.post');
+            const postId = post.getAttribute('data-post-id');
+            
+            if (confirm('Are you sure you want to delete this post?')) {
+                // Clear interval
+                if (postIntervals.has(postId)) {
+                    clearInterval(postIntervals.get(postId));
+                    postIntervals.delete(postId);
+                }
+                
+                // Remove from DOM immediately
+                post.remove();
+                
+                // Delete from database
+                await sb
+                    .from('posts')
+                    .delete()
+                    .eq('id', postId);
+            }
+        };
+
+        window.deleteComment = async (button) => {
+            const comment = button.closest('.comment');
+            const commentId = comment.getAttribute('data-comment-id');
+            const post = button.closest('.post');
+            
+            if (confirm('Are you sure you want to delete this comment?')) {
+                // Fast counter update
+                const commentsCountEl = post.querySelector('.comments-count');
+                const currentCount = parseInt(commentsCountEl.textContent);
+                commentsCountEl.textContent = Math.max(0, currentCount - 1);
+                
+                // Remove from DOM immediately
+                comment.remove();
+                
+                // Delete from database
+                await sb
+                    .from('comments')
+                    .delete()
+                    .eq('id', commentId);
+            }
+        };
+
+        function setupRealTimeSubscriptions() {
+            // Subscribe to new posts
+            sb
+                .channel('posts')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, 
+                    async (payload) => {
+                        // Only show posts from other users
+                        if (payload.new.user_id !== currentUser.id) {
+                            const { data: post } = await sb
+                                .from('posts')
+                                .select(`
+                                    *,
+                                    users (name, avatar_url)
+                                `)
+                                .eq('id', payload.new.id)
+                                .single();
+                            
+                            if (post) {
+                                prependPost(post);
+                            }
+                        }
+                    })
+                .subscribe();
+        }
+
+        // Cleanup intervals when page unloads
+        window.addEventListener('beforeunload', () => {
+            postIntervals.forEach(interval => clearInterval(interval));
+        });
     </script>
 
     <style>
@@ -371,171 +496,225 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
-        
+
         header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .post {
+
+        #createPostSection {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
             margin-bottom: 20px;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .post-header {
+
+        #createPostForm {
             display: flex;
-            align-items: center;
-            margin-bottom: 15px;
+            flex-direction: column;
             gap: 10px;
         }
-        
-        .post-header img {
-            border: 2px solid #ddd;
-        }
-        
-        .post-content {
-            margin-bottom: 15px;
-        }
-        
-        .post-content p {
-            margin: 0 0 10px 0;
-            line-height: 1.5;
-        }
-        
-        .post-content img {
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        
-        .post-actions {
-            margin: 15px 0;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        .post-actions button {
-            margin-right: 15px;
-            padding: 8px 16px;
-            border: 1px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        
-        .post-actions button:hover {
-            background: #f8f9fa;
-        }
-        
-        .like-btn.liked {
-            background: #ff6b6b;
-            color: white;
-            border-color: #ff6b6b;
-        }
-        
-        .like-count, .comment-count {
-            margin-right: 15px;
-            color: #666;
-            font-weight: bold;
-        }
-        
-        .comments-section {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-        
-        .add-comment {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .add-comment input {
-            flex: 1;
-            padding: 8px 12px;
+
+        #createPostForm input, #createPostForm textarea {
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
-        
-        .add-comment button {
-            padding: 8px 16px;
+
+        #createPostForm button {
+            padding: 10px;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
         }
-        
-        .add-comment button:hover {
-            background: #0056b3;
-        }
-        
-        .comment {
-            margin: 8px 0;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border-left: 3px solid #007bff;
-        }
-        
-        .comment small {
-            color: #666;
-        }
-        
-        #create-post-section {
-            margin-bottom: 30px;
-            padding: 20px;
+
+        .post {
             background: white;
             border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        #create-post-section h2 {
-            margin-top: 0;
-            color: #333;
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
         }
-        
-        #post-content {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            resize: vertical;
-            font-family: inherit;
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
         }
-        
-        #post-image {
-            margin: 10px 0;
+
+        .user-info {
+            flex-grow: 1;
         }
-        
-        #post-form button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
+
+        .user-name {
+            margin: 0;
             font-size: 16px;
         }
-        
-        #post-form button:hover {
-            background: #218838;
+
+        .post-time {
+            color: #666;
+            font-size: 12px;
         }
-        
-        #posts-container h2 {
+
+        .post-title {
+            margin: 0 0 10px 0;
+        }
+
+        .post-description {
+            margin: 0 0 15px 0;
             color: #333;
-            margin-bottom: 20px;
         }
-    </style>
-</body>
-</html>
+
+        .post-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .post-music {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .post-stats {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .post-interactions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .post-interactions button {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .post-interactions button:hover {
+            background: #e9ecef;
+        }
+
+        .like-btn.liked {
+            background: #007bff;
+            color: white;
+        }
+
+        .comments-section {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .comment-form input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+        }
+
+        .comment-form button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .comment {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .comment-author {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .comment-text {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .delete-post, .delete-comment {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-post:hover, .delete-comment:hover {
+            background: #c82333;
+        }
+
+        button {
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .post-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .post-interactions {
+                flex-direction: column;
+            }
+            
+            .comment-form {
+                flex-direction: column;
+            }
+        }
