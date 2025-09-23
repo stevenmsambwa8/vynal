@@ -1,139 +1,707 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Supabase Interactive App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Supabase App</title>
 </head>
 <body>
-  <h1>Welcome to Supabase Interactive Zone</h1>
+    <div id="app">
+        <header>
+            <h1>🚀 Interactive User Hub</h1>
+            <div id="auth-section">
+                <div id="login-section">
+                    <button id="login-btn">🔐 Login with Google</button>
+                </div>
+                <div id="user-section" style="display: none;">
+                    <span>Welcome, <span id="user-name"></span>!</span>
+                    <button id="logout-btn">🚪 Logout</button>
+                </div>
+            </div>
+        </header>
 
-  <div id="user-info"></div>
+        <div id="main-content" style="display: none;">
+            <div id="tabs">
+                <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+                <button class="tab-btn" data-tab="users">👥 Online Users</button>
+                <button class="tab-btn" data-tab="chat">💬 Live Chat</button>
+                <button class="tab-btn" data-tab="profile">👤 Profile</button>
+                <button class="tab-btn" data-tab="activities">📈 Activities</button>
+                <button class="tab-btn" data-tab="notifications">🔔 Notifications</button>
+            </div>
 
-  <button id="login-btn">Login with Google</button>
-  <button id="logout-btn">Logout</button>
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <h2>📊 Dashboard</h2>
+                <div id="stats">
+                    <div class="stat-card">
+                        <h3>Total Users</h3>
+                        <span id="total-users">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Online Now</h3>
+                        <span id="online-users">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Messages Today</h3>
+                        <span id="messages-today">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Your Activities</h3>
+                        <span id="user-activities-count">0</span>
+                    </div>
+                </div>
+                <div id="recent-activity">
+                    <h3>🔥 Recent Platform Activity</h3>
+                    <ul id="activity-list"></ul>
+                </div>
+            </div>
 
-  <h2>Signed-in Users</h2>
-  <ul id="user-list"></ul>
+            <!-- Users Tab -->
+            <div id="users-tab" class="tab-content">
+                <h2>👥 Online Users</h2>
+                <div id="user-controls">
+                    <button id="refresh-users">🔄 Refresh Users</button>
+                    <button id="ping-all">📢 Ping All Users</button>
+                </div>
+                <div id="users-list"></div>
+            </div>
 
-  <h2>Post a Message</h2>
-  <textarea id="message-input" placeholder="Type your message here..."></textarea><br/>
-  <button id="send-message-btn">Send</button>
+            <!-- Chat Tab -->
+            <div id="chat-tab" class="tab-content">
+                <h2>💬 Live Chat</h2>
+                <div id="chat-messages"></div>
+                <div id="chat-input-section">
+                    <input type="text" id="message-input" placeholder="Type your message..." maxlength="500">
+                    <button id="send-message">📤 Send</button>
+                    <button id="send-emoji">😊 Random Emoji</button>
+                    <button id="clear-chat">🗑️ Clear Chat</button>
+                </div>
+            </div>
 
-  <h2>Live Messages</h2>
-  <ul id="messages-list"></ul>
+            <!-- Profile Tab -->
+            <div id="profile-tab" class="tab-content">
+                <h2>👤 Your Profile</h2>
+                <form id="profile-form">
+                    <div>
+                        <label>Full Name:</label>
+                        <input type="text" id="profile-name" placeholder="Enter your full name">
+                    </div>
+                    <div>
+                        <label>Bio:</label>
+                        <textarea id="profile-bio" placeholder="Tell us about yourself..." rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label>Status:</label>
+                        <select id="profile-status">
+                            <option value="online">🟢 Online</option>
+                            <option value="away">🟡 Away</option>
+                            <option value="busy">🔴 Busy</option>
+                            <option value="offline">⚫ Offline</option>
+                        </select>
+                    </div>
+                    <button type="submit">💾 Update Profile</button>
+                </form>
+                <div id="profile-actions">
+                    <button id="export-data">📦 Export My Data</button>
+                    <button id="delete-activities">🗑️ Clear My Activities</button>
+                </div>
+            </div>
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+            <!-- Activities Tab -->
+            <div id="activities-tab" class="tab-content">
+                <h2>📈 Your Activities</h2>
+                <div id="activity-controls">
+                    <button id="add-custom-activity">➕ Add Custom Activity</button>
+                    <button id="generate-fake-activity">🎲 Generate Sample Activity</button>
+                    <select id="activity-filter">
+                        <option value="all">All Activities</option>
+                        <option value="login">Logins</option>
+                        <option value="message">Messages</option>
+                        <option value="profile_update">Profile Updates</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div id="user-activities-list"></div>
+            </div>
 
-    const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+            <!-- Notifications Tab -->
+            <div id="notifications-tab" class="tab-content">
+                <h2>🔔 Notifications</h2>
+                <div id="notification-controls">
+                    <button id="mark-all-read">✅ Mark All Read</button>
+                    <button id="create-test-notification">🧪 Create Test Notification</button>
+                    <button id="clear-notifications">🗑️ Clear All</button>
+                </div>
+                <div id="notifications-list"></div>
+            </div>
+        </div>
+    </div>
 
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const loginBtn = document.getElementById("login-btn");
-    const logoutBtn = document.getElementById("logout-btn");
-    const userInfo = document.getElementById("user-info");
-    const userList = document.getElementById("user-list");
-    const messageInput = document.getElementById("message-input");
-    const sendMessageBtn = document.getElementById("send-message-btn");
-    const messagesList = document.getElementById("messages-list");
-
-    // Login with Google
-    loginBtn.onclick = async () => {
-      await sb.auth.signInWithOAuth({ provider: 'google' });
-    };
-
-    // Logout
-    logoutBtn.onclick = async () => {
-      await sb.auth.signOut();
-    };
-
-    // Listen to auth changes
-    sb.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user;
-      if (user) {
-        userInfo.textContent = `Signed in as ${user.email}`;
-        await upsertUser(user);
-        fetchUsers();
-        fetchMessages();
-        listenForMessages();
-      } else {
-        userInfo.textContent = 'Not signed in.';
-        userList.innerHTML = '';
-        messagesList.innerHTML = '';
-      }
-    });
-
-    // Upsert user on login
-    async function upsertUser(user) {
-      const { data, error } = await sb.from('users').upsert({
-        id: user.id,
-        email: user.email,
-        full_name: user.user_metadata.full_name,
-        avatar_url: user.user_metadata.avatar_url,
-        last_login: new Date().toISOString()
-      });
-    }
-
-    // Fetch all users
-    async function fetchUsers() {
-      const { data: users } = await sb.from('users').select('*').order('last_login', { ascending: false });
-      userList.innerHTML = '';
-      users.forEach(u => {
-        const li = document.createElement('li');
-        li.textContent = `${u.full_name || u.email}`;
-        userList.appendChild(li);
-      });
-    }
-
-    // Send a message
-    sendMessageBtn.onclick = async () => {
-      const session = await sb.auth.getSession();
-      const user = session.data.session?.user;
-      if (!user) return;
-
-      const content = messageInput.value;
-      if (!content) return;
-
-      await sb.from('messages').insert({
-        user_id: user.id,
-        content: content
-      });
-
-      messageInput.value = '';
-    };
-
-    // Fetch existing messages
-    async function fetchMessages() {
-      const { data: messages } = await sb
-        .from('messages')
-        .select('content, created_at, users(full_name)')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      messagesList.innerHTML = '';
-      messages.forEach(msg => {
-        const li = document.createElement('li');
-        li.textContent = `${msg.users?.full_name || "Unknown"}: ${msg.content} (${msg.created_at})`;
-        messagesList.appendChild(li);
-      });
-    }
-
-    // Listen for new messages in real-time
-    function listenForMessages() {
-      sb.channel('realtime:messages')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages' },
-          payload => {
-            const msg = payload.new;
-            const li = document.createElement('li');
-            li.textContent = `New message: ${msg.content}`;
-            messagesList.prepend(li);
-          }
-        )
-        .subscribe();
-    }
-
-  </script>
-</body>
-</html>
+    <script type="module">
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+        
+        const SUPABASE_URL = "https://jcrbwmpapgovyqaxajlb.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjcmJ3bXBhcGdvdnlxYXhhamxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDc2NjAsImV4cCI6MjA3MjYyMzY2MH0.7jMgdHQGWfAsQ9b5C2gn8z7YqFLuA6gR_gIF0VIW56M";
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let currentUser = null;
+        let subscriptions = [];
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            setupAuthListeners();
+            setupTabNavigation();
+            setupInteractions();
+            checkInitialAuth();
+        });
+        
+        // Auth state management
+        sb.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session);
+            
+            if (session) {
+                currentUser = session.user;
+                await handleUserLogin(session.user);
+                showMainContent();
+                await setupRealTimeSubscriptions();
+                await loadInitialData();
+            } else {
+                currentUser = null;
+                hideMainContent();
+                cleanupSubscriptions();
+            }
+        });
+        
+        async function checkInitialAuth() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await handleUserLogin(session.user);
+                showMainContent();
+                await setupRealTimeSubscriptions();
+                await loadInitialData();
+            }
+        }
+        
+        async function handleUserLogin(user) {
+            // Update UI
+            document.getElementById('user-name').textContent = user.user_metadata.full_name || user.email;
+            
+            // Upsert user profile
+            await sb.from('user_profiles').upsert({
+                id: user.id,
+                email: user.email,
+                full_name: user.user_metadata.full_name,
+                avatar_url: user.user_metadata.avatar_url,
+                status: 'online',
+                last_seen: new Date().toISOString()
+            });
+            
+            // Log login activity
+            await logActivity('login', { login_time: new Date().toISOString() });
+        }
+        
+        function setupAuthListeners() {
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                await sb.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin
+                    }
+                });
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                // Update status to offline before logout
+                if (currentUser) {
+                    await sb.from('user_profiles').update({
+                        status: 'offline',
+                        last_seen: new Date().toISOString()
+                    }).eq('id', currentUser.id);
+                }
+                await sb.auth.signOut();
+            });
+        }
+        
+        function showMainContent() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('user-section').style.display = 'block';
+            document.getElementById('main-content').style.display = 'block';
+        }
+        
+        function hideMainContent() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('user-section').style.display = 'none';
+            document.getElementById('main-content').style.display = 'none';
+        }
+        
+        // Tab navigation
+        function setupTabNavigation() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    
+                    // Remove active class from all tabs
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    btn.classList.add('active');
+                    document.getElementById(`${targetTab}-tab`).classList.add('active');
+                    
+                    // Load tab-specific data
+                    loadTabData(targetTab);
+                });
+            });
+        }
+        
+        async function loadTabData(tab) {
+            switch (tab) {
+                case 'users':
+                    await loadUsers();
+                    break;
+                case 'chat':
+                    await loadMessages();
+                    break;
+                case 'profile':
+                    await loadProfile();
+                    break;
+                case 'activities':
+                    await loadActivities();
+                    break;
+                case 'notifications':
+                    await loadNotifications();
+                    break;
+                case 'dashboard':
+                    await loadDashboard();
+                    break;
+            }
+        }
+        
+        // Real-time subscriptions
+        async function setupRealTimeSubscriptions() {
+            // Subscribe to user profiles changes
+            const profileSub = sb
+                .channel('user_profiles_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, 
+                    payload => handleUserProfileChange(payload))
+                .subscribe();
+            
+            // Subscribe to new messages
+            const messagesSub = sb
+                .channel('messages_changes')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
+                    payload => handleNewMessage(payload))
+                .subscribe();
+            
+            // Subscribe to activities
+            const activitiesSub = sb
+                .channel('activities_changes')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_activities' }, 
+                    payload => handleNewActivity(payload))
+                .subscribe();
+            
+            // Subscribe to notifications
+            const notificationsSub = sb
+                .channel('notifications_changes')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, 
+                    payload => handleNewNotification(payload))
+                .subscribe();
+            
+            subscriptions = [profileSub, messagesSub, activitiesSub, notificationsSub];
+        }
+        
+        function cleanupSubscriptions() {
+            subscriptions.forEach(sub => sub.unsubscribe());
+            subscriptions = [];
+        }
+        
+        // Event handlers for real-time updates
+        function handleUserProfileChange(payload) {
+            console.log('User profile changed:', payload);
+            if (document.querySelector('#users-tab.active')) {
+                loadUsers();
+            }
+            loadDashboard(); // Update stats
+        }
+        
+        function handleNewMessage(payload) {
+            console.log('New message:', payload);
+            if (document.querySelector('#chat-tab.active')) {
+                displayNewMessage(payload.new);
+            }
+        }
+        
+        function handleNewActivity(payload) {
+            console.log('New activity:', payload);
+            if (document.querySelector('#activities-tab.active')) {
+                loadActivities();
+            }
+            if (document.querySelector('#dashboard-tab.active')) {
+                loadDashboard();
+            }
+        }
+        
+        function handleNewNotification(payload) {
+            console.log('New notification:', payload);
+            if (payload.new.user_id === currentUser.id) {
+                showNotificationAlert(payload.new);
+                if (document.querySelector('#notifications-tab.active')) {
+                    loadNotifications();
+                }
+            }
+        }
+        
+        // Setup all interactive features
+        function setupInteractions() {
+            setupChatInteractions();
+            setupUserInteractions();
+            setupProfileInteractions();
+            setupActivityInteractions();
+            setupNotificationInteractions();
+        }
+        
+        function setupChatInteractions() {
+            const messageInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-message');
+            
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+            
+            document.getElementById('send-emoji').addEventListener('click', () => {
+                const emojis = ['😊', '👍', '❤️', '😂', '🔥', '✨', '🎉', '🚀', '💯', '👏'];
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                messageInput.value = randomEmoji;
+                sendMessage();
+            });
+            
+            document.getElementById('clear-chat').addEventListener('click', async () => {
+                if (confirm('Clear all chat messages?')) {
+                    await sb.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                    document.getElementById('chat-messages').innerHTML = '';
+                }
+            });
+        }
+        
+        function setupUserInteractions() {
+            document.getElementById('refresh-users').addEventListener('click', loadUsers);
+            document.getElementById('ping-all').addEventListener('click', async () => {
+                // Create notification for all users
+                const { data: users } = await sb.from('user_profiles').select('id');
+                
+                for (const user of users || []) {
+                    await sb.from('notifications').insert({
+                        user_id: user.id,
+                        title: '📢 Ping from ' + currentUser.user_metadata.full_name,
+                        message: 'You have been pinged!',
+                        notification_type: 'ping'
+                    });
+                }
+                
+                alert('Pinged all users!');
+            });
+        }
+        
+        function setupProfileInteractions() {
+            document.getElementById('profile-form').addEventListener('submit', updateProfile);
+            
+            document.getElementById('export-data').addEventListener('click', async () => {
+                const userData = await exportUserData();
+                downloadJSON(userData, `user-data-${currentUser.id}.json`);
+            });
+            
+            document.getElementById('delete-activities').addEventListener('click', async () => {
+                if (confirm('Delete all your activities?')) {
+                    await sb.from('user_activities').delete().eq('user_id', currentUser.id);
+                    await loadActivities();
+                }
+            });
+        }
+        
+        function setupActivityInteractions() {
+            document.getElementById('add-custom-activity').addEventListener('click', () => {
+                const activity = prompt('Enter custom activity:');
+                if (activity) {
+                    logActivity('custom', { custom_activity: activity });
+                }
+            });
+            
+            document.getElementById('generate-fake-activity').addEventListener('click', () => {
+                const activities = [
+                    'Viewed dashboard',
+                    'Updated settings',
+                    'Shared content',
+                    'Completed task',
+                    'Joined meeting'
+                ];
+                const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+                logActivity('generated', { activity: randomActivity });
+            });
+            
+            document.getElementById('activity-filter').addEventListener('change', loadActivities);
+        }
+        
+        function setupNotificationInteractions() {
+            document.getElementById('mark-all-read').addEventListener('click', async () => {
+                await sb.from('notifications').update({ is_read: true }).eq('user_id', currentUser.id);
+                await loadNotifications();
+            });
+            
+            document.getElementById('create-test-notification').addEventListener('click', async () => {
+                await sb.from('notifications').insert({
+                    user_id: currentUser.id,
+                    title: '🧪 Test Notification',
+                    message: 'This is a test notification created at ' + new Date().toLocaleString(),
+                    notification_type: 'test'
+                });
+            });
+            
+            document.getElementById('clear-notifications').addEventListener('click', async () => {
+                if (confirm('Clear all notifications?')) {
+                    await sb.from('notifications').delete().eq('user_id', currentUser.id);
+                    await loadNotifications();
+                }
+            });
+        }
+        
+        // Data loading functions
+        async function loadInitialData() {
+            await loadDashboard();
+        }
+        
+        async function loadDashboard() {
+            // Load statistics
+            const { data: users } = await sb.from('user_profiles').select('*');
+            const onlineUsers = users?.filter(u => u.status === 'online') || [];
+            
+            const { data: messages } = await sb.from('messages')
+                .select('*')
+                .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+            
+            const { data: userActivities } = await sb.from('user_activities')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            
+            document.getElementById('total-users').textContent = users?.length || 0;
+            document.getElementById('online-users').textContent = onlineUsers.length;
+            document.getElementById('messages-today').textContent = messages?.length || 0;
+            document.getElementById('user-activities-count').textContent = userActivities?.length || 0;
+            
+            // Load recent activities
+            const { data: recentActivities } = await sb
+                .from('user_activities')
+                .select(`
+                    *,
+                    user_profiles:user_id (full_name, email)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(10);
+            
+            const activityList = document.getElementById('activity-list');
+            activityList.innerHTML = '';
+            
+            recentActivities?.forEach(activity => {
+                const li = document.createElement('li');
+                const userName = activity.user_profiles?.full_name || activity.user_profiles?.email || 'Unknown';
+                li.innerHTML = `<strong>${userName}</strong>: ${activity.activity_type} - ${new Date(activity.created_at).toLocaleString()}`;
+                activityList.appendChild(li);
+            });
+        }
+        
+        async function loadUsers() {
+            const { data: users } = await sb.from('user_profiles').select('*').order('last_seen', { ascending: false });
+            
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '';
+            
+            users?.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-card';
+                
+                const statusEmoji = {
+                    'online': '🟢',
+                    'away': '🟡',
+                    'busy': '🔴',
+                    'offline': '⚫'
+                };
+                
+                userDiv.innerHTML = `
+                    <div class="user-info">
+                        <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" alt="Avatar" width="40" height="40">
+                        <div>
+                            <strong>${user.full_name || user.email}</strong>
+                            <br>
+                            ${statusEmoji[user.status]} ${user.status}
+                            <br>
+                            <small>Last seen: ${new Date(user.last_seen).toLocaleString()}</small>
+                            ${user.bio ? `<br><em>${user.bio}</em>` : ''}
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button onclick="sendNotificationToUser('${user.id}')">📧 Notify</button>
+                        ${user.id !== currentUser.id ? `<button onclick="sendPrivateMessage('${user.id}')">💬 Message</button>` : ''}
+                    </div>
+                `;
+                
+                usersList.appendChild(userDiv);
+            });
+        }
+        
+        async function loadMessages() {
+            const { data: messages } = await sb
+                .from('messages')
+                .select(`
+                    *,
+                    user_profiles:user_id (full_name, email, avatar_url)
+                `)
+                .order('created_at', { ascending: true })
+                .limit(50);
+            
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            
+            messages?.forEach(message => displayMessage(message));
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function displayMessage(message) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const userName = message.user_profiles?.full_name || message.user_profiles?.email || 'Unknown';
+            const isOwnMessage = message.user_id === currentUser.id;
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <img src="${message.user_profiles?.avatar_url || 'https://via.placeholder.com/30'}" width="30" height="30">
+                    <strong>${userName}</strong>
+                    ${isOwnMessage ? '<span class="own-message">👤</span>' : ''}
+                    <span class="timestamp">${new Date(message.created_at).toLocaleTimeString()}</span>
+                </div>
+                <div class="message-content">${message.content}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function displayNewMessage(message) {
+            displayMessage(message);
+        }
+        
+        async function loadProfile() {
+            const { data: profile } = await sb
+                .from('user_profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (profile) {
+                document.getElementById('profile-name').value = profile.full_name || '';
+                document.getElementById('profile-bio').value = profile.bio || '';
+                document.getElementById('profile-status').value = profile.status || 'online';
+            }
+        }
+        
+        async function loadActivities() {
+            const filter = document.getElementById('activity-filter').value;
+            
+            let query = sb.from('user_activities').select('*').eq('user_id', currentUser.id);
+            
+            if (filter !== 'all') {
+                query = query.eq('activity_type', filter);
+            }
+            
+            const { data: activities } = await query.order('created_at', { ascending: false });
+            
+            const activitiesList = document.getElementById('user-activities-list');
+            activitiesList.innerHTML = '';
+            
+            activities?.forEach(activity => {
+                const activityDiv = document.createElement('div');
+                activityDiv.className = 'activity-item';
+                activityDiv.innerHTML = `
+                    <div>
+                        <strong>${activity.activity_type}</strong>
+                        <span class="timestamp">${new Date(activity.created_at).toLocaleString()}</span>
+                    </div>
+                    <div>${JSON.stringify(activity.activity_data, null, 2)}</div>
+                `;
+                activitiesList.appendChild(activityDiv);
+            });
+        }
+        
+        async function loadNotifications() {
+            const { data: notifications } = await sb
+                .from('notifications')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            
+            const notificationsList = document.getElementById('notifications-list');
+            notificationsList.innerHTML = '';
+            
+            notifications?.forEach(notification => {
+                const notificationDiv = document.createElement('div');
+                notificationDiv.className = `notification ${notification.is_read ? 'read' : 'unread'}`;
+                notificationDiv.innerHTML = `
+                    <div class="notification-header">
+                        <strong>${notification.title}</strong>
+                        <span class="timestamp">${new Date(notification.created_at).toLocaleString()}</span>
+                        ${!notification.is_read ? '<span class="unread-indicator">🔴</span>' : ''}
+                    </div>
+                    <div class="notification-message">${notification.message || ''}</div>
+                    <div class="notification-actions">
+                        ${!notification.is_read ? `<button onclick="markNotificationRead('${notification.id}')">✅ Mark Read</button>` : ''}
+                        <button onclick="deleteNotification('${notification.id}')">🗑️ Delete</button>
+                    </div>
+                `;
+                notificationsList.appendChild(notificationDiv);
+            });
+        }
+        
+        // Action functions
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const content = messageInput.value.trim();
+            
+            if (!content) return;
+            
+            await sb.from('messages').insert({
+                user_id: currentUser.id,
+                content: content,
+                message_type: 'text'
+            });
+            
+            messageInput.value = '';
+            await logActivity('message', { message_length: content.length });
+        }
+        
+        async function updateProfile(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('profile-name').value;
+            const bio = document.getElementById('profile-bio').value;
+            const status = document.getElementById('profile-status').value;
+            
+            await sb.from('user_profiles').update({
+                full_name: name,
+                bio: bio,
+                status: status,
+                updated_at: new Date().toISOString()
+            }).eq('id', currentUser.id);
+            
+            await logActivity('profile_update', { 
+                updated_fields: { name, bio, status }
+            });
+            
+            alert('Profile
